@@ -1654,6 +1654,110 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('app-content').style.display = 'none';
         window.currentUser = { id: null, name: 'Unknown User', email: '' };
     }
+
+    // Sidebar navigation event listeners
+    document.getElementById('viewInventoryBtn').addEventListener('click', async () => {
+        setActiveSidebarButton('viewInventoryBtn');
+        await showSections({serializedInventory: true, bulkInventory: true});
+    });
+    document.getElementById('viewTransactionHistoryBtn').addEventListener('click', () => {
+        setActiveSidebarButton('viewTransactionHistoryBtn');
+        window.open('transactionHistory.html', '_blank');
+    });
+    document.getElementById('receiveNavBtn').addEventListener('click', async () => {
+        setActiveSidebarButton('receiveNavBtn');
+        await showSections({inventoryReceiving: true});
+    });
+    document.getElementById('bulkReceiveNavBtn').addEventListener('click', async () => {
+        setActiveSidebarButton('bulkReceiveNavBtn');
+        await showSections({bulkReceive: true});
+    });
+    document.getElementById('manageDFNsBtn').addEventListener('click', () => {
+        setActiveSidebarButton('manageDFNsBtn');
+        openTableManager('DFNS');
+    });
+    document.getElementById('manageItemTypesBtn').addEventListener('click', () => {
+        setActiveSidebarButton('manageItemTypesBtn');
+        openTableManager('ITEM_TYPES');
+    });
+    document.getElementById('manageCrewsBtn').addEventListener('click', () => {
+        setActiveSidebarButton('manageCrewsBtn');
+        openTableManager('CREWS');
+    });
+    document.getElementById('manageOthersSelect').addEventListener('change', (e) => {
+        if (e.target.value) {
+            // Clear active state from buttons since dropdown selection doesn't have a specific button
+            document.querySelectorAll('nav.sidebar button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            openTableManager(e.target.value);
+        }
+    });
+
+    // Import/Export functionality
+    document.getElementById('exportTemplateBtn').addEventListener('click', () => {
+        setActiveSidebarButton('exportTemplateBtn');
+        if (typeof window.exportTemplate === 'function') {
+            window.exportTemplate(db);
+        } else {
+            alert('Export template functionality not available');
+        }
+    });
+    
+    document.getElementById('exportInventoryBtn').addEventListener('click', () => {
+        setActiveSidebarButton('exportInventoryBtn');
+        if (typeof window.exportInventory === 'function') {
+            window.exportInventory(db);
+        } else {
+            alert('Export inventory functionality not available');
+        }
+    });
+    
+    document.getElementById('importExcelBtn').addEventListener('click', () => {
+        setActiveSidebarButton('importExcelBtn');
+        if (typeof window.importFromExcel === 'function') {
+            window.importFromExcel(db);
+        } else {
+            alert('Import Excel functionality not available');
+        }
+    });
+
+    document.querySelectorAll('.accordion-header').forEach(header => {
+        header.addEventListener('click', function() {
+            // Disabled toggle functionality - sections stay open
+            // const section = this.parentElement;
+            // section.classList.toggle('active');
+        });
+    });
+
+    // Sub-accordion functionality
+    document.querySelectorAll('.sub-accordion-header').forEach(header => {
+        header.addEventListener('click', function() {
+            const content = this.nextElementSibling;
+            const isActive = content.classList.contains('active');
+            
+            // Close all sub-accordion sections in the same parent
+            const parentSection = this.closest('.receive-form-section');
+            if (parentSection) {
+                parentSection.querySelectorAll('.sub-accordion-content').forEach(c => {
+                    c.classList.remove('active');
+                });
+                parentSection.querySelectorAll('.sub-accordion-header').forEach(h => {
+                    h.classList.remove('active');
+                });
+            }
+            
+            // Open clicked section if it wasn't already active
+            if (!isActive) {
+                content.classList.add('active');
+                this.classList.add('active');
+            }
+        });
+    });
+
+
+    
+    
 });
 
 async function runFullInitialization() {
@@ -1700,13 +1804,56 @@ async function runFullInitialization() {
         setActiveSidebarButton('viewInventoryBtn');
         refreshAllTables();
 
+        // Populate Manage Others dropdown with remaining lookup tables
+        const managedTables = ['dfns','item_types','crews'];
+        const allTables = window.getTableNames(db);
+        const othersSelect = document.getElementById('manageOthersSelect');
+        allTables.filter(t => !managedTables.includes(t)).forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t;
+            opt.textContent = t;
+            othersSelect.appendChild(opt);
+        });
+
+        // Set initial view - Show View Inventory section by default
+        await showSections({serializedInventory: true, bulkInventory: true});     
+
     } catch (error) {
         console.error('Error during full initialization:', error);
     }
 }
 
 // --- Helper Functions ---
+// Section visibility control
+async function showSections({serializedInventory=false, inventoryReceiving=false, bulkInventory=false, bulkReceive=false}) {
+    const inventoryAccordion = document.getElementById('inventoryAccordion');
+    if (inventoryAccordion) {
+        inventoryAccordion.classList.toggle('active', serializedInventory);
+    }
+    const receiveAccordion = document.getElementById('receiveAccordion');
+    if (receiveAccordion) {
+        receiveAccordion.classList.toggle('active', inventoryReceiving);
+    }
+    const bulkInventoryAccordion = document.getElementById('bulkInventoryAccordion');
+    if (bulkInventoryAccordion) {
+        bulkInventoryAccordion.classList.toggle('active', bulkInventory);
+    }
+    const bulkReceiveAccordion = document.getElementById('bulkReceiveAccordion');
+    if (bulkReceiveAccordion) {
+        bulkReceiveAccordion.classList.toggle('active', bulkReceive);
+    }
 
+    // Load inventory table when serialized inventory section is shown
+    if (serializedInventory && db) {
+        loadInventoryList();
+    }
+
+    // Load bulk inventory when bulk inventory section is shown  
+    if (bulkInventory && db) {
+        loadBulkInventoryList();
+    }
+}
+F
 function populateAllDropdowns() {
     const lookups = {
         location_id: getCachedTable('locations').map(row => [row.id, row.name]),
@@ -4026,6 +4173,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
