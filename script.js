@@ -1507,30 +1507,26 @@ function formatNumberWithCommas(num) {
 
 
 /**
- * Get the current sort configuration from config table
+ * Get the current sort configuration from localStorage (per user)
  * @returns {Object} - {column: string, direction: 'ASC'|'DESC'}
  */
-async function getInventorySortconfig() {
+function getInventorySortconfig() {
+    // Try to get from localStorage
+    let config = null;
     try {
-        const { data, error } = await supabase
-            .from('config')
-            .select('value')
-            .eq('key', 'inventory_sort')
-            .single();
-
-        if (error) {
-            console.error('Supabase error getting sort config:', error);
-            return { column: "l.name", direction: "ASC" };
-        }
-
-        if (data && data.value) {
-            return JSON.parse(data.value);
-        }
-        return { column: "l.name", direction: "ASC" }; // Default sort
-    } catch (error) {
-        console.error('Error getting sort config:', error);
-        return { column: "l.name", direction: "ASC" };
+        const raw = localStorage.getItem('inventory_sort_config');
+        if (raw) config = JSON.parse(raw);
+    } catch (e) {
+        console.warn('Could not parse inventory_sort_config from localStorage:', e);
     }
+    // If not set, use default or no sort
+    if (!config || !config.column || !config.direction) {
+        // Default: sort by item name ascending
+        return { column: "it.name", direction: "ASC" };
+        // Or: return null to skip sorting
+        // return null;
+    }
+    return config;
 }
 
 /**
@@ -1555,12 +1551,17 @@ async function saveInventorySortconfig(column, direction) {
 }
 
 /**
- * Alternative name for saving sort configuration (alias)
- * @param {string} column - Column to sort by  
+ * Save the sort configuration to localStorage (per user)
+ * @param {string} column - Column to sort by
  * @param {string} direction - 'ASC' or 'DESC'
  */
 function setInventorySortconfig(column, direction) {
-    saveInventorySortconfig(column, direction);
+    try {
+        const config = JSON.stringify({ column, direction });
+        localStorage.setItem('inventory_sort_config', config);
+    } catch (e) {
+        console.error('Error saving inventory_sort_config to localStorage:', e);
+    }
 }
 
 /**
@@ -1589,11 +1590,24 @@ function refreshAllTables() {
 
 /**
  * Get the ORDER BY clause for inventory query
- * @returns {string} - ORDER BY clause
+ * @returns {string} - ORDER BY clause or empty string
  */
 function getInventoryOrderBy() {
     const config = getInventorySortconfig();
-    return `ORDER BY ${config.column} ${config.direction}`;
+    if (config && config.column && config.direction) {
+        return `ORDER BY ${config.column} ${config.direction}`;
+    }
+    return ''; // No sort order set
+}/**
+ * Get the ORDER BY clause for inventory query
+ * @returns {string} - ORDER BY clause or empty string
+ */
+function getInventoryOrderBy() {
+    const config = getInventorySortconfig();
+    if (config && config.column && config.direction) {
+        return `ORDER BY ${config.column} ${config.direction}`;
+    }
+    return ''; // No sort order set
 }
 
 
@@ -4315,6 +4329,7 @@ async function prepareInventoryData(rawData, action = 'receive') {
         itemTypeInfo: itemTypeInfo
     };
 }
+
 
 
 
