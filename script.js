@@ -2032,15 +2032,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateSerializedIssueButtons();
         });
 
-
-        // Helper to check if item type is serialized
-        async function isSerializedType(itemTypeId) {
-            if (!itemTypeId) return false;
-            const itemTypeInfo = getItemTypeInfo(itemTypeId);
-            return itemTypeInfo.isSerializedType;
-        }
-
-
         document.querySelectorAll('.accordion-subheader').forEach(header => {
             header.setAttribute('aria-expanded', 'false'); // Ensure collapsed by default
             header.addEventListener('click', function() {
@@ -2208,15 +2199,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             showMultiSerializedIssueModal(selectedSerializedForIssue);
             updateSerializedIssueButtons();
         });
-
-
-        // Helper to check if item type is serialized
-        async function isSerializedType(itemTypeId) {
-            if (!itemTypeId) return false;
-            const itemTypeInfo = getItemTypeInfo(itemTypeId);
-            return itemTypeInfo.isSerializedType;
-        }
-
 
         document.querySelectorAll('.accordion-subheader').forEach(header => {
             header.setAttribute('aria-expanded', 'false'); // Ensure collapsed by default
@@ -4275,6 +4257,7 @@ async function setCurrentUserFromSupabase() {
         }
     }
 }
+
 
 
 
