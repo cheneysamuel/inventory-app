@@ -32,7 +32,7 @@ const buttonRequirements = {
 // anon/public key for client-side access - REPLACE with your actual key
 const supabaseUrl = 'https://jhvtntafqbhmuseqmwns.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodnRudGFmcWJobXVzZXFtd25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1NzM4NjQsImV4cCI6MjA3NTE0OTg2NH0.Gu6M3ewKrc1qv5tbpHd6CeFawRDQJnw5PYSrWK-QjWU';
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 
 async function testSupabaseAuth() {
@@ -4207,6 +4207,7 @@ async function setCurrentUserFromSupabase() {
         }
     }
 }
+
 
 
 
