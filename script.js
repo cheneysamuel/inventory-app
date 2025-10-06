@@ -91,7 +91,7 @@ async function cacheLookupTables() {
         return;
     }
     for (const table of LOOKUP_TABLES) {
-        const { data, error } = await supabase.from(table.toUpperCase()).select('*');
+        const { data, error } = await supabase.from(table).select('*');
         window.lookupCache[table] = error ? [] : (data || []);
     }
 }
@@ -961,9 +961,12 @@ async function loadInventoryList(loadIt = true) {
  * Load and display serialized inventory in hierarchical format (items with serial numbers)
  */
 async function loadSerializedInventoryList() {
-
     if (!isUserLoggedIn()) {
         console.warn('User not logged in. Skipping Supabase call.');
+        return;
+    }
+    if (!window.selectedSlocId) {
+        console.warn('No SLOC selected. Skipping serialized inventory query.');
         return;
     }
     try {
@@ -1211,9 +1214,12 @@ async function createSerializedInventoryHierarchy(data) {
  * Load and display bulk inventory (items without serial numbers)
  */
 async function loadBulkInventoryList() {
-
     if (!isUserLoggedIn()) {
         console.warn('User not logged in. Skipping Supabase call.');
+        return;
+    }
+    if (!window.selectedSlocId) {
+        console.warn('No SLOC selected. Skipping bulk inventory query.');
         return;
     }
     try {
@@ -3941,6 +3947,7 @@ function populateManageOthersDropdown() {
         dropdown.appendChild(option);
     });
 }
+
 
 
 
