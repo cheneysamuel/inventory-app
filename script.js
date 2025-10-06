@@ -2056,24 +2056,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         // END BULK RECEIVE INITIALIZATION
         // ============================================================================
 
-        // Helper function to highlight active sidebar button
-        function setActiveSidebarButton(activeButtonId) {
-            // Remove active class from all sidebar buttons
-            document.querySelectorAll('nav.sidebar button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            // Add active class to the clicked button
-            const activeButton = document.getElementById(activeButtonId);
-            if (activeButton) {
-                activeButton.classList.add('active');
-            }
-        }
-
-
-        // Make the function globally accessible for other modules
-        window.setActiveSidebarButton = setActiveSidebarButton;
-
         // Sidebar navigation event listeners
         document.getElementById('viewInventoryBtn').addEventListener('click', async () => {
             setActiveSidebarButton('viewInventoryBtn');
@@ -4227,6 +4209,7 @@ async function setCurrentUserFromSupabase() {
         }
     }
 }
+
 
 
 
