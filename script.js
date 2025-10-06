@@ -508,6 +508,10 @@ async function processInventoryInsertion(inventoryData, action) {
  * @returns {Array<Object>} - Array of bulk item types
  */
 async function getBulkItemTypes() {
+    if (!isUserLoggedIn()) {
+        console.warn('User not logged in. Skipping Supabase call.');
+        return;
+    }
     const res = await supabase
         .from('item_types')
         .select(`
@@ -4311,6 +4315,7 @@ async function prepareInventoryData(rawData, action = 'receive') {
         itemTypeInfo: itemTypeInfo
     };
 }
+
 
 
 
