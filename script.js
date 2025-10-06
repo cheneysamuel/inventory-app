@@ -1594,641 +1594,253 @@ function resetSerializedIssueProcess() {
 
 // Event listener for DOM content loaded
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🚀 DOM content loaded, starting FULL initialization sequence...');
+    // Minimal setup: login/logout listeners
+    document.getElementById('login-button').addEventListener('click', async () => {
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+            document.getElementById('login-error').textContent = error.message;
+        } else {
+            document.getElementById('login-container').style.display = 'none';
+            document.getElementById('app-content').style.display = '';
+            location.reload();
+        }
+    });
+
+    document.getElementById('logout-button').addEventListener('click', async () => {
+        await supabase.auth.signOut();
+        location.reload();
+    });
+
+    // Check login status and run full initialization only if logged in
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+        document.getElementById('login-container').style.display = 'none';
+        document.getElementById('app-content').style.display = '';
+        window.currentUser = {
+            id: user.id,
+            name: user.user_metadata?.full_name || user.email || 'Unknown User',
+            email: user.email
+        };
+        await runFullInitialization();
+    } else {
+        document.getElementById('login-container').style.display = '';
+        document.getElementById('app-content').style.display = 'none';
+        window.currentUser = { id: null, name: 'Unknown User', email: '' };
+    }
+});
+
+async function runFullInitialization() {
     try {
-        // Populate SLOC selection dropdowns:
+        // Sidebar dropdowns
         await initializeClientMarketSlocDropdowns();
-
-        // display SLOC value
         displaySlocValue();
-
-        // set current user from Supabase auth
-        setCurrentUserFromSupabase();
-
+        await setCurrentUserFromSupabase();
         await cacheLookupTables();
-
         populateManageOthersDropdown();
-
-        // Initialize transaction logger for audit trail
         window.transactionLogger = new TransactionLogger();
 
-        // On page load, check if user is signed in
-        supabase.auth.getUser().then(({ data: { user } }) => {
-            if (user) {
-                document.getElementById('login-container').style.display = 'none';
-                document.getElementById('app-content').style.display = '';
-                console.log('User is signed in:', user.email);
-            } else {
-                document.getElementById('login-container').style.display = '';
-                document.getElementById('app-content').style.display = 'none';
-                console.log('No user signed in');
-            }
-        });
-
-        // for login functions
-        document.getElementById('login-button').addEventListener('click', async () => {
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) {
-                document.getElementById('login-error').textContent = error.message;
-            } else {
-                document.getElementById('login-container').style.display = 'none';
-                document.getElementById('app-content').style.display = '';
-                // Optionally reload or initialize your app here
-                location.reload();
-            }
-        });
-        
-        // Load lookups for inventory form
-        const lookups = {
-            location_id: getCachedTable('locations').map(row => [row.id, row.name]),
-            assigned_crew_id: getCachedTable('crews').map(row => [row.id, row.name]),
-            dfn_id: getCachedTable('dfns').map(row => [row.id, row.name]),
-            item_type_id: getCachedTable('item_types').map(row => [row.id, row.name]),
-            status_id: getCachedTable('statuses').map(row => [row.id, row.name])
-        };
-
-        document.getElementById('logout-button').addEventListener('click', async () => {
-            await supabase.auth.signOut();
-            location.reload();
-        });
-        
-        // Create global function to refresh dropdowns
-        window.refreshDropdowns = async function() {
-            // Reload lookups from cache
-            const updatedLookups = {
-                location_id: getCachedTable('locations').map(row => [row.id, row.name]),
-                assigned_crew_id: getCachedTable('crews').filter(row => row.market_id == window.selectedMarketId || row.market_id == null).map(row => [row.id, row.name]),
-                dfn_id: getCachedTable('dfns').filter(row => row.sloc_id == window.selectedSlocId || row.sloc_id == null).map(row => [row.id, row.name]),
-                item_type_id: getCachedTable('item_types').filter(row => row.market_id == window.selectedMarketId || row.market_id == null).map(row => [row.id, row.name]),
-                status_id: getCachedTable('statuses').map(row => [row.id, row.name])
-            };
-            
-            // Clear and repopulate all dropdowns
-            ['location_id', 'assigned_crew_id', 'dfn_id', 'item_type_id'].forEach(field => {
-                const selects = document.querySelectorAll(`select[name="${field}"]:not(#bulkSerializedItemType)`);
-                selects.forEach((select, index) => {
-                    if (select && updatedLookups[field] && Array.isArray(updatedLookups[field])) {
-                        // Save current value
-                        const currentValue = select.value;
-                        
-                        // Clear existing options (except the first one which is usually the placeholder)
-                        const placeholder = select.firstElementChild;
-                        select.innerHTML = '';
-                        if (placeholder && placeholder.textContent.includes('Select')) {
-                            select.appendChild(placeholder);
-                        } else {
-                            // Add default placeholder if none exists
-                            const defaultOption = document.createElement('option');
-                            defaultOption.value = '';
-                            defaultOption.textContent = `Select ${field.replace('_id', '').replace('_', ' ')}`;
-                            select.appendChild(defaultOption);
-                        }
-                        
-                        // Add new options
-                        updatedLookups[field].forEach(([id, label]) => {
-                            const option = document.createElement('option');
-                            option.value = id;
-                            option.textContent = label || id;
-                            select.appendChild(option);
-                        });
-                        
-                        // Restore value if it still exists
-                        if (currentValue && select.querySelector(`option[value="${currentValue}"]`)) {
-                            select.value = currentValue;
-                        }
-                    }
-                });
-            });
-            
-            // Also refresh bulk receive dropdowns
-            const bulkCrewSelect = document.getElementById('bulk_assigned_crew_id');
-            console.log('Refreshing bulk crew dropdown:', bulkCrewSelect);
-            if (bulkCrewSelect && updatedLookups.assigned_crew_id && Array.isArray(updatedLookups.assigned_crew_id)) {
-                console.log('Updating Crew dropdown');
-                const currentValue = bulkCrewSelect.value;
-                bulkCrewSelect.innerHTML = '<option value="">Select Crew</option>';
-                updatedLookups.assigned_crew_id.forEach(([id, label]) => {
-                    const option = document.createElement('option');
-                    option.value = id;
-                    option.textContent = label || id;
-                    bulkCrewSelect.appendChild(option);
-                });
-                if (currentValue && bulkCrewSelect.querySelector(`option[value="${currentValue}"]`)) {
-                    bulkCrewSelect.value = currentValue;
-                }
-            }
-            
-            const bulkDfnSelect = document.getElementById('bulk_dfn_id');
-            if (bulkDfnSelect && updatedLookups.dfn_id && Array.isArray(updatedLookups.dfn_id)) {
-                console.log('Updating DFN dropdown');
-                const currentValue = bulkDfnSelect.value;
-                bulkDfnSelect.innerHTML = '<option value="">Select DFN</option>';
-                updatedLookups.dfn_id.forEach(([id, label]) => {
-                    const option = document.createElement('option');
-                    option.value = id;
-                    option.textContent = label || id;
-                    bulkDfnSelect.appendChild(option);
-                });
-                if (currentValue && bulkDfnSelect.querySelector(`option[value="${currentValue}"]`)) {
-                    bulkDfnSelect.value = currentValue;
-                }
-            }
-        };
-        
         // Populate initial dropdowns
-        ['location_id', 'assigned_crew_id', 'dfn_id', 'item_type_id'].forEach(field => {
-            const select = document.querySelector(`select[name="${field}"]`);
-            
-            if (select && lookups[field] && Array.isArray(lookups[field])) {
-                lookups[field].forEach(([id, label]) => {
-                    const option = document.createElement('option');
-                    option.value = id;
-                    option.textContent = label || id;
-                    select.appendChild(option);
-                });
-            }
-        });
+        populateAllDropdowns();
 
-        // Load both inventory tables using our new dual-table functions
+        // Inventory and bulk tables
         await loadSerializedInventoryList();
         await loadBulkInventoryList();
 
-
-        // Quantity input: allow only digits
-        function enforceDigitsOnly(inputEl) {
-            // Prevent non-digit key presses
-            inputEl.addEventListener('keydown', function(e) {
-                // Allow: backspace, delete, tab, escape, enter, arrows, home, end
-                if (
-                    [8, 9, 13, 27, 46, 37, 38, 39, 40, 35, 36].includes(e.keyCode) ||
-                    // Allow: Ctrl/cmd+A/C/V/X/Z
-                    ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x', 'z'].includes(e.key.toLowerCase()))
-                ) {
-                    return;
-                }
-                // Block if not a digit
-                if (!/^\d$/.test(e.key)) {
-                    e.preventDefault();
-                }
-            });
-            // Clean up pasted or programmatically set values
-            inputEl.addEventListener('input', function () {
-                this.value = this.value.replace(/\D/g, '');
-            });
-        }
-
-        document.getElementById('beginSerializedIssueBtn').addEventListener('click', () => {
-            serializedIssueState = 'selecting';
-            selectedSerializedForIssue = [];
-            document.getElementById('serializedIssueSelectionInstructions').style.display = '';
-            document.getElementById('completeSerializedIssueBtn').style.display = '';
-            document.getElementById('cancelSerializedIssueBtn').style.display = '';
-            updateSelectedSerializedForIssueDisplay();
-            showOnlyAvailableSerializedItems();
-            updateSerializedIssueButtons();
-            document.querySelectorAll('.inventory-item-row').forEach(row => {
-                row.classList.add('selectable-for-issue');
-            });
-        });
-
-        document.getElementById('cancelSerializedIssueBtn').addEventListener('click', () => {
-            resetSerializedIssueProcess();
-        });
-
-        document.getElementById('completeSerializedIssueBtn').addEventListener('click', () => {
-            if (selectedSerializedForIssue.length === 0) {
-                alert('Select at least one item to issue.');
-                return;
-            }
-            serializedIssueState = 'confirming';
-            // showSerializedIssueModal();
-            showMultiSerializedIssueModal(selectedSerializedForIssue);
-            updateSerializedIssueButtons();
-        });
-
-
-        // Helper to check if item type is serialized
-        async function isSerializedType(itemTypeId) {
-            if (!itemTypeId) return false;
-            const itemTypeInfo = getItemTypeInfo(itemTypeId);
-            return itemTypeInfo.isSerializedType;
-        }
-
-
-        document.querySelectorAll('.accordion-subheader').forEach(header => {
-            header.setAttribute('aria-expanded', 'false'); // Ensure collapsed by default
-            header.addEventListener('click', function() {
-                const expanded = this.getAttribute('aria-expanded') === 'true';
-                // Collapse all
-                document.querySelectorAll('.accordion-subheader').forEach(h => h.setAttribute('aria-expanded', 'false'));
-                // Expand this one if it was closed
-                if (!expanded) this.setAttribute('aria-expanded', 'true');
-            });
-            header.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    this.click();
-                }
-            });
-        });
-
-
-
         window.refreshDropdowns();
         populateBulkSerializedDropdowns();
 
-        // ============================================================================
-        // BULK RECEIVE INITIALIZATION
-        // ============================================================================
-
-        // Set up bulk receive form
-        const bulkForm = document.getElementById('bulkReceiveForm');
-
-        if (bulkForm) {
-
-            // Populate bulk crew dropdown
-            const bulkCrewSelect = document.getElementById('bulk_assigned_crew_id');
-            if (bulkCrewSelect) {
-                bulkCrewSelect.innerHTML = '<option value="">Select Crew</option>';
-                let crewData = getCachedTable('crews');
-                if (window.selectedMarketId) {
-                    crewData = crewData.filter(row => row.market_id == window.selectedMarketId);
-                }
-                crewData = crewData.map(row => [row.id, row.name]);
-                if (Array.isArray(crewData)) {
-                    crewData.forEach(([id, label]) => {
-                        const option = document.createElement('option');
-                        option.value = id;
-                        option.textContent = label || id;
-                        bulkCrewSelect.appendChild(option);
-                    });
-                }
-            }
-
-            // populate bulk issue crew dropdown
-            const bulkIssueCrewSelect = document.getElementById('bulk_issue_assigned_crew_id');
-            if (bulkIssueCrewSelect) {
-                bulkIssueCrewSelect.innerHTML = '<option value="">Select Crew</option>';
-                let crewData = getCachedTable('crews');
-                if (window.selectedMarketId) {
-                    crewData = crewData.filter(row => row.market_id == window.selectedMarketId);
-                }
-                crewData = crewData.map(row => [row.id, row.name]);
-                if (Array.isArray(crewData)) {
-                    crewData.forEach(([id, label]) => {
-                        const option = document.createElement('option');
-                        option.value = id;
-                        option.textContent = label || id;
-                        bulkIssueCrewSelect.appendChild(option);
-                    });
-                }
-            }
-
-            // Populate bulk DFN dropdown
-            const bulkDfnSelect = document.getElementById('bulk_dfn_id');
-            if (bulkDfnSelect) {
-                bulkDfnSelect.innerHTML = '<option value="">Select DFN</option>';
-                const dfnData = getCachedTable('dfns').filter(row => row.sloc_id == window.selectedSlocId || row.sloc_id == null).map(row => [row.id, row.name]);
-                if (Array.isArray(dfnData)) {
-                    dfnData.forEach(([id, label]) => {
-                        const option = document.createElement('option');
-                        option.value = id;
-                        option.textContent = label || id;
-                        bulkDfnSelect.appendChild(option);
-                    });
-                }
-            }
-
-            // Generate and append bulk item types table
-            const bulkTableContainer = document.getElementById('bulkItemTypesTable');
-            if (bulkTableContainer) {
-                const bulkTable = await generateBulkItemTypesTable();
-                bulkTableContainer.appendChild(bulkTable);
-            }
-
-            // Add event listeners for bulk form fields
-            bulkForm.querySelectorAll('input, select').forEach(el => {
-                el.addEventListener('input', updateBulkButtonStates);
-                el.addEventListener('change', updateBulkButtonStates);
-            });
-
-
-            // Initial bulk button state update
-            updateBulkButtonStates();
-
-            // NOTE: Button event handlers are set up in initializeBulkReceiving() function
-            console.log('Bulk form after setup:', bulkForm);
-        }
-
-        // ============================================================================
-        // END BULK RECEIVE INITIALIZATION
-        // ============================================================================
-
-        // Section visibility control
-        async function showSections({serializedInventory=false, inventoryReceiving=false, bulkInventory=false, bulkReceive=false}) {
-            console.log("showSections called...");
-            const inventoryAccordion = document.getElementById('inventoryAccordion');
-            if (inventoryAccordion) {
-                inventoryAccordion.classList.toggle('active', serializedInventory);
-            }
-            const receiveAccordion = document.getElementById('receiveAccordion');
-            if (receiveAccordion) {
-                receiveAccordion.classList.toggle('active', inventoryReceiving);
-            }
-            const bulkInventoryAccordion = document.getElementById('bulkInventoryAccordion');
-            if (bulkInventoryAccordion) {
-                bulkInventoryAccordion.classList.toggle('active', bulkInventory);
-            }
-            const bulkReceiveAccordion = document.getElementById('bulkReceiveAccordion');
-            if (bulkReceiveAccordion) {
-                bulkReceiveAccordion.classList.toggle('active', bulkReceive);
-            }
-
-            // Load inventory table when serialized inventory section is shown
-            if (serializedInventory) {
-                loadInventoryList();
-            }
-
-            // Load bulk inventory when bulk inventory section is shown  
-            if (bulkInventory) {
-                loadBulkInventoryList();
-            }
-        }
-
-        // Helper function to highlight active sidebar button
-        function setActiveSidebarButton(activeButtonId) {
-            // Remove active class from all sidebar buttons
-            document.querySelectorAll('nav.sidebar button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            // Add active class to the clicked button
-            const activeButton = document.getElementById(activeButtonId);
-            if (activeButton) {
-                activeButton.classList.add('active');
-            }
-        }
-
-
-        // Make the function globally accessible for other modules
-        window.setActiveSidebarButton = setActiveSidebarButton;
+        // Bulk receive form setup
+        setupBulkForms();
 
         // Sidebar navigation event listeners
-        document.getElementById('viewInventoryBtn').addEventListener('click', async () => {
-            setActiveSidebarButton('viewInventoryBtn');
-            await showSections({serializedInventory: true, bulkInventory: true});
-        });
-        document.getElementById('viewTransactionHistoryBtn').addEventListener('click', () => {
-            setActiveSidebarButton('viewTransactionHistoryBtn');
-            window.open('transactionHistory.html', '_blank');
-        });
-        document.getElementById('receiveNavBtn').addEventListener('click', async () => {
-            console.log('Receive button clicked');
-            setActiveSidebarButton('receiveNavBtn');
-            await showSections({inventoryReceiving: true});
-        });
-        document.getElementById('bulkReceiveNavBtn').addEventListener('click', async () => {
-            setActiveSidebarButton('bulkReceiveNavBtn');
-            await showSections({bulkReceive: true});
-        });
-        document.getElementById('manageDFNsBtn').addEventListener('click', () => {
-            setActiveSidebarButton('manageDFNsBtn');
-            openTableManager('dfns');
-        });
-        document.getElementById('manageItemTypesBtn').addEventListener('click', () => {
-            setActiveSidebarButton('manageItemTypesBtn');
-            openTableManager('item_types');
-        });
-        document.getElementById('manageCrewsBtn').addEventListener('click', () => {
-            setActiveSidebarButton('manageCrewsBtn');
-            openTableManager('crews');
-        });
-        document.getElementById('manageOthersSelect').addEventListener('change', (e) => {
-            if (e.target.value) {
-                // Clear active state from buttons since dropdown selection doesn't have a specific button
-                document.querySelectorAll('nav.sidebar button').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                openTableManager(e.target.value);
-            }
-        });
+        setupSidebarNavigation();
 
         // Import/Export functionality
-        document.getElementById('exportTemplateBtn').addEventListener('click', () => {
-            setActiveSidebarButton('exportTemplateBtn');
-            if (typeof window.exportTemplate === 'function') {
-                window.exportTemplate();
-            } else {
-                alert('Export template functionality not available');
-            }
-        });
-        
-        document.getElementById('exportInventoryBtn').addEventListener('click', () => {
-            setActiveSidebarButton('exportInventoryBtn');
-            if (typeof window.exportInventory === 'function') {
-                window.exportInventory();
-            } else {
-                alert('Export inventory functionality not available');
-            }
-        });
-        
-        document.getElementById('importExcelBtn').addEventListener('click', () => {
-            setActiveSidebarButton('importExcelBtn');
-            if (typeof window.importFromExcel === 'function') {
-                window.importFromExcel();
-            } else {
-                alert('Import Excel functionality not available');
-            }
-        });
+        setupImportExportButtons();
 
-        document.getElementById('beginSerializedIssueBtn').addEventListener('click', () => {
-            serializedIssueState = 'selecting';
-            selectedSerializedForIssue = [];
-            document.getElementById('serializedIssueSelectionInstructions').style.display = '';
-            document.getElementById('completeSerializedIssueBtn').style.display = '';
-            document.getElementById('cancelSerializedIssueBtn').style.display = '';
-            updateSelectedSerializedForIssueDisplay();
-            showOnlyAvailableSerializedItems();
-            updateSerializedIssueButtons();
-            document.querySelectorAll('.inventory-item-row').forEach(row => {
-                row.classList.add('selectable-for-issue');
-            });
-        });
+        // Accordion and other UI listeners
+        setupAccordionListeners();
 
-        document.getElementById('cancelSerializedIssueBtn').addEventListener('click', () => {
-            resetSerializedIssueProcess();
-        });
+        // Serialized Issue buttons
+        setupSerializedIssueButtons();
 
-        document.getElementById('completeSerializedIssueBtn').addEventListener('click', () => {
-            if (selectedSerializedForIssue.length === 0) {
-                alert('Select at least one item to issue.');
-                return;
-            }
-            serializedIssueState = 'confirming';
-            // showSerializedIssueModal();
-            showMultiSerializedIssueModal(selectedSerializedForIssue);
-            updateSerializedIssueButtons();
-        });
-
-        document.querySelectorAll('.accordion-subheader').forEach(header => {
-            header.setAttribute('aria-expanded', 'false'); // Ensure collapsed by default
-            header.addEventListener('click', function() {
-                const expanded = this.getAttribute('aria-expanded') === 'true';
-                // Collapse all
-                document.querySelectorAll('.accordion-subheader').forEach(h => h.setAttribute('aria-expanded', 'false'));
-                // Expand this one if it was closed
-                if (!expanded) this.setAttribute('aria-expanded', 'true');
-            });
-            header.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    this.click();
-                }
-            });
-        });
-
-        window.refreshDropdowns();
-        populateBulkSerializedDropdowns();
-
-        // ============================================================================
-        // END BULK RECEIVE INITIALIZATION
-        // ============================================================================
-
-        // Sidebar navigation event listeners
-        document.getElementById('viewInventoryBtn').addEventListener('click', async () => {
-            setActiveSidebarButton('viewInventoryBtn');
-            await showSections({serializedInventory: true, bulkInventory: true});
-        });
-        document.getElementById('viewTransactionHistoryBtn').addEventListener('click', () => {
-            setActiveSidebarButton('viewTransactionHistoryBtn');
-            window.open('transactionHistory.html', '_blank');
-        });
-        document.getElementById('receiveNavBtn').addEventListener('click', async () => {
-            setActiveSidebarButton('receiveNavBtn');
-            await showSections({inventoryReceiving: true});
-        });
-        document.getElementById('bulkReceiveNavBtn').addEventListener('click', async () => {
-            setActiveSidebarButton('bulkReceiveNavBtn');
-            await showSections({bulkReceive: true});
-        });
-        document.getElementById('manageDFNsBtn').addEventListener('click', () => {
-            setActiveSidebarButton('manageDFNsBtn');
-            openTableManager('dfns');
-        });
-        document.getElementById('manageItemTypesBtn').addEventListener('click', () => {
-            setActiveSidebarButton('manageItemTypesBtn');
-            openTableManager('item_types');
-        });
-        document.getElementById('manageCrewsBtn').addEventListener('click', () => {
-            setActiveSidebarButton('manageCrewsBtn');
-            openTableManager('crews');
-        });
-        document.getElementById('manageOthersSelect').addEventListener('change', (e) => {
-            if (e.target.value) {
-                // Clear active state from buttons since dropdown selection doesn't have a specific button
-                document.querySelectorAll('nav.sidebar button').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                openTableManager(e.target.value);
-            }
-        });
-
-        // Import/Export functionality
-        document.getElementById('exportTemplateBtn').addEventListener('click', () => {
-            setActiveSidebarButton('exportTemplateBtn');
-            if (typeof window.exportTemplate === 'function') {
-                window.exportTemplate();
-            } else {
-                alert('Export template functionality not available');
-            }
-        });
-        
-        document.getElementById('exportInventoryBtn').addEventListener('click', () => {
-            setActiveSidebarButton('exportInventoryBtn');
-            if (typeof window.exportInventory === 'function') {
-                window.exportInventory();
-            } else {
-                alert('Export inventory functionality not available');
-            }
-        });
-        
-        document.getElementById('importExcelBtn').addEventListener('click', () => {
-            setActiveSidebarButton('importExcelBtn');
-            if (typeof window.importFromExcel === 'function') {
-                window.importFromExcel();
-            } else {
-                alert('Import Excel functionality not available');
-            }
-        });
-
-        document.getElementById('beginSerializedIssueBtn').addEventListener('click', () => {
-            serializedIssueState = 'selecting';
-            selectedSerializedForIssue = [];
-            document.getElementById('serializedIssueSelectionInstructions').style.display = '';
-            document.getElementById('completeSerializedIssueBtn').style.display = '';
-            document.getElementById('cancelSerializedIssueBtn').style.display = '';
-            updateSelectedSerializedForIssueDisplay();
-            showOnlyAvailableSerializedItems();
-            updateSerializedIssueButtons();
-            document.querySelectorAll('.inventory-item-row').forEach(row => {
-                row.classList.add('selectable-for-issue');
-            });
-        });
-
-        document.getElementById('cancelSerializedIssueBtn').addEventListener('click', () => {
-            resetSerializedIssueProcess();
-        });
-
-        document.getElementById('completeSerializedIssueBtn').addEventListener('click', () => {
-            if (selectedSerializedForIssue.length === 0) {
-                alert('Select at least one item to issue.');
-                return;
-            }
-            serializedIssueState = 'confirming';
-            // showSerializedIssueModal();
-            showMultiSerializedIssueModal(selectedSerializedForIssue);
-            updateSerializedIssueButtons();
-        });
-
-        document.querySelectorAll('.accordion-subheader').forEach(header => {
-            header.setAttribute('aria-expanded', 'false'); // Ensure collapsed by default
-            header.addEventListener('click', function() {
-                const expanded = this.getAttribute('aria-expanded') === 'true';
-                // Collapse all
-                document.querySelectorAll('.accordion-subheader').forEach(h => h.setAttribute('aria-expanded', 'false'));
-                // Expand this one if it was closed
-                if (!expanded) this.setAttribute('aria-expanded', 'true');
-            });
-            header.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    this.click();
-                }
-            });
-        });
-
-        // Initialize item type history functionality
+        // Item type history and bulk receiving
         initializeItemTypeHistory();
-
-        // Initialize bulk serialized receiving functionality
         initializeBulkSerializedReceiving();
-
-        // Initialize bulk receiving functionality
         initializeBulkReceiving();
 
         // Set initial active button (default to View Inventory)
         setActiveSidebarButton('viewInventoryBtn');
-
         refreshAllTables();
 
-        // Initial schema log
-        //window.logSchema(db);
     } catch (error) {
-        console.error('Error during initialization:', error);
+        console.error('Error during full initialization:', error);
     }
-});
+}
+
+// --- Helper Functions ---
+
+function populateAllDropdowns() {
+    const lookups = {
+        location_id: getCachedTable('locations').map(row => [row.id, row.name]),
+        assigned_crew_id: getCachedTable('crews').map(row => [row.id, row.name]),
+        dfn_id: getCachedTable('dfns').map(row => [row.id, row.name]),
+        item_type_id: getCachedTable('item_types').map(row => [row.id, row.name]),
+        status_id: getCachedTable('statuses').map(row => [row.id, row.name])
+    };
+    ['location_id', 'assigned_crew_id', 'dfn_id', 'item_type_id'].forEach(field => {
+        const select = document.querySelector(`select[name="${field}"]`);
+        if (select && lookups[field] && Array.isArray(lookups[field])) {
+            lookups[field].forEach(([id, label]) => {
+                const option = document.createElement('option');
+                option.value = id;
+                option.textContent = label || id;
+                select.appendChild(option);
+            });
+        }
+    });
+}
+
+function setupBulkForms() {
+    const bulkForm = document.getElementById('bulkReceiveForm');
+    if (!bulkForm) return;
+
+    // Crew dropdowns
+    setupDropdown('bulk_assigned_crew_id', 'crews', 'market_id', window.selectedMarketId);
+    setupDropdown('bulk_issue_assigned_crew_id', 'crews', 'market_id', window.selectedMarketId);
+
+    // DFN dropdown
+    setupDropdown('bulk_dfn_id', 'dfns', 'sloc_id', window.selectedSlocId);
+
+    // Bulk item types table
+    const bulkTableContainer = document.getElementById('bulkItemTypesTable');
+    if (bulkTableContainer) {
+        generateBulkItemTypesTable().then(bulkTable => bulkTableContainer.appendChild(bulkTable));
+    }
+
+    // Form field listeners
+    bulkForm.querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('input', updateBulkButtonStates);
+        el.addEventListener('change', updateBulkButtonStates);
+    });
+    updateBulkButtonStates();
+}
+
+function setupDropdown(elementId, tableName, filterField, filterValue) {
+    const select = document.getElementById(elementId);
+    if (!select) return;
+    select.innerHTML = `<option value="">Select ${tableName.replace(/_/g, ' ')}</option>`;
+    let data = getCachedTable(tableName);
+    if (filterValue !== undefined && filterValue !== null) {
+        data = data.filter(row => row[filterField] == filterValue);
+    }
+    data.forEach(row => {
+        const option = document.createElement('option');
+        option.value = row.id;
+        option.textContent = row.name;
+        select.appendChild(option);
+    });
+}
+
+function setupSidebarNavigation() {
+    const navButtons = [
+        ['viewInventoryBtn', async () => { setActiveSidebarButton('viewInventoryBtn'); await showSections({serializedInventory: true, bulkInventory: true}); }],
+        ['viewTransactionHistoryBtn', () => { setActiveSidebarButton('viewTransactionHistoryBtn'); window.open('transactionHistory.html', '_blank'); }],
+        ['receiveNavBtn', async () => { setActiveSidebarButton('receiveNavBtn'); await showSections({inventoryReceiving: true}); }],
+        ['bulkReceiveNavBtn', async () => { setActiveSidebarButton('bulkReceiveNavBtn'); await showSections({bulkReceive: true}); }],
+        ['manageDFNsBtn', () => { setActiveSidebarButton('manageDFNsBtn'); openTableManager('dfns'); }],
+        ['manageItemTypesBtn', () => { setActiveSidebarButton('manageItemTypesBtn'); openTableManager('item_types'); }],
+        ['manageCrewsBtn', () => { setActiveSidebarButton('manageCrewsBtn'); openTableManager('crews'); }]
+    ];
+    navButtons.forEach(([id, handler]) => {
+        const btn = document.getElementById(id);
+        if (btn) btn.addEventListener('click', handler);
+    });
+
+    const manageOthersSelect = document.getElementById('manageOthersSelect');
+    if (manageOthersSelect) {
+        manageOthersSelect.addEventListener('change', (e) => {
+            if (e.target.value) {
+                document.querySelectorAll('nav.sidebar button').forEach(btn => btn.classList.remove('active'));
+                openTableManager(e.target.value);
+            }
+        });
+    }
+}
+
+function setupImportExportButtons() {
+    const importExportButtons = [
+        ['exportTemplateBtn', window.exportTemplate, 'Export template functionality not available'],
+        ['exportInventoryBtn', window.exportInventory, 'Export inventory functionality not available'],
+        ['importExcelBtn', window.importFromExcel, 'Import Excel functionality not available']
+    ];
+    importExportButtons.forEach(([id, func, fallback]) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.addEventListener('click', () => {
+                setActiveSidebarButton(id);
+                if (typeof func === 'function') func();
+                else alert(fallback);
+            });
+        }
+    });
+}
+
+function setupAccordionListeners() {
+    document.querySelectorAll('.accordion-subheader').forEach(header => {
+        header.setAttribute('aria-expanded', 'false');
+        header.addEventListener('click', function() {
+            const expanded = this.getAttribute('aria-expanded') === 'true';
+            document.querySelectorAll('.accordion-subheader').forEach(h => h.setAttribute('aria-expanded', 'false'));
+            if (!expanded) this.setAttribute('aria-expanded', 'true');
+        });
+        header.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.click();
+            }
+        });
+    });
+}
+
+function setupSerializedIssueButtons() {
+    const beginBtn = document.getElementById('beginSerializedIssueBtn');
+    if (beginBtn) {
+        beginBtn.addEventListener('click', () => {
+            serializedIssueState = 'selecting';
+            selectedSerializedForIssue = [];
+            document.getElementById('serializedIssueSelectionInstructions').style.display = '';
+            document.getElementById('completeSerializedIssueBtn').style.display = '';
+            document.getElementById('cancelSerializedIssueBtn').style.display = '';
+            updateSelectedSerializedForIssueDisplay();
+            showOnlyAvailableSerializedItems();
+            updateSerializedIssueButtons();
+            document.querySelectorAll('.inventory-item-row').forEach(row => {
+                row.classList.add('selectable-for-issue');
+            });
+        });
+    }
+
+    const cancelBtn = document.getElementById('cancelSerializedIssueBtn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', resetSerializedIssueProcess);
+    }
+
+    const completeBtn = document.getElementById('completeSerializedIssueBtn');
+    if (completeBtn) {
+        completeBtn.addEventListener('click', () => {
+            if (selectedSerializedForIssue.length === 0) {
+                alert('Select at least one item to issue.');
+                return;
+            }
+            serializedIssueState = 'confirming';
+            showMultiSerializedIssueModal(selectedSerializedForIssue);
+            updateSerializedIssueButtons();
+        });
+    }
+}
 
 // Add this function to handle item type selection changes
 async function handleItemTypeChange(e) {
@@ -4299,6 +3911,7 @@ async function prepareInventoryData(rawData, action = 'receive') {
 
 // Populate the "Manage Others" dropdown with table names
 function populateManageOthersDropdown() {
+    console.log("Populating Manage Others dropdown...");
     const dropdown = document.getElementById('manageOthersSelect');
     if (!dropdown) return;
     dropdown.innerHTML = '<option value="">Select Table...</option>';
@@ -4309,6 +3922,7 @@ function populateManageOthersDropdown() {
         dropdown.appendChild(option);
     });
 }
+
 
 
 
