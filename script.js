@@ -63,8 +63,6 @@ async function logout() {
     else alert('Logged out!');
 }
 
-const { data: { user } } = await supabase.auth.getUser();
-
 // ============================================================================
 // --- Lookup Table Cache ---
 const LOOKUP_TABLES = [
@@ -4209,6 +4207,7 @@ async function setCurrentUserFromSupabase() {
         }
     }
 }
+
 
 
 
