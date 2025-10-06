@@ -2388,7 +2388,7 @@ async function getItemTypeHistoryData(itemTypeId) {
                 units_per_package,
                 categories(name),
                 inventory_types(name),
-                UNITS_OF_MEASURE(name),
+                units_of_measure(name),
                 inventory_providers(name)
             `)
             .eq('id', itemTypeId)
@@ -2454,7 +2454,7 @@ async function getItemTypeHistoryData(itemTypeId) {
 
         // 3. Get transaction history for this item type
         const { data: transactionRows, error: transactionError } = await supabase
-            .from('TRANSACTIONS')
+            .from('transactions')
             .select(`
                 transaction_type,
                 action,
@@ -4110,7 +4110,7 @@ async function initializeClientMarketSlocDropdowns() {
         clearAndDisable(slocSelect, 'Select SLOC');
         if (!clientId) return;
         const { data, error } = await supabase
-            .from('MARKETS')
+            .from('markets')
             .select('id, name')
             .eq('client_id', clientId)
             .order('name', { ascending: true });
@@ -4134,7 +4134,7 @@ async function initializeClientMarketSlocDropdowns() {
         clearAndDisable(slocSelect, 'Select SLOC');
         if (!marketId) return;
         const { data, error } = await supabase
-            .from('SLOCS')
+            .from('slocs')
             .select('id, name')
             .eq('market_id', marketId)
             .order('name', { ascending: true });
@@ -4254,6 +4254,7 @@ async function prepareInventoryData(rawData, action = 'receive') {
         itemTypeInfo: itemTypeInfo
     };
 }
+
 
 
 
