@@ -1607,6 +1607,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         await cacheLookupTables();
 
+        populateManageOthersDropdown();
+
         // Initialize transaction logger for audit trail
         window.transactionLogger = new TransactionLogger();
 
@@ -4289,6 +4291,19 @@ async function prepareInventoryData(rawData, action = 'receive') {
         status_id: statusId,
         itemTypeInfo: itemTypeInfo
     };
+}
+
+// Populate the "Manage Others" dropdown with table names
+function populateManageOthersDropdown() {
+    const dropdown = document.getElementById('manageOthersSelect');
+    if (!dropdown) return;
+    dropdown.innerHTML = '<option value="">Select Table...</option>';
+    getTableNames().forEach(table => {
+        const option = document.createElement('option');
+        option.value = table;
+        option.textContent = table.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        dropdown.appendChild(option);
+    });
 }
 
 
