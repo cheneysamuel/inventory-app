@@ -1926,6 +1926,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Section visibility control
         async function showSections({serializedInventory=false, inventoryReceiving=false, bulkInventory=false, bulkReceive=false}) {
+            console.log("showSections called...");
             const inventoryAccordion = document.getElementById('inventoryAccordion');
             if (inventoryAccordion) {
                 inventoryAccordion.classList.toggle('active', serializedInventory);
@@ -1982,6 +1983,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.open('transactionHistory.html', '_blank');
         });
         document.getElementById('receiveNavBtn').addEventListener('click', async () => {
+            console.log('Receive button clicked');
             setActiveSidebarButton('receiveNavBtn');
             await showSections({inventoryReceiving: true});
         });
@@ -4305,6 +4307,7 @@ function populateManageOthersDropdown() {
         dropdown.appendChild(option);
     });
 }
+
 
 
 
