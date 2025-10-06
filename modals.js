@@ -3568,8 +3568,10 @@ function generateBulkInstallForm(inventoryData, dfns = []) {
  * @returns {string} HTML for serialized install form
  */
 function generateSerializedInstallForm(inventoryData, allocations = [], dfns = []) {
-    // If using allocations, show allocation breakdown table
-    const usingAllocations = window.useAllocations === true || (typeof db !== 'undefined' && db.exec && db.exec('SELECT value from CONFIG WHERE key = "useAllocations"')[0]?.values[0]?.[0] === "YES");
+    // Use global/cached config for allocations if available
+    const usingAllocations = window.useAllocations === true ||
+        (getCachedTable('config').find(cfg => cfg.key === 'useAllocations')?.value === "YES");
+
     const dfnOptions = dfns.length > 0
         ? ModalUtils.generateDropdownOptions(dfns, 'Select DFN...')
         : '<option value="">No DFNs available</option>';
@@ -5663,6 +5665,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
