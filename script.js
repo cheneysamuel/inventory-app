@@ -286,7 +286,7 @@ function validateInventoryData(inventoryData, itemTypeInfo) {
 async function getItemTypeInfo(itemTypeId) {
     if (!itemTypeId) return { isSerializedType: false, unitsPerPackage: 1 };
     const { data, error } = await supabase
-        .from('ITEM_TYPES')
+        .from('item_types')
         .select('units_per_package, inventory_type_id')
         .eq('id', itemTypeId)
         .eq('market_id', window.selectedMarketId)
@@ -486,13 +486,13 @@ async function processInventoryInsertion(inventoryData, action) {
  */
 async function getBulkItemTypes() {
     const res = await supabase
-        .from('ITEM_TYPES')
+        .from('item_types')
         .select(`
             id,
             name,
             description,
             part_number,
-            CATEGORIES(name),
+            categories(name),
             UNITS_OF_MEASURE(name),
             INVENTORY_PROVIDERS(name)
         `)
@@ -522,7 +522,7 @@ async function getBulkInventoryAggregates(itemTypeId) {
     // Fetch all inventory rows for this item type and SLOC, including status name
     const { data, error } = await supabase
         .from('INVENTORY')
-        .select('quantity, STATUSES(name)')
+        .select('quantity, statuses(name)')
         .eq('item_type_id', itemTypeId)
         .eq('sloc_id', window.selectedSlocId);
 
@@ -540,7 +540,7 @@ async function getBulkInventoryAggregates(itemTypeId) {
 
     if (data && Array.isArray(data)) {
         data.forEach(row => {
-            const status = row.STATUSES?.name;
+            const status = row.statuses?.name;
             if (status && aggregates.hasOwnProperty(status)) {
                 aggregates[status] += row.quantity || 0;
             }
@@ -947,12 +947,12 @@ async function loadSerializedInventoryList() {
         // Get current sort configuration
         const orderBy = getInventoryOrderBy();
         // Parse orderBy for Supabase (e.g., "ORDER BY l.name ASC")
-        let orderCol = 'LOCATIONS.name';
+        let orderCol = 'locations.name';
         let orderDir = { ascending: true };
         if (orderBy) {
             const match = orderBy.match(/ORDER BY ([\w\.]+) (ASC|DESC)/i);
             if (match) {
-                orderCol = match[1].replace('l.', 'LOCATIONS.').replace('c.', 'CREWS.').replace('d.', 'DFNS.').replace('it.', 'ITEM_TYPES.').replace('cat.', 'CATEGORIES.').replace('s.', 'STATUSES.').replace('i.', '');
+                orderCol = match[1].replace('l.', 'locations.').replace('c.', 'crews.').replace('d.', 'dfns.').replace('it.', 'item_types.').replace('cat.', 'categories.').replace('s.', 'statuses.').replace('i.', '');
                 orderDir = { ascending: match[2].toUpperCase() === 'ASC' };
             }
         }
@@ -968,11 +968,11 @@ async function loadSerializedInventoryList() {
                 mfgrSN,
                 tilsonSN,
                 quantity,
-                LOCATIONS(name, LOCATION_TYPES(name)),
-                CREWS(name),
-                DFNS(name),
-                ITEM_TYPES(name, CATEGORIES(name, id)),
-                STATUSES(name)
+                locations(name, LOCATION_TYPES(name)),
+                crews(name),
+                dfns(name),
+                item_types(name, categories(name, id)),
+                statuses(name)
             `)
             .eq('sloc_id', window.selectedSlocId)
             .not('mfgrSN', 'is', null)
@@ -987,9 +987,9 @@ async function loadSerializedInventoryList() {
 
         // Filter out statuses 'Installed' and 'Removed' and location type 'Outgoing'
         const filtered = (data || []).filter(row =>
-            row.STATUSES?.name !== 'Installed' &&
-            row.STATUSES?.name !== 'Removed' &&
-            (!row.LOCATIONS?.LOCATION_TYPES || row.LOCATIONS.LOCATION_TYPES.name !== 'Outgoing')
+            row.statuses?.name !== 'Installed' &&
+            row.statuses?.name !== 'Removed' &&
+            (!row.locations?.LOCATION_TYPES || row.locations.LOCATION_TYPES.name !== 'Outgoing')
         );
 
         // Map to match your original structure
@@ -998,16 +998,16 @@ async function loadSerializedInventoryList() {
             location_id: row.location_id,
             status_id: row.status_id,
             item_type_id: row.item_type_id,
-            location_name: row.LOCATIONS?.name || '',
-            crew_name: row.CREWS?.name || '',
-            dfn_name: row.DFNS?.name || '',
-            item_name: row.ITEM_TYPES?.name || '',
-            category_name: row.ITEM_TYPES?.CATEGORIES?.name || '',
-            category_id: row.ITEM_TYPES?.CATEGORIES?.id || '',
+            location_name: row.locations?.name || '',
+            crew_name: row.crews?.name || '',
+            dfn_name: row.dfns?.name || '',
+            item_name: row.item_types?.name || '',
+            category_name: row.item_types?.categories?.name || '',
+            category_id: row.item_types?.categories?.id || '',
             mfgrSN: row.mfgrSN,
             tilsonSN: row.tilsonSN,
             quantity: row.quantity,
-            status_name: row.STATUSES?.name || ''
+            status_name: row.statuses?.name || ''
         }));
 
         // Create hierarchical structure
@@ -1207,18 +1207,18 @@ async function loadBulkInventoryList() {
 
         // Get current sort configuration
         const orderBy = getInventoryOrderBy();
-        let orderCol = 'LOCATIONS.name';
+        let orderCol = 'locations.name';
         let orderDir = { ascending: true };
         if (orderBy) {
             const match = orderBy.match(/ORDER BY ([\w\.]+) (ASC|DESC)/i);
             if (match) {
                 orderCol = match[1]
-                    .replace('l.', 'LOCATIONS.')
-                    .replace('c.', 'CREWS.')
-                    .replace('d.', 'DFNS.')
-                    .replace('it.', 'ITEM_TYPES.')
-                    .replace('cat.', 'CATEGORIES.')
-                    .replace('s.', 'STATUSES.')
+                    .replace('l.', 'locations.')
+                    .replace('c.', 'crews.')
+                    .replace('d.', 'dfns.')
+                    .replace('it.', 'item_types.')
+                    .replace('cat.', 'categories.')
+                    .replace('s.', 'statuses.')
                     .replace('i.', '');
                 orderDir = { ascending: match[2].toUpperCase() === 'ASC' };
             }
@@ -1235,11 +1235,11 @@ async function loadBulkInventoryList() {
                 mfgrSN,
                 tilsonSN,
                 quantity,
-                LOCATIONS(name),
-                CREWS(name),
-                DFNS(name),
-                ITEM_TYPES(name, CATEGORIES(name)),
-                STATUSES(name)
+                locations(name),
+                crews(name),
+                dfns(name),
+                item_types(name, categories(name)),
+                statuses(name)
             `)
             .eq('sloc_id', window.selectedSlocId)
             .or('mfgrSN.is.null,mfgrSN.eq.""') // Only bulk items (no serial number)
@@ -1253,8 +1253,8 @@ async function loadBulkInventoryList() {
 
         // Filter out statuses 'Installed' and 'Removed'
         const filtered = (data || []).filter(row =>
-            row.STATUSES?.name !== 'Installed' &&
-            row.STATUSES?.name !== 'Removed'
+            row.statuses?.name !== 'Installed' &&
+            row.statuses?.name !== 'Removed'
         );
 
         // Map to match your original structure
@@ -1263,15 +1263,15 @@ async function loadBulkInventoryList() {
             location_id: row.location_id,
             status_id: row.status_id,
             item_type_id: row.item_type_id,
-            location_name: row.LOCATIONS?.name || '',
-            crew_name: row.CREWS?.name || '',
-            dfn_name: row.DFNS?.name || '',
-            item_name: row.ITEM_TYPES?.name || '',
-            category_name: row.ITEM_TYPES?.CATEGORIES?.name || '',
+            location_name: row.locations?.name || '',
+            crew_name: row.crews?.name || '',
+            dfn_name: row.dfns?.name || '',
+            item_name: row.item_types?.name || '',
+            category_name: row.item_types?.categories?.name || '',
             mfgrSN: row.mfgrSN,
             tilsonSN: row.tilsonSN,
             quantity: row.quantity,
-            status_name: row.STATUSES?.name || ''
+            status_name: row.statuses?.name || ''
         }));
 
         // Create the table and populate it
@@ -1947,15 +1947,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         document.getElementById('manageDFNsBtn').addEventListener('click', () => {
             setActiveSidebarButton('manageDFNsBtn');
-            openTableManager('DFNS');
+            openTableManager('dfns');
         });
         document.getElementById('manageItemTypesBtn').addEventListener('click', () => {
             setActiveSidebarButton('manageItemTypesBtn');
-            openTableManager('ITEM_TYPES');
+            openTableManager('item_types');
         });
         document.getElementById('manageCrewsBtn').addEventListener('click', () => {
             setActiveSidebarButton('manageCrewsBtn');
-            openTableManager('CREWS');
+            openTableManager('crews');
         });
         document.getElementById('manageOthersSelect').addEventListener('change', (e) => {
             if (e.target.value) {
@@ -2124,15 +2124,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         document.getElementById('manageDFNsBtn').addEventListener('click', () => {
             setActiveSidebarButton('manageDFNsBtn');
-            openTableManager('DFNS');
+            openTableManager('dfns');
         });
         document.getElementById('manageItemTypesBtn').addEventListener('click', () => {
             setActiveSidebarButton('manageItemTypesBtn');
-            openTableManager('ITEM_TYPES');
+            openTableManager('item_types');
         });
         document.getElementById('manageCrewsBtn').addEventListener('click', () => {
             setActiveSidebarButton('manageCrewsBtn');
-            openTableManager('CREWS');
+            openTableManager('crews');
         });
         document.getElementById('manageOthersSelect').addEventListener('change', (e) => {
             if (e.target.value) {
@@ -2439,14 +2439,14 @@ async function getItemTypeHistoryData(itemTypeId) {
     try {
         // 1. Get item type details
         const { data: itemTypeRows, error: itemTypeError } = await supabase
-            .from('ITEM_TYPES')
+            .from('item_types')
             .select(`
                 name,
                 manufacturer,
                 part_number,
                 description,
                 units_per_package,
-                CATEGORIES(name),
+                categories(name),
                 INVENTORY_TYPES(name),
                 UNITS_OF_MEASURE(name),
                 INVENTORY_PROVIDERS(name)
@@ -2463,7 +2463,7 @@ async function getItemTypeHistoryData(itemTypeId) {
                 part_number: itemTypeRows.part_number,
                 description: itemTypeRows.description,
                 units_per_package: itemTypeRows.units_per_package,
-                category_name: itemTypeRows.CATEGORIES?.name || '',
+                category_name: itemTypeRows.categories?.name || '',
                 inventory_type_name: itemTypeRows.INVENTORY_TYPES?.name || '',
                 unit_name: itemTypeRows.UNITS_OF_MEASURE?.name || '',
                 provider_name: itemTypeRows.INVENTORY_PROVIDERS?.name || ''
@@ -2484,10 +2484,10 @@ async function getItemTypeHistoryData(itemTypeId) {
                 tilsonSN,
                 quantity,
                 status_id,
-                STATUSES(name),
-                LOCATIONS(name),
-                CREWS(name),
-                DFNS(name)
+                statuses(name),
+                locations(name),
+                crews(name),
+                dfns(name)
             `)
             .eq('item_type_id', itemTypeId)
             .eq('sloc_id', window.selectedSlocId)
@@ -2505,10 +2505,10 @@ async function getItemTypeHistoryData(itemTypeId) {
                 tilsonSN: row.tilsonSN,
                 quantity: row.quantity || 0,
                 status_id: row.status_id,
-                status_name: row.STATUSES?.name || '',
-                location_name: row.LOCATIONS?.name || '',
-                crew_name: row.CREWS?.name || '',
-                dfn_name: row.DFNS?.name || ''
+                status_name: row.statuses?.name || '',
+                location_name: row.locations?.name || '',
+                crew_name: row.crews?.name || '',
+                dfn_name: row.dfns?.name || ''
             }));
         }
 
@@ -2901,7 +2901,7 @@ async function updateUnitsPerPackageDisplay(itemTypeId) {
     try {
         // Get units per package from Supabase
         const { data, error } = await supabase
-            .from('ITEM_TYPES')
+            .from('item_types')
             .select('units_per_package')
             .eq('id', parseInt(itemTypeId, 10))
             .eq('market_id', window.selectedMarketId)
@@ -3777,7 +3777,7 @@ async function receiveSerializedItem(mfgrSN, tilsonSN, itemTypeId, locationId, d
 
     // Get the units_per_package from the item type
     const { data: itemTypeRow, error: itemTypeError } = await supabase
-        .from('ITEM_TYPES')
+        .from('item_types')
         .select('units_per_package')
         .eq('id', itemTypeId)
         .eq('market_id', window.selectedMarketId)
@@ -4267,5 +4267,6 @@ async function setCurrentUserFromSupabase() {
         }
     }
 }
+
 
 
