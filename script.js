@@ -800,7 +800,7 @@ async function processBulkInventoryInsertion(action) {
         }
         
         // Prepare inventory data for each item
-        const preparedData = inventoryItems.map(item => prepareInventoryData(item, action));
+        const preparedData = await Promise.all(inventoryItems.map(item => prepareInventoryData(item, action)));
         
         // Process bulk insertion
         console.log("preparedData:", preparedData);
@@ -4207,6 +4207,54 @@ async function setCurrentUserFromSupabase() {
         }
     }
 }
+
+/**
+ * Prepare inventory data for database insertion
+ * @param {Object} rawData - Raw form data or input data
+ * @param {string} action - Action type ('receive', 'issue')
+ * @returns {Promise<Object>} - Prepared inventory data
+ */
+async function prepareInventoryData(rawData, action = 'receive') {
+    const itemTypeInfo = await getItemTypeInfo(rawData.item_type_id);
+
+    // Determine status based on action
+    let statusName;
+    let locationId = 1; // Default location ID (e.g., Warehouse)
+    let assignedCrewId = null;
+
+    switch (action) {
+        case 'receive':
+            statusName = 'Available';
+            break;
+        case 'issue':
+            statusName = 'Issued';
+            locationId = getWithCrewLocationId();
+            assignedCrewId = rawData.assigned_crew_id ? parseInt(rawData.assigned_crew_id, 10) : null;
+            break;
+        default:
+            statusName = 'Available';
+    }
+
+    const statusId = getStatusId(statusName);
+
+    // Determine quantity - for serialized items, use units_per_package
+    const quantity = itemTypeInfo.isSerializedType ?
+        itemTypeInfo.unitsPerPackage :
+        parseInt(rawData.quantity, 10) || 1;
+
+    return {
+        location_id: parseInt(locationId, 10),
+        assigned_crew_id: assignedCrewId,
+        dfn_id: rawData.dfn_id ? parseInt(rawData.dfn_id, 10) : null,
+        item_type_id: parseInt(rawData.item_type_id, 10),
+        mfgrSN: rawData.mfgrSN || null,
+        tilsonSN: rawData.tilsonSN || null,
+        quantity: quantity,
+        status_id: statusId,
+        itemTypeInfo: itemTypeInfo
+    };
+}
+
 
 
 
