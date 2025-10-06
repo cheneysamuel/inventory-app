@@ -4086,7 +4086,7 @@ async function initializeClientMarketSlocDropdowns() {
     async function populateClients() {
         clearAndDisable(clientSelect, 'Select Client');
         const { data, error } = await supabase
-            .from('CLIENTS')
+            .from('clients')
             .select('id, name')
             .order('name', { ascending: true });
         if (error) {
@@ -4254,6 +4254,7 @@ async function prepareInventoryData(rawData, action = 'receive') {
         itemTypeInfo: itemTypeInfo
     };
 }
+
 
 
 
