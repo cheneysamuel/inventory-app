@@ -1564,6 +1564,77 @@ function refreshAllTables() {
     }
 }
 
+window.refreshDropdowns = function() {
+    // Reload lookups from cached tables
+    const updatedLookups = {
+        location_id: getCachedTable('locations').map(row => [row.id, row.name]),
+        assigned_crew_id: getCachedTable('crews').filter(row => row.market_id == window.selectedMarketId).map(row => [row.id, row.name]),
+        dfn_id: getCachedTable('dfns').filter(row => row.sloc_id == window.selectedSlocId).map(row => [row.id, row.name]),
+        item_type_id: getCachedTable('item_types').filter(row => row.market_id == window.selectedMarketId).map(row => [row.id, row.name]),
+        status_id: getCachedTable('statuses').map(row => [row.id, row.name])
+    };
+
+    // Clear and repopulate all dropdowns except bulkSerializedItemType
+    ['location_id', 'assigned_crew_id', 'dfn_id', 'item_type_id'].forEach(field => {
+        const selects = document.querySelectorAll(`select[name="${field}"]:not(#bulkSerializedItemType)`);
+        selects.forEach(select => {
+            if (select && updatedLookups[field] && Array.isArray(updatedLookups[field])) {
+                const currentValue = select.value;
+                // Clear existing options
+                select.innerHTML = '';
+                // Add default placeholder
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = `Select ${field.replace('_id', '').replace('_', ' ')}`;
+                select.appendChild(defaultOption);
+                // Add new options
+                updatedLookups[field].forEach(([id, label]) => {
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = label || id;
+                    select.appendChild(option);
+                });
+                // Restore value if it still exists
+                if (currentValue && select.querySelector(`option[value="${currentValue}"]`)) {
+                    select.value = currentValue;
+                }
+            }
+        });
+    });
+
+    // Refresh bulk receive crew dropdown
+    const bulkCrewSelect = document.getElementById('bulk_assigned_crew_id');
+    if (bulkCrewSelect && updatedLookups.assigned_crew_id && Array.isArray(updatedLookups.assigned_crew_id)) {
+        const currentValue = bulkCrewSelect.value;
+        bulkCrewSelect.innerHTML = '<option value="">Select Crew</option>';
+        updatedLookups.assigned_crew_id.forEach(([id, label]) => {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = label || id;
+            bulkCrewSelect.appendChild(option);
+        });
+        if (currentValue && bulkCrewSelect.querySelector(`option[value="${currentValue}"]`)) {
+            bulkCrewSelect.value = currentValue;
+        }
+    }
+
+    // Refresh bulk receive DFN dropdown
+    const bulkDfnSelect = document.getElementById('bulk_dfn_id');
+    if (bulkDfnSelect && updatedLookups.dfn_id && Array.isArray(updatedLookups.dfn_id)) {
+        const currentValue = bulkDfnSelect.value;
+        bulkDfnSelect.innerHTML = '<option value="">Select DFN</option>';
+        updatedLookups.dfn_id.forEach(([id, label]) => {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = label || id;
+            bulkDfnSelect.appendChild(option);
+        });
+        if (currentValue && bulkDfnSelect.querySelector(`option[value="${currentValue}"]`)) {
+            bulkDfnSelect.value = currentValue;
+        }
+    }
+};
+
 /**
  * Get the column and direction for Supabase .order() call
  * @returns {Object} - {column: string, direction: 'ASC'|'DESC'}
@@ -4095,77 +4166,6 @@ function populateManageOthersDropdown() {
     });
 }
 
-window.refreshDropdowns = function() {
-    // Reload lookups from cached tables
-    const updatedLookups = {
-        location_id: getCachedTable('locations').map(row => [row.id, row.name]),
-        assigned_crew_id: getCachedTable('crews').filter(row => row.market_id == window.selectedMarketId).map(row => [row.id, row.name]),
-        dfn_id: getCachedTable('dfns').filter(row => row.sloc_id == window.selectedSlocId).map(row => [row.id, row.name]),
-        item_type_id: getCachedTable('item_types').filter(row => row.market_id == window.selectedMarketId).map(row => [row.id, row.name]),
-        status_id: getCachedTable('statuses').map(row => [row.id, row.name])
-    };
-
-    // Clear and repopulate all dropdowns except bulkSerializedItemType
-    ['location_id', 'assigned_crew_id', 'dfn_id', 'item_type_id'].forEach(field => {
-        const selects = document.querySelectorAll(`select[name="${field}"]:not(#bulkSerializedItemType)`);
-        selects.forEach(select => {
-            if (select && updatedLookups[field] && Array.isArray(updatedLookups[field])) {
-                const currentValue = select.value;
-                // Clear existing options
-                select.innerHTML = '';
-                // Add default placeholder
-                const defaultOption = document.createElement('option');
-                defaultOption.value = '';
-                defaultOption.textContent = `Select ${field.replace('_id', '').replace('_', ' ')}`;
-                select.appendChild(defaultOption);
-                // Add new options
-                updatedLookups[field].forEach(([id, label]) => {
-                    const option = document.createElement('option');
-                    option.value = id;
-                    option.textContent = label || id;
-                    select.appendChild(option);
-                });
-                // Restore value if it still exists
-                if (currentValue && select.querySelector(`option[value="${currentValue}"]`)) {
-                    select.value = currentValue;
-                }
-            }
-        });
-    });
-
-    // Refresh bulk receive crew dropdown
-    const bulkCrewSelect = document.getElementById('bulk_assigned_crew_id');
-    if (bulkCrewSelect && updatedLookups.assigned_crew_id && Array.isArray(updatedLookups.assigned_crew_id)) {
-        const currentValue = bulkCrewSelect.value;
-        bulkCrewSelect.innerHTML = '<option value="">Select Crew</option>';
-        updatedLookups.assigned_crew_id.forEach(([id, label]) => {
-            const option = document.createElement('option');
-            option.value = id;
-            option.textContent = label || id;
-            bulkCrewSelect.appendChild(option);
-        });
-        if (currentValue && bulkCrewSelect.querySelector(`option[value="${currentValue}"]`)) {
-            bulkCrewSelect.value = currentValue;
-        }
-    }
-
-    // Refresh bulk receive DFN dropdown
-    const bulkDfnSelect = document.getElementById('bulk_dfn_id');
-    if (bulkDfnSelect && updatedLookups.dfn_id && Array.isArray(updatedLookups.dfn_id)) {
-        const currentValue = bulkDfnSelect.value;
-        bulkDfnSelect.innerHTML = '<option value="">Select DFN</option>';
-        updatedLookups.dfn_id.forEach(([id, label]) => {
-            const option = document.createElement('option');
-            option.value = id;
-            option.textContent = label || id;
-            bulkDfnSelect.appendChild(option);
-        });
-        if (currentValue && bulkDfnSelect.querySelector(`option[value="${currentValue}"]`)) {
-            bulkDfnSelect.value = currentValue;
-        }
-    }
-};
-
 function setActiveSidebarButton(buttonId) {
     // Remove 'active' class from all sidebar buttons
     document.querySelectorAll('nav.sidebar button').forEach(btn => btn.classList.remove('active'));
@@ -4173,6 +4173,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
