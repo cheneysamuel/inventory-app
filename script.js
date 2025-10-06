@@ -1598,6 +1598,7 @@ function getInventoryOrderBy() {
         return `ORDER BY ${config.column} ${config.direction}`;
     }
     return ''; // No sort order set
+}
 
 
 function resetSerializedIssueProcess() {
@@ -4318,6 +4319,7 @@ async function prepareInventoryData(rawData, action = 'receive') {
         itemTypeInfo: itemTypeInfo
     };
 }
+
 
 
 
