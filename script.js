@@ -35,10 +35,18 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 
-const { data, error } = await supabase.auth.signUp({
-  email: 'user@email.com',
-  password: 'your-password'
-});
+async function testSupabaseAuth() {
+    const { data, error } = await supabase.auth.signUp({
+      email: 'user@email.com',
+      password: 'your-password'
+    });
+
+    const { data: { user } } = await supabase.auth.getUser();
+    // ...do something with user or error
+    console.log(data, error, user);
+}
+
+//testSupabaseAuth();
 
 
 // Example: sign in
@@ -4267,6 +4275,7 @@ async function setCurrentUserFromSupabase() {
         }
     }
 }
+
 
 
 
