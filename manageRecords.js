@@ -14,10 +14,11 @@ window.selectedSlocId = null;
  */
 function getTableNames() {
     // List your tables here, or fetch from a config table if you want it dynamic
+    console.log('getting table names...');
     return [
-        'ITEM_TYPES', 'INVENTORY', 'LOCATIONS', 'CREWS', 'DFNS', 'STATUSES',
-        'CATEGORIES', 'INVENTORY_TYPES', 'UNITS_OF_MEASURE', 'INVENTORY_PROVIDERS',
-        'LOCATION_TYPES', 'TRANSACTION_TYPES', 'INV_ACTION_TYPES', 'CLIENTS', 'MARKETS', 'SLOCS', 'CONFIG'
+        'item_types', 'inventory', 'locations', 'crews', 'dfns', 'statuses',
+        'categories', 'inventory_types', 'units_of_measure', 'inventory_providers',
+        'location_types', 'transaction_types', 'inv_action_types', 'clients', 'markets', 'slocs', 'config'
     ];
 }
 
@@ -1938,4 +1939,5 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
     } catch (error) {
         console.error('Error opening table manager:', error);
     }
+
 };
