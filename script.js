@@ -2056,36 +2056,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         // END BULK RECEIVE INITIALIZATION
         // ============================================================================
 
-        // Section visibility control
-        async function showSections({serializedInventory=false, inventoryReceiving=false, bulkInventory=false, bulkReceive=false}) {
-            const inventoryAccordion = document.getElementById('inventoryAccordion');
-            if (inventoryAccordion) {
-                inventoryAccordion.classList.toggle('active', serializedInventory);
-            }
-            const receiveAccordion = document.getElementById('receiveAccordion');
-            if (receiveAccordion) {
-                receiveAccordion.classList.toggle('active', inventoryReceiving);
-            }
-            const bulkInventoryAccordion = document.getElementById('bulkInventoryAccordion');
-            if (bulkInventoryAccordion) {
-                bulkInventoryAccordion.classList.toggle('active', bulkInventory);
-            }
-            const bulkReceiveAccordion = document.getElementById('bulkReceiveAccordion');
-            if (bulkReceiveAccordion) {
-                bulkReceiveAccordion.classList.toggle('active', bulkReceive);
-            }
-
-            // Load inventory table when serialized inventory section is shown
-            if (serializedInventory) {
-                loadInventoryList();
-            }
-
-            // Load bulk inventory when bulk inventory section is shown  
-            if (bulkInventory) {
-                loadBulkInventoryList();
-            }
-        }
-
         // Helper function to highlight active sidebar button
         function setActiveSidebarButton(activeButtonId) {
             // Remove active class from all sidebar buttons
@@ -4257,6 +4227,7 @@ async function setCurrentUserFromSupabase() {
         }
     }
 }
+
 
 
 
