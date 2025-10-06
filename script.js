@@ -978,16 +978,6 @@ async function loadSerializedInventoryList() {
 
         // Get current sort configuration
         const orderBy = getInventoryOrderBy();
-        // Parse orderBy for Supabase (e.g., "ORDER BY l.name ASC")
-        let orderCol = 'locations.name';
-        let orderDir = { ascending: true };
-        if (orderBy) {
-            const match = orderBy.match(/ORDER BY ([\w\.]+) (ASC|DESC)/i);
-            if (match) {
-                orderCol = match[1];
-                orderDir = { ascending: match[2].toUpperCase() === 'ASC' };
-            }
-        }
 
         // Supabase query with joins
         const { data, error } = await supabase
@@ -1009,7 +999,7 @@ async function loadSerializedInventoryList() {
             .eq('sloc_id', window.selectedSlocId)
             .not('mfgrSN', 'is', null)
             .not('mfgrSN', 'eq', '')
-            .order(orderCol, orderDir.ascending ? { ascending: true } : { ascending: false });
+            .order(orderBy.column, { ascending: orderBy.direction === 'ASC' });
 
         if (error) {
             console.error('Supabase error:', error);
@@ -1244,22 +1234,6 @@ async function loadBulkInventoryList() {
 
         // Get current sort configuration
         const orderBy = getInventoryOrderBy();
-        let orderCol = 'locations.name';
-        let orderDir = { ascending: true };
-        if (orderBy) {
-            const match = orderBy.match(/ORDER BY ([\w\.]+) (ASC|DESC)/i);
-            if (match) {
-                orderCol = match[1]
-                    .replace('l.', 'locations.')
-                    .replace('c.', 'crews.')
-                    .replace('d.', 'dfns.')
-                    .replace('it.', 'item_types.')
-                    .replace('cat.', 'categories.')
-                    .replace('s.', 'statuses.')
-                    .replace('i.', '');
-                orderDir = { ascending: match[2].toUpperCase() === 'ASC' };
-            }
-        }
 
         // Supabase query with joins
         const { data, error } = await supabase
@@ -1280,7 +1254,7 @@ async function loadBulkInventoryList() {
             `)
             .eq('sloc_id', window.selectedSlocId)
             .or('mfgrSN.is.null,mfgrSN.eq.""') // Only bulk items (no serial number)
-            .order(orderCol, orderDir);
+            .order(orderBy.column, { ascending: orderBy.direction === 'ASC' });
 
         if (error) {
             console.error('Supabase error:', error);
@@ -1511,7 +1485,6 @@ function formatNumberWithCommas(num) {
  * @returns {Object} - {column: string, direction: 'ASC'|'DESC'}
  */
 function getInventorySortconfig() {
-    // Try to get from localStorage
     let config = null;
     try {
         const raw = localStorage.getItem('inventory_sort_config');
@@ -1519,12 +1492,9 @@ function getInventorySortconfig() {
     } catch (e) {
         console.warn('Could not parse inventory_sort_config from localStorage:', e);
     }
-    // If not set, use default or no sort
+    // If not set, use default sort by id ascending
     if (!config || !config.column || !config.direction) {
-        // Default: sort by item name ascending
-        return { column: "it.name", direction: "ASC" };
-        // Or: return null to skip sorting
-        // return null;
+        return { column: "id", direction: "ASC" };
     }
     return config;
 }
@@ -1589,15 +1559,16 @@ function refreshAllTables() {
 }
 
 /**
- * Get the ORDER BY clause for inventory query
- * @returns {string} - ORDER BY clause or empty string
+ * Get the column and direction for Supabase .order() call
+ * @returns {Object} - {column: string, direction: 'ASC'|'DESC'}
  */
 function getInventoryOrderBy() {
     const config = getInventorySortconfig();
     if (config && config.column && config.direction) {
-        return `ORDER BY ${config.column} ${config.direction}`;
+        return { column: config.column, direction: config.direction };
     }
-    return ''; // No sort order set
+    // Default: sort by id ascending
+    return { column: "id", direction: "ASC" };
 }
 
 
@@ -4319,6 +4290,7 @@ async function prepareInventoryData(rawData, action = 'receive') {
         itemTypeInfo: itemTypeInfo
     };
 }
+
 
 
 
