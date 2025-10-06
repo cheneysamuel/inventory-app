@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Transaction History Viewer</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; position: sticky; top: 0; }
+        .transaction-row:hover { background-color: #f5f5f5; }
+        .json-data { max-width: 200px; word-wrap: break-word; font-size: 0.8em; }
+        .filter-section { margin-bottom: 20px; padding: 15px; background-color: #f9f9f9; border-radius: 5px; }
+        .filter-section label { margin-right: 10px; }
+        .filter-section select, .filter-section input { margin-right: 15px; padding: 5px; }
+        .summary { background-color: #e7f3ff; padding: 10px; margin-bottom: 20px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Transaction History</h1>
+    
+    <div class="summary" id="transactionSummary">
+        <strong>Loading transaction data...</strong>
+    </div>
+    
+    <div class="filter-section">
+        <label>Filter by Action:</label>
+        <select id="actionFilter">
+            <option value="">All Actions</option>
+        </select>
+        
+        <label>Filter by User:</label>
+        <select id="userFilter">
+            <option value="">All Users</option>
+        </select>
+        
+        <label>Date Range:</label>
+        <input type="date" id="dateFrom" />
+        <label>to</label>
+        <input type="date" id="dateTo" />
+        
+        <button onclick="filterTransactions()">Apply Filters</button>
+        <button onclick="clearFilters()">Clear Filters</button>
+    </div>
+    
+    <div id="transactionTableContainer">
+        <table id="transactionTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Date/Time</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Transaction Type</th>
+                    <th>Item Type</th>
+                    <th>Serial Numbers</th>
+                    <th>Location</th>
+                    <th>Quantity</th>
+                    <th>Status</th>
+                    <th>Notes</th>
+                    <th>Before State</th>
+                    <th>After State</th>
+                </tr>
+            </thead>
+            <tbody id="transactionTableBody">
+            </tbody>
+        </table>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.13.0/dist/sql-wasm.js"></script>
+    <script src="schema.js"></script>
+    <script src="transactionLogger.js"></script>
+    <script src="manageRecords.js"></script>
+    
+    <script>
+        let db;
+        let allTransactions = [];
+        
+        async function initTransactionViewer() {
+            try {
+                db = await window.initDatabase();
+                await loadTransactions();
+                setupFilters();
+                updateSummary();
+            } catch (error) {
+                console.error('Failed to initialize transaction viewer:', error);
+                document.getElementById('transactionSummary').innerHTML = 
+                    '<strong style="color: red;">Error loading transactions: ' + error.message + '</strong>';
+            }
+        }
+        
+        async function loadTransactions() {
+            try {
+                const stmt = db.prepare(`
+                    SELECT * FROM TRANSACTIONS 
+                    ORDER BY date_time DESC
+                `);
+                
+                allTransactions = [];
+                while (stmt.step()) {
+                    allTransactions.push(stmt.getAsObject());
+                }
+                stmt.free();
+                
+                displayTransactions(allTransactions);
+            } catch (error) {
+                console.error('Error loading transactions:', error);
+                document.getElementById('transactionTableBody').innerHTML = 
+                    '<tr><td colspan="13">Error loading transactions: ' + error.message + '</td></tr>';
+            }
+        }
+        
+        function displayTransactions(transactions) {
+            const tbody = document.getElementById('transactionTableBody');
+            tbody.innerHTML = '';
+            
+            if (transactions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="13">No transactions found</td></tr>';
+                return;
+            }
+            
+            transactions.forEach(transaction => {
+                const row = document.createElement('tr');
+                row.className = 'transaction-row';
+                
+                row.innerHTML = `
+                    <td>${transaction.id}</td>
+                    <td>${formatDateTime(transaction.date_time)}</td>
+                    <td>${transaction.user_name || 'Unknown'}</td>
+                    <td>${transaction.action}</td>
+                    <td>${transaction.transaction_type}</td>
+                    <td>${transaction.item_type_name || ''}</td>
+                    <td>${formatSerials(transaction.mfgrSN, transaction.tilsonSN)}</td>
+                    <td>${formatLocation(transaction.to_location_name, transaction.from_location_name)}</td>
+                    <td>${formatQuantity(transaction.quantity, transaction.old_quantity)}</td>
+                    <td>${formatStatus(transaction.status_name, transaction.old_status_name)}</td>
+                    <td>${transaction.notes || ''}</td>
+                    <td class="json-data">${formatJsonData(transaction.before_state)}</td>
+                    <td class="json-data">${formatJsonData(transaction.after_state)}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+        
+        function setupFilters() {
+            // Get unique actions
+            const actions = [...new Set(allTransactions.map(t => t.action))].filter(a => a);
+            const actionFilter = document.getElementById('actionFilter');
+            actions.forEach(action => {
+                const option = document.createElement('option');
+                option.value = action;
+                option.textContent = action;
+                actionFilter.appendChild(option);
+            });
+            
+            // Get unique users
+            const users = [...new Set(allTransactions.map(t => t.user_name))].filter(u => u);
+            const userFilter = document.getElementById('userFilter');
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user;
+                option.textContent = user;
+                userFilter.appendChild(option);
+            });
+        }
+        
+        function filterTransactions() {
+            const actionFilter = document.getElementById('actionFilter').value;
+            const userFilter = document.getElementById('userFilter').value;
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+            
+            let filtered = allTransactions;
+            
+            if (actionFilter) {
+                filtered = filtered.filter(t => t.action === actionFilter);
+            }
+            
+            if (userFilter) {
+                filtered = filtered.filter(t => t.user_name === userFilter);
+            }
+            
+            if (dateFrom) {
+                filtered = filtered.filter(t => t.date_time >= dateFrom);
+            }
+            
+            if (dateTo) {
+                filtered = filtered.filter(t => t.date_time <= dateTo + ' 23:59:59');
+            }
+            
+            displayTransactions(filtered);
+            updateSummary(filtered);
+        }
+        
+        function clearFilters() {
+            document.getElementById('actionFilter').value = '';
+            document.getElementById('userFilter').value = '';
+            document.getElementById('dateFrom').value = '';
+            document.getElementById('dateTo').value = '';
+            displayTransactions(allTransactions);
+            updateSummary();
+        }
+        
+        function updateSummary(transactions = allTransactions) {
+            const summary = document.getElementById('transactionSummary');
+            const actionCounts = {};
+            
+            transactions.forEach(t => {
+                actionCounts[t.action] = (actionCounts[t.action] || 0) + 1;
+            });
+            
+            const actionSummary = Object.entries(actionCounts)
+                .map(([action, count]) => `${action}: ${count}`)
+                .join(', ');
+            
+            summary.innerHTML = `
+                <strong>Total Transactions: ${transactions.length}</strong><br>
+                Actions: ${actionSummary}
+            `;
+        }
+        
+        function formatDateTime(dateTime) {
+            if (!dateTime) return '';
+            return new Date(dateTime).toLocaleString();
+        }
+        
+        function formatSerials(mfgrSN, tilsonSN) {
+            const parts = [];
+            if (mfgrSN) parts.push(`Mfgr: ${mfgrSN}`);
+            if (tilsonSN) parts.push(`Tilson: ${tilsonSN}`);
+            return parts.join('<br>');
+        }
+        
+        function formatLocation(toLocation, fromLocation) {
+            const parts = [];
+            if (fromLocation) parts.push(`From: ${fromLocation}`);
+            if (toLocation) parts.push(`To: ${toLocation}`);
+            return parts.join('<br>');
+        }
+        
+        function formatQuantity(quantity, oldQuantity) {
+            if (oldQuantity && quantity !== oldQuantity) {
+                return `${oldQuantity} → ${quantity}`;
+            }
+            return quantity || '';
+        }
+        
+        function formatStatus(status, oldStatus) {
+            if (oldStatus && status !== oldStatus) {
+                return `${oldStatus} → ${status}`;
+            }
+            return status || '';
+        }
+        
+        function formatJsonData(jsonData) {
+            if (!jsonData) return '';
+            try {
+                const parsed = JSON.parse(jsonData);
+                return JSON.stringify(parsed, null, 2);
+            } catch (e) {
+                return jsonData;
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initTransactionViewer);
+    </script>
+</body>
+</html>
