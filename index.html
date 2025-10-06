@@ -20,233 +20,243 @@
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 </head>
 <body>
-    <nav class="sidebar">
-        <div id="slocDisplay"></div>
-        <button id="saveFileBtn">Save to File</button>
-        <button id="loadFileBtn">Load from File</button>
-        <div class="sidebar-form-group">
-            <label for="clientSelect" class="sidebar-label">Client:</label>
-            <select id="clientSelect" class="sidebar-select">
-                <option value="">Select Client</option>
+    <div id="login-container">
+      <h2>Login</h2>
+      <input type="email" id="login-email" placeholder="Email" />
+      <input type="password" id="login-password" placeholder="Password" />
+      <button id="login-button">Sign In</button>
+      <div id="login-error" style="color:red;"></div>
+    </div>
+    <div id="app-content" style="display:none;">
+        <nav class="sidebar">
+            <div id="slocDisplay"></div>
+            <button id="saveFileBtn">Save to File</button>
+            <button id="loadFileBtn">Load from File</button>
+            <div class="sidebar-form-group">
+                <label for="clientSelect" class="sidebar-label">Client:</label>
+                <select id="clientSelect" class="sidebar-select">
+                    <option value="">Select Client</option>
+                </select>
+                <label for="marketSelect" class="sidebar-label">Market:</label>
+                <select id="marketSelect" class="sidebar-select">
+                    <option value="">Select Market</option>
+                </select>
+                <label for="slocSelect" class="sidebar-label">SLOC:</label>
+                <select id="slocSelect" class="sidebar-select">
+                    <option value="">Select SLOC</option>
+                </select>
+            </div>
+            <h2>Navigation</h2>
+            <button id="receiveNavBtn">Manage Serialized Items</button>
+            <button id="bulkReceiveNavBtn">Rcv/Issue Bulk Items</button>
+            <button id="viewInventoryBtn">Manage Bulk Items</button>
+            <button id="viewTransactionHistoryBtn">Transaction History</button>
+            <button id="manageDFNsBtn">Manage DFNs</button>
+            <button id="manageItemTypesBtn">Manage Item Types</button>
+            <button id="manageCrewsBtn">Manage Crews</button>
+    
+            
+            <hr style="margin: 1em 0; border: none; border-top: 1px solid #ddd;">
+            <label style="margin: 0.5em 1em 0 1em; font-weight: bold; color: #495057;">Import/Export:</label>
+            <button id="exportTemplateBtn">📋 Export Template</button>
+            <button id="exportInventoryBtn">📊 Export Inventory</button>
+            <button id="importExcelBtn">📤 Import Excel</button>
+            
+            <hr style="margin: 1em 0; border: none; border-top: 1px solid #ddd;">
+            <label style="margin: 0.5em 1em 0 1em; font-weight: bold; color: #495057;" hidden>Manage Others:</label>
+            <select id="manageOthersSelect">
+                <option value="">Select Table</option>
+                <!-- JS will populate with remaining lookup tables -->
             </select>
-            <label for="marketSelect" class="sidebar-label">Market:</label>
-            <select id="marketSelect" class="sidebar-select">
-                <option value="">Select Market</option>
-            </select>
-            <label for="slocSelect" class="sidebar-label">SLOC:</label>
-            <select id="slocSelect" class="sidebar-select">
-                <option value="">Select SLOC</option>
-            </select>
-        </div>
-        <h2>Navigation</h2>
-        <button id="receiveNavBtn">Manage Serialized Items</button>
-        <button id="bulkReceiveNavBtn">Rcv/Issue Bulk Items</button>
-        <button id="viewInventoryBtn">Manage Bulk Items</button>
-        <button id="viewTransactionHistoryBtn">Transaction History</button>
-        <button id="manageDFNsBtn">Manage DFNs</button>
-        <button id="manageItemTypesBtn">Manage Item Types</button>
-        <button id="manageCrewsBtn">Manage Crews</button>
-
-        
-        <hr style="margin: 1em 0; border: none; border-top: 1px solid #ddd;">
-        <label style="margin: 0.5em 1em 0 1em; font-weight: bold; color: #495057;">Import/Export:</label>
-        <button id="exportTemplateBtn">📋 Export Template</button>
-        <button id="exportInventoryBtn">📊 Export Inventory</button>
-        <button id="importExcelBtn">📤 Import Excel</button>
-        
-        <hr style="margin: 1em 0; border: none; border-top: 1px solid #ddd;">
-        <label style="margin: 0.5em 1em 0 1em; font-weight: bold; color: #495057;" hidden>Manage Others:</label>
-        <select id="manageOthersSelect">
-            <option value="">Select Table</option>
-            <!-- JS will populate with remaining lookup tables -->
-        </select>
-    </nav>
-    <main id="mainView">
-        <div id="receiveAccordion" class="accordion-section">
-            <div class="accordion-header">Serialized Inventory Management</div>
-            <div class="accordion-content" id="inventoryReceiveSection">
-                <div class="serialized-inventory-management-flex">
-                    <div class="serialized-manage-left">
-                        <div class="accordion-subsection">
-                            <div class="accordion-subheader" tabindex="0" aria-expanded="false">
-                                <span>Receive Serialized Items</span>
-                                <span class="accordion-arrow">&#9654;</span>
-                            </div>
-                            <div class="accordion-subcontent">
-                                <form id="bulkSerializedForm">
-                                    <div class="form-group">
-                                        <label for="bulkSerializedItemType">Item Type:</label>
-                                        <select id="bulkSerializedItemType" name="item_type_id" required 
-                                                data-table="ITEM_TYPES" data-value-field="id" data-label-field="description">
-                                            <option value="">Select Item Type</option>
-                                        </select>
-                                    </div>
-                                    <div id="unitsPerPackageDisplay" class="units-per-package-info">
-                                        <note id="unitsPerPackageValue">-</note>
-                                    </div>
-                                    <small class="form-text text-muted">Enter a number to auto-generate that many serial tags (e.g. "1 of 12", "2 of 12", ...).</small>
-                                    <div class="form-group">
-                                        <label for="batchSnCount">Batch Count:</label>
-                                        <input type="number" id="batchSnCount" min="1" step="1" placeholder="Enter quantity (e.g. 12)">
-                                    </div>
-                                    <small class="form-text text-muted">Or type serial numbers and press Enter or comma to add them. Each will get an auto-generated Tilson SN.</small>
-                                    <div class="form-group">
-                                        <label for="mfgrSnTags">Manufacturer Serial Numbers:</label>
-                                        <select id="mfgrSnTags" class="form-control" multiple="multiple" style="width: 100%;"></select>
-                                    </div>
-                                    <div id="snPreview" class="sn-preview" style="margin: 1em 0; min-height: 100px; max-height: 200px; width: 100%; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 0.5em; background-color: white; box-sizing: border-box;">
-                                        <p>Serial number pairs will appear here as you add manufacturer SNs</p>
-                                    </div>
-                                    <div class="form-actions" style="margin-top: 1em;">
-                                        <button type="button" id="bulkSerializedReceiveBtn" class="bulk-action-btn" disabled>Receive (<span id="bulkSerializedReceiveCount">0</span>)</button>
-                                        <button type="button" id="bulkSerializedReceiveIssueBtn" class="bulk-action-btn" disabled hidden>Receive + Issue (<span id="bulkSerializedIssueCount">0</span>)</button>
-                                        <button type="button" id="clearBulkFormBtn" style="background-color: #6c757d; color: white; padding: 0.75em 1em; border: none; border-radius: 4px; margin-left: 1em;">
-                                            🗑️ Clear
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                        <div class="accordion-subsection">
-                            <div class="accordion-subheader" tabindex="0" aria-expanded="false">
-                                <span>Issue Serialized Items</span>
-                                <span class="accordion-arrow">&#9654;</span>
-                            </div>
-                            <div class="accordion-subcontent">
-                                <button id="beginSerializedIssueBtn" type="button">Begin Issue Process</button>
-                                <button id="cancelSerializedIssueBtn" type="button" style="display: none; background-color: #dc3545; color: white; margin-left: 1em;">Cancel</button>
-                                <div id="serializedIssueSelectionInstructions" style="margin: 1em 0; color: #555; display: none;">
-                                    Click on serialized items below to select them for issue.
+        </nav>
+        <main id="mainView">
+            <div id="receiveAccordion" class="accordion-section">
+                <div class="accordion-header">Serialized Inventory Management</div>
+                <div class="accordion-content" id="inventoryReceiveSection">
+                    <div class="serialized-inventory-management-flex">
+                        <div class="serialized-manage-left">
+                            <div class="accordion-subsection">
+                                <div class="accordion-subheader" tabindex="0" aria-expanded="false">
+                                    <span>Receive Serialized Items</span>
+                                    <span class="accordion-arrow">&#9654;</span>
                                 </div>
-                                <div id="selectedSerializedForIssue" style="margin-bottom: 1em;"></div>
-                                <button id="completeSerializedIssueBtn" type="button" style="display: none;">Complete Issue Process</button>
-                                <!-- Modal for issue confirmation will be injected here -->
+                                <div class="accordion-subcontent">
+                                    <form id="bulkSerializedForm">
+                                        <div class="form-group">
+                                            <label for="bulkSerializedItemType">Item Type:</label>
+                                            <select id="bulkSerializedItemType" name="item_type_id" required 
+                                                    data-table="ITEM_TYPES" data-value-field="id" data-label-field="description">
+                                                <option value="">Select Item Type</option>
+                                            </select>
+                                        </div>
+                                        <div id="unitsPerPackageDisplay" class="units-per-package-info">
+                                            <note id="unitsPerPackageValue">-</note>
+                                        </div>
+                                        <small class="form-text text-muted">Enter a number to auto-generate that many serial tags (e.g. "1 of 12", "2 of 12", ...).</small>
+                                        <div class="form-group">
+                                            <label for="batchSnCount">Batch Count:</label>
+                                            <input type="number" id="batchSnCount" min="1" step="1" placeholder="Enter quantity (e.g. 12)">
+                                        </div>
+                                        <small class="form-text text-muted">Or type serial numbers and press Enter or comma to add them. Each will get an auto-generated Tilson SN.</small>
+                                        <div class="form-group">
+                                            <label for="mfgrSnTags">Manufacturer Serial Numbers:</label>
+                                            <select id="mfgrSnTags" class="form-control" multiple="multiple" style="width: 100%;"></select>
+                                        </div>
+                                        <div id="snPreview" class="sn-preview" style="margin: 1em 0; min-height: 100px; max-height: 200px; width: 100%; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 0.5em; background-color: white; box-sizing: border-box;">
+                                            <p>Serial number pairs will appear here as you add manufacturer SNs</p>
+                                        </div>
+                                        <div class="form-actions" style="margin-top: 1em;">
+                                            <button type="button" id="bulkSerializedReceiveBtn" class="bulk-action-btn" disabled>Receive (<span id="bulkSerializedReceiveCount">0</span>)</button>
+                                            <button type="button" id="bulkSerializedReceiveIssueBtn" class="bulk-action-btn" disabled hidden>Receive + Issue (<span id="bulkSerializedIssueCount">0</span>)</button>
+                                            <button type="button" id="clearBulkFormBtn" style="background-color: #6c757d; color: white; padding: 0.75em 1em; border: none; border-radius: 4px; margin-left: 1em;">
+                                                🗑️ Clear
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                            <div class="accordion-subsection">
+                                <div class="accordion-subheader" tabindex="0" aria-expanded="false">
+                                    <span>Issue Serialized Items</span>
+                                    <span class="accordion-arrow">&#9654;</span>
+                                </div>
+                                <div class="accordion-subcontent">
+                                    <button id="beginSerializedIssueBtn" type="button">Begin Issue Process</button>
+                                    <button id="cancelSerializedIssueBtn" type="button" style="display: none; background-color: #dc3545; color: white; margin-left: 1em;">Cancel</button>
+                                    <div id="serializedIssueSelectionInstructions" style="margin: 1em 0; color: #555; display: none;">
+                                        Click on serialized items below to select them for issue.
+                                    </div>
+                                    <div id="selectedSerializedForIssue" style="margin-bottom: 1em;"></div>
+                                    <button id="completeSerializedIssueBtn" type="button" style="display: none;">Complete Issue Process</button>
+                                    <!-- Modal for issue confirmation will be injected here -->
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="serialized-inventory-panel" style="flex: 3 1 0; min-width: 400px;">
-                        <h3>Serialized Inventory</h3>
-                        <div id="serializedInventorySection">
-                            <div id="serializedInventoryHierarchy">
-                                <!-- This will be populated with hierarchical groups -->
+                        <div class="serialized-inventory-panel" style="flex: 3 1 0; min-width: 400px;">
+                            <h3>Serialized Inventory</h3>
+                            <div id="serializedInventorySection">
+                                <div id="serializedInventoryHierarchy">
+                                    <!-- This will be populated with hierarchical groups -->
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-        
-        <div id="bulkInventoryAccordion" class="accordion-section">
-            <div class="accordion-header">Bulk Inventory</div>
-            <div class="accordion-content" id="bulkInventorySection">
-                <!-- Bulk inventory table goes here -->
-                <table id="bulkInventoryTable">
-                    <thead>
-                        <tr>
-                            <th>Crew</th>
-                            <th>DFN</th>
-                            <th>Item</th>
-                            <th>Category</th>
-                            <th>Quantity</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="bulkInventoryBody"></tbody>
-                </table>
+            
+            <div id="bulkInventoryAccordion" class="accordion-section">
+                <div class="accordion-header">Bulk Inventory</div>
+                <div class="accordion-content" id="bulkInventorySection">
+                    <!-- Bulk inventory table goes here -->
+                    <table id="bulkInventoryTable">
+                        <thead>
+                            <tr>
+                                <th>Crew</th>
+                                <th>DFN</th>
+                                <th>Item</th>
+                                <th>Category</th>
+                                <th>Quantity</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bulkInventoryBody"></tbody>
+                    </table>
+                </div>
             </div>
-        </div>
-        
-        <div id="bulkReceiveAccordion" class="accordion-section">
-            <div class="accordion-header">Receive/Issue Bulk Items</div>
-            <div class="accordion-content" id="bulkReceiveSection">
-                <div class="bulk-manage-container">
-                    <div class="bulk-manage-left-section">
-                        <h3>Receive Material</h3>
-                        <p style="margin-bottom: 1em; color: #6c757d;">Receive multiple bulk items with non-serialized inventory by quantity.</p>
-
-                            <!-- Bulk receiving form -->
-                        <div class="form-actions" style="margin-top: 1em;">
-                            <button type="button" id="bulkItemReceiveBtn" class="bulk-action-btn" disabled hidden>Receive</button>
-                            <button type="button" id="bulkItemIssueBtn" class="bulk-action-btn" disabled hidden>Receive + Issue</button>
-                            <button type="button" id="bulkBeginReceiveProcessBtn" class="bulk-action-btn">Begin Receive Process</button>
-                            <p class="bulk-process-status"></p>
-                            <button type="button" id="clearBulkReceiveFormBtn" style="background-color: #6c757d; color: white; padding: 0.75em 1em; border: none; border-radius: 4px; margin-left: 1em;" hidden>
-                                🗑️ Clear
-                            </button>
-                            <button type="button" id="bulkCancelReceiveProcessBtn" style="background-color: #dc3545; color: white; padding: 0.75em 1em; border: none; border-radius: 4px; margin-left: 1em;" hidden>
-                                ❌ Cancel
-                            </button>
-                        </div>
-                        <form id="bulkReceiveForm" hidden>
-                            <div class="form-group">
-                                <label for="assigned_crew_id" hidden>Assigned Crew:</label>
-                                <select name="assigned_crew_id" id="bulk_assigned_crew_id" hidden
-                                        data-table="CREWS" data-value-field="id" data-label-field="name">
-                                    <option value="">Select Crew</option>
-                                </select>
+            
+            <div id="bulkReceiveAccordion" class="accordion-section">
+                <div class="accordion-header">Receive/Issue Bulk Items</div>
+                <div class="accordion-content" id="bulkReceiveSection">
+                    <div class="bulk-manage-container">
+                        <div class="bulk-manage-left-section">
+                            <h3>Receive Material</h3>
+                            <p style="margin-bottom: 1em; color: #6c757d;">Receive multiple bulk items with non-serialized inventory by quantity.</p>
+    
+                                <!-- Bulk receiving form -->
+                            <div class="form-actions" style="margin-top: 1em;">
+                                <button type="button" id="bulkItemReceiveBtn" class="bulk-action-btn" disabled hidden>Receive</button>
+                                <button type="button" id="bulkItemIssueBtn" class="bulk-action-btn" disabled hidden>Receive + Issue</button>
+                                <button type="button" id="bulkBeginReceiveProcessBtn" class="bulk-action-btn">Begin Receive Process</button>
+                                <p class="bulk-process-status"></p>
+                                <button type="button" id="clearBulkReceiveFormBtn" style="background-color: #6c757d; color: white; padding: 0.75em 1em; border: none; border-radius: 4px; margin-left: 1em;" hidden>
+                                    🗑️ Clear
+                                </button>
+                                <button type="button" id="bulkCancelReceiveProcessBtn" style="background-color: #dc3545; color: white; padding: 0.75em 1em; border: none; border-radius: 4px; margin-left: 1em;" hidden>
+                                    ❌ Cancel
+                                </button>
                             </div>
-                            <div class="form-group" hidden>
-                                <label for="dfn_id" hidden>DFN:</label>
-                                <select name="dfn_id" id="bulk_dfn_id" hidden
-                                        data-table="DFNS" data-value-field="id" data-label-field="name">
-                                    <option value="">Select DFN</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="batch_note">Batch Note:</label>
-                                <input type="text" name="batch_note" id="batch_note" placeholder="Optional batch note">
-                            </div>
-                            
-
-                        </form>
-                    </div>
-                    <div class="bulk-manage-right-section">
-                        <h3>Issue Material</h3>
-                        <p style="margin-bottom: 1em; color: #6c757d;">Issue items that are tracked as bulk (non-serialized) inventory.</p>
-                        <div class="form-actions" style="margin-top: 1em;">
-                            <button type="button" id="bulkBeginIssueProcessBtn" class="bulk-action-btn">Begin Issue Process</button>
-                            <span class="bulk-process-status"></span>
-                            <button type="button" id="bulkCancelIssueProcessBtn" style="background-color: #dc3545; color: white; padding: 0.75em 1em; border: none; border-radius: 4px; margin-left: 1em;" hidden>
-                                ❌ Cancel
-                            </button>
-                            <form id="bulkIssueForm" hidden>
+                            <form id="bulkReceiveForm" hidden>
                                 <div class="form-group">
-                                    <label for="issueReceiptNumber">Issue Receipt Number:</label>
-                                    <input type="text" id="issueReceiptNumber" name="issueReceiptNumber" readonly>
-                                </div>
-                                <div class="form-group">
-                                    <label for="assigned_crew_id">Assigned Crew:</label>
-                                    <select name="assigned_crew_id" id="bulk_issue_assigned_crew_id"
+                                    <label for="assigned_crew_id" hidden>Assigned Crew:</label>
+                                    <select name="assigned_crew_id" id="bulk_assigned_crew_id" hidden
                                             data-table="CREWS" data-value-field="id" data-label-field="name">
                                         <option value="">Select Crew</option>
                                     </select>
                                 </div>
-                                <div class="form-group">
-                                    <label for="dfn_id">DFN:</label>
-                                    <select name="dfn_id" id="bulk_issue_dfn_id"
+                                <div class="form-group" hidden>
+                                    <label for="dfn_id" hidden>DFN:</label>
+                                    <select name="dfn_id" id="bulk_dfn_id" hidden
                                             data-table="DFNS" data-value-field="id" data-label-field="name">
                                         <option value="">Select DFN</option>
                                     </select>
                                 </div>
+                                <div class="form-group">
+                                    <label for="batch_note">Batch Note:</label>
+                                    <input type="text" name="batch_note" id="batch_note" placeholder="Optional batch note">
+                                </div>
+                                
+    
                             </form>
-                        </div>  
+                        </div>
+                        <div class="bulk-manage-right-section">
+                            <h3>Issue Material</h3>
+                            <p style="margin-bottom: 1em; color: #6c757d;">Issue items that are tracked as bulk (non-serialized) inventory.</p>
+                            <div class="form-actions" style="margin-top: 1em;">
+                                <button type="button" id="bulkBeginIssueProcessBtn" class="bulk-action-btn">Begin Issue Process</button>
+                                <span class="bulk-process-status"></span>
+                                <button type="button" id="bulkCancelIssueProcessBtn" style="background-color: #dc3545; color: white; padding: 0.75em 1em; border: none; border-radius: 4px; margin-left: 1em;" hidden>
+                                    ❌ Cancel
+                                </button>
+                                <form id="bulkIssueForm" hidden>
+                                    <div class="form-group">
+                                        <label for="issueReceiptNumber">Issue Receipt Number:</label>
+                                        <input type="text" id="issueReceiptNumber" name="issueReceiptNumber" readonly>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="assigned_crew_id">Assigned Crew:</label>
+                                        <select name="assigned_crew_id" id="bulk_issue_assigned_crew_id"
+                                                data-table="CREWS" data-value-field="id" data-label-field="name">
+                                            <option value="">Select Crew</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="dfn_id">DFN:</label>
+                                        <select name="dfn_id" id="bulk_issue_dfn_id"
+                                                data-table="DFNS" data-value-field="id" data-label-field="name">
+                                            <option value="">Select DFN</option>
+                                        </select>
+                                    </div>
+                                </form>
+                            </div>  
+                        </div>
+                    </div>
+                    <!-- Bulk item types table will be generated here -->
+                    <div id="bulkItemTypesTable"></div>
                     </div>
                 </div>
-                <!-- Bulk item types table will be generated here -->
-                <div id="bulkItemTypesTable"></div>
-                </div>
             </div>
-        </div>
-        <div id="pdfExportContainer" style="display:none;"></div>
-    </main>
-    
-    <script src="transactionLogger.js"></script>
-    <script src="manageRecords.js"></script>
-    <script src="modals.js"></script>
-    <script src="xlsxImporter.js"></script>
-    <script src="inventoryExporter.js"></script>
-    <script type="module" src="script.js"></script>
+            <div id="pdfExportContainer" style="display:none;"></div>
+        </main>
+        
+        <script src="transactionLogger.js"></script>
+        <script src="manageRecords.js"></script>
+        <script src="modals.js"></script>
+        <script src="xlsxImporter.js"></script>
+        <script src="inventoryExporter.js"></script>
+        <script type="module" src="script.js"></script>
+    </div>
 </body>
 </html>
+
 
 
