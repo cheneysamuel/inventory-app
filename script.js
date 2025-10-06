@@ -116,14 +116,14 @@ window.getCachedRowByField = getCachedRowByField;
 // ============================================================================
 
 /**
- * Get the current Tilson SN counter from CONFIG
+ * Get the current Tilson SN counter from config
  * @param {Object} database - Database instance
  * @returns {number} Current Tilson SN counter
  */
 async function getCurrentTilsonSN() {
     try {
         const { data, error } = await supabase
-            .from('CONFIG')
+            .from('config')
             .select('value')
             .eq('key', 'currentTilsonSN')
             .single();
@@ -187,7 +187,7 @@ async function updateTilsonSNCounter(count) {
         const currentCounter = await getCurrentTilsonSN();
         const newCounter = currentCounter + count;
         const { error } = await supabase
-            .from('CONFIG')
+            .from('config')
             .update({ value: newCounter.toString() })
             .eq('key', 'currentTilsonSN');
         if (error) throw error;
@@ -330,7 +330,7 @@ async function insertInventoryRecord(inventoryData) {
             }
         });
         const { data, error } = await supabase
-            .from('INVENTORY')
+            .from('inventory')
             .insert([insertData])
             .select('id')
             .single();
@@ -349,10 +349,10 @@ async function insertInventoryRecord(inventoryData) {
                 console.warn('Failed to log inventory creation transaction:', logError);
             }
         }
-        // Update CONFIG with Tilson SN counter if serialized
+        // Update config with Tilson SN counter if serialized
         if (inventoryData.itemTypeInfo.isSerializedType && inventoryData.tilsonSN) {
             await supabase
-                .from('CONFIG')
+                .from('config')
                 .update({ value: inventoryData.tilsonSN.replace('T-', '') })
                 .eq('key', 'last_tilson_sn');
             await updateTilsonSNCounter(1);
@@ -499,8 +499,8 @@ async function getBulkItemTypes() {
             description,
             part_number,
             categories(name),
-            UNITS_OF_MEASURE(name),
-            INVENTORY_PROVIDERS(name)
+            units_of_measure(name),
+            inventory_providers(name)
         `)
         .eq('inventory_type_id', 1)
         .eq('market_id', window.selectedMarketId);
@@ -527,7 +527,7 @@ async function getBulkItemTypes() {
 async function getBulkInventoryAggregates(itemTypeId) {
     // Fetch all inventory rows for this item type and SLOC, including status name
     const { data, error } = await supabase
-        .from('INVENTORY')
+        .from('inventory')
         .select('quantity, statuses(name)')
         .eq('item_type_id', itemTypeId)
         .eq('sloc_id', window.selectedSlocId);
@@ -965,7 +965,7 @@ async function loadSerializedInventoryList() {
 
         // Supabase query with joins
         const { data, error } = await supabase
-            .from('INVENTORY')
+            .from('inventory')
             .select(`
                 id,
                 location_id,
@@ -974,7 +974,7 @@ async function loadSerializedInventoryList() {
                 mfgrSN,
                 tilsonSN,
                 quantity,
-                locations(name, LOCATION_TYPES(name)),
+                locations(name, location_types(name)),
                 crews(name),
                 dfns(name),
                 item_types(name, categories(name, id)),
@@ -995,7 +995,7 @@ async function loadSerializedInventoryList() {
         const filtered = (data || []).filter(row =>
             row.statuses?.name !== 'Installed' &&
             row.statuses?.name !== 'Removed' &&
-            (!row.locations?.LOCATION_TYPES || row.locations.LOCATION_TYPES.name !== 'Outgoing')
+            (!row.locations?.location_types || row.locations.location_types.name !== 'Outgoing')
         );
 
         // Map to match your original structure
@@ -1232,7 +1232,7 @@ async function loadBulkInventoryList() {
 
         // Supabase query with joins
         const { data, error } = await supabase
-            .from('INVENTORY')
+            .from('inventory')
             .select(`
                 id,
                 location_id,
@@ -1330,7 +1330,7 @@ function createInventoryTable(tableId, inventoryType) {
         ];
     }
     
-    const currentSort = getInventorySortConfig();
+    const currentSort = getInventorySortconfig();
     
     columns.forEach(([displayName, columnName]) => {
         const th = document.createElement('th');
@@ -1382,7 +1382,7 @@ function createInventoryTable(tableId, inventoryType) {
                 }
                 
                 // Store new sort configuration
-                setInventorySortConfig(currentSort.column, currentSort.direction);
+                setInventorySortconfig(currentSort.column, currentSort.direction);
                 
                 // Reload the inventory
                 loadInventoryList();
@@ -1476,13 +1476,13 @@ function formatNumberWithCommas(num) {
 
 
 /**
- * Get the current sort configuration from CONFIG table
+ * Get the current sort configuration from config table
  * @returns {Object} - {column: string, direction: 'ASC'|'DESC'}
  */
-async function getInventorySortConfig() {
+async function getInventorySortconfig() {
     try {
         const { data, error } = await supabase
-            .from('CONFIG')
+            .from('config')
             .select('value')
             .eq('key', 'inventory_sort')
             .single();
@@ -1503,15 +1503,15 @@ async function getInventorySortConfig() {
 }
 
 /**
- * Save the sort configuration to CONFIG table
+ * Save the sort configuration to config table
  * @param {string} column - Column to sort by
  * @param {string} direction - 'ASC' or 'DESC'
  */
-async function saveInventorySortConfig(column, direction) {
+async function saveInventorySortconfig(column, direction) {
     try {
         const config = JSON.stringify({ column, direction });
         const { error } = await supabase
-            .from('CONFIG')
+            .from('config')
             .upsert([
                 { key: 'inventory_sort', value: config }
             ], { onConflict: ['key'] });
@@ -1528,8 +1528,8 @@ async function saveInventorySortConfig(column, direction) {
  * @param {string} column - Column to sort by  
  * @param {string} direction - 'ASC' or 'DESC'
  */
-function setInventorySortConfig(column, direction) {
-    saveInventorySortConfig(column, direction);
+function setInventorySortconfig(column, direction) {
+    saveInventorySortconfig(column, direction);
 }
 
 /**
@@ -1561,7 +1561,7 @@ function refreshAllTables() {
  * @returns {string} - ORDER BY clause
  */
 function getInventoryOrderBy() {
-    const config = getInventorySortConfig();
+    const config = getInventorySortconfig();
     return `ORDER BY ${config.column} ${config.direction}`;
 }
 
@@ -2387,9 +2387,9 @@ async function getItemTypeHistoryData(itemTypeId) {
                 description,
                 units_per_package,
                 categories(name),
-                INVENTORY_TYPES(name),
+                inventory_types(name),
                 UNITS_OF_MEASURE(name),
-                INVENTORY_PROVIDERS(name)
+                inventory_providers(name)
             `)
             .eq('id', itemTypeId)
             .eq('market_id', window.selectedMarketId)
@@ -2404,16 +2404,16 @@ async function getItemTypeHistoryData(itemTypeId) {
                 description: itemTypeRows.description,
                 units_per_package: itemTypeRows.units_per_package,
                 category_name: itemTypeRows.categories?.name || '',
-                inventory_type_name: itemTypeRows.INVENTORY_TYPES?.name || '',
-                unit_name: itemTypeRows.UNITS_OF_MEASURE?.name || '',
-                provider_name: itemTypeRows.INVENTORY_PROVIDERS?.name || ''
+                inventory_type_name: itemTypeRows.inventory_types?.name || '',
+                unit_name: itemTypeRows.units_of_measure?.name || '',
+                provider_name: itemTypeRows.inventory_providers?.name || ''
             };
-            data.isSerializedType = itemTypeRows.INVENTORY_TYPES?.name === 'Serialized';
+            data.isSerializedType = itemTypeRows.inventory_types?.name === 'Serialized';
         }
 
         // 2. Get current inventory for this item type
         const { data: inventoryRows, error: inventoryError } = await supabase
-            .from('INVENTORY')
+            .from('inventory')
             .select(`
                 id,
                 location_id,
@@ -3049,8 +3049,8 @@ function initializeBulkReceiving() {
             $('.bulk-quantity-input').prop('disabled', false);
             // show the issueBulkForm
             $('#bulkIssueForm').show();
-            // get the current issue receipt number from CONFIG table, key:currentIssueNumber
-            const receiptNumber = getConfigValue('receiptNumber') || 'N/A';
+            // get the current issue receipt number from config table, key:currentIssueNumber
+            const receiptNumber = getconfigValue('receiptNumber') || 'N/A';
             console.log("Current bulk issue receipt number is:", receiptNumber);
             //$('#receiptNumber').value = receiptNumber;
 
@@ -3729,7 +3729,7 @@ async function receiveSerializedItem(mfgrSN, tilsonSN, itemTypeId, locationId, d
 
     // Insert inventory record
     const { data: insertData, error: insertError } = await supabase
-        .from('INVENTORY')
+        .from('inventory')
         .insert([{
             tilsonSN,
             mfgrSN,
@@ -3787,7 +3787,7 @@ async function issueSerializedItem(mfgrSN, tilsonSN, itemTypeId, crewId, dfnId =
 
     // Update the inventory record to set as issued
     const { error: updateError } = await supabase
-        .from('INVENTORY')
+        .from('inventory')
         .update({
             status_id: statusId,
             assigned_crew_id: crewId,
@@ -3829,7 +3829,7 @@ async function getAvailableBulkItemTypeQuantity(itemTypeId) {
 
     // Sum the quantity for this item type, status, and SLOC
     const { data, error } = await supabase
-        .from('INVENTORY')
+        .from('inventory')
         .select('quantity')
         .eq('item_type_id', itemTypeId)
         .eq('status_id', statusId)
@@ -3859,7 +3859,7 @@ async function reduceAvailableQuantity(inventoryData, totalRows = 1, currentInde
 
     // Get available inventory rows for this item type, status, and SLOC
     const { data: availableRows, error: availableRowsError } = await supabase
-        .from('INVENTORY')
+        .from('inventory')
         .select('id, quantity')
         .eq('item_type_id', inventoryData.item_type_id)
         .eq('status_id', availableStatusId)
@@ -3889,13 +3889,13 @@ async function reduceAvailableQuantity(inventoryData, totalRows = 1, currentInde
                 // Reduce the available row's quantity
                 const newAvailableQty = row.quantity - qtyToIssue;
                 await supabase
-                    .from('INVENTORY')
+                    .from('inventory')
                     .update({ quantity: newAvailableQty })
                     .eq('id', row.id);
 
                 // Insert a new row for the issued quantity
                 const { data: insertData, error: insertError } = await supabase
-                    .from('INVENTORY')
+                    .from('inventory')
                     .insert([{
                         item_type_id: inventoryData.item_type_id,
                         quantity: qtyToIssue,
@@ -3916,7 +3916,7 @@ async function reduceAvailableQuantity(inventoryData, totalRows = 1, currentInde
             } else if (row.quantity === qtyToIssue) {
                 // Update the row to 'Issued' and assign crew/location/dfn
                 await supabase
-                    .from('INVENTORY')
+                    .from('inventory')
                     .update({
                         status_id: issuedStatusId,
                         assigned_crew_id: inventoryData.assigned_crew_id || null,
@@ -3929,13 +3929,13 @@ async function reduceAvailableQuantity(inventoryData, totalRows = 1, currentInde
             } else {
                 // Use up this row and continue
                 await supabase
-                    .from('INVENTORY')
+                    .from('inventory')
                     .update({ quantity: 0 })
                     .eq('id', row.id);
 
                 // Insert a new row for the issued quantity (equal to row.quantity)
                 const { data: insertData, error: insertError } = await supabase
-                    .from('INVENTORY')
+                    .from('inventory')
                     .insert([{
                         item_type_id: inventoryData.item_type_id,
                         quantity: row.quantity,
@@ -4012,10 +4012,10 @@ function displaySlocValue() {
 }
 
 
-async function getConfigValue(key) {
+async function getconfigValue(key) {
     try {
         const { data, error } = await supabase
-            .from('CONFIG')
+            .from('config')
             .select('value')
             .eq('key', key)
             .single();
@@ -4254,6 +4254,7 @@ async function prepareInventoryData(rawData, action = 'receive') {
         itemTypeInfo: itemTypeInfo
     };
 }
+
 
 
 
