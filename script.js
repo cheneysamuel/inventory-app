@@ -4019,6 +4019,13 @@ window.refreshDropdowns = function() {
     }
 };
 
+function setActiveSidebarButton(buttonId) {
+    // Remove 'active' class from all sidebar buttons
+    document.querySelectorAll('nav.sidebar button').forEach(btn => btn.classList.remove('active'));
+    // Add 'active' class to the clicked button
+    const activeBtn = document.getElementById(buttonId);
+    if (activeBtn) activeBtn.classList.add('active');
+}
 
 
 
