@@ -978,7 +978,7 @@ async function loadSerializedInventoryList() {
 
         // Get current sort configuration
         const orderBy = getInventoryOrderBy();
-
+        console.log("orderBy: ", orderBy);
         // Supabase query with joins
         const { data, error } = await supabase
             .from('inventory')
@@ -1234,7 +1234,7 @@ async function loadBulkInventoryList() {
 
         // Get current sort configuration
         const orderBy = getInventoryOrderBy();
-
+        console.log("orderBy: ", orderBy);
         // Supabase query with joins
         const { data, error } = await supabase
             .from('inventory')
@@ -4290,6 +4290,7 @@ async function prepareInventoryData(rawData, action = 'receive') {
         itemTypeInfo: itemTypeInfo
     };
 }
+
 
 
 
