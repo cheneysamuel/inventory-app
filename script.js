@@ -1639,6 +1639,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             status_id: getCachedTable('statuses').map(row => [row.id, row.name])
         };
 
+        document.getElementById('logout-button').addEventListener('click', async () => {
+            await supabase.auth.signOut();
+            location.reload();
+        });
         
         // Create global function to refresh dropdowns
         window.refreshDropdowns = async function() {
@@ -4280,6 +4284,7 @@ async function prepareInventoryData(rawData, action = 'receive') {
         itemTypeInfo: itemTypeInfo
     };
 }
+
 
 
 
