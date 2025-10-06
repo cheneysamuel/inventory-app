@@ -53,6 +53,10 @@ function showError(message) {
     alert(message); // Or display in a custom error div if you prefer
 }
 
+function isUserLoggedIn() {
+    return !!(window.currentUser && window.currentUser.id);
+}
+
 // Example: sign in
 async function login(email, password) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -81,6 +85,11 @@ window.lookupCache = {}; // { tableName: [rows...] }
  * Load all lookup tables into cache (call once at app startup)
  */
 async function cacheLookupTables() {
+
+    if (!isUserLoggedIn()) {
+        console.warn('User not logged in. Skipping Supabase call.');
+        return;
+    }
     for (const table of LOOKUP_TABLES) {
         const { data, error } = await supabase.from(table.toUpperCase()).select('*');
         window.lookupCache[table] = error ? [] : (data || []);
@@ -944,6 +953,11 @@ async function loadInventoryList(loadIt = true) {
  * Load and display serialized inventory in hierarchical format (items with serial numbers)
  */
 async function loadSerializedInventoryList() {
+
+    if (!isUserLoggedIn()) {
+        console.warn('User not logged in. Skipping Supabase call.');
+        return;
+    }
     try {
         const inventorySection = document.getElementById('serializedInventorySection');
         if (!inventorySection) return;
@@ -1199,6 +1213,11 @@ async function createSerializedInventoryHierarchy(data) {
  * Load and display bulk inventory (items without serial numbers)
  */
 async function loadBulkInventoryList() {
+
+    if (!isUserLoggedIn()) {
+        console.warn('User not logged in. Skipping Supabase call.');
+        return;
+    }
     try {
         const inventorySection = document.getElementById('bulkInventorySection');
         if (!inventorySection) return;
@@ -4288,6 +4307,7 @@ async function prepareInventoryData(rawData, action = 'receive') {
         itemTypeInfo: itemTypeInfo
     };
 }
+
 
 
 
