@@ -48,6 +48,10 @@ async function testSupabaseAuth() {
 
 //testSupabaseAuth();
 
+// for error messages
+function showError(message) {
+    alert(message); // Or display in a custom error div if you prefer
+}
 
 // Example: sign in
 async function login(email, password) {
@@ -560,8 +564,8 @@ async function getBulkInventoryAggregates(itemTypeId) {
  * Generate bulk item types table
  * @returns {HTMLTableElement} - Generated table element
  */
-function generateBulkItemTypesTable() {
-    const bulkItemTypes = getBulkItemTypes();
+async function generateBulkItemTypesTable() {
+    const bulkItemTypes = await getBulkItemTypes();
     
     console.log("Generating bulk item types table with " + bulkItemTypes.length + " item types");
 
@@ -844,7 +848,7 @@ async function processBulkInventoryInsertion(action) {
 /**
  * Refresh the bulk item types table
  */
-function refreshBulkItemTypesTable(createTable = true) {
+async function refreshBulkItemTypesTable(createTable = true) {
     console.log("Refreshing bulk item types table...");
 
     if(createTable === true){
@@ -860,7 +864,7 @@ function refreshBulkItemTypesTable(createTable = true) {
             }
 
         }
-        const newTable = generateBulkItemTypesTable();
+        const newTable = await generateBulkItemTypesTable();
         tableContainer.appendChild(newTable);
 
         setTimeout(addBulkInventorySearchBar, 0);
@@ -958,7 +962,7 @@ async function loadSerializedInventoryList() {
         if (orderBy) {
             const match = orderBy.match(/ORDER BY ([\w\.]+) (ASC|DESC)/i);
             if (match) {
-                orderCol = match[1].replace('l.', 'locations.').replace('c.', 'crews.').replace('d.', 'dfns.').replace('it.', 'item_types.').replace('cat.', 'categories.').replace('s.', 'statuses.').replace('i.', '');
+                orderCol = match[1];
                 orderDir = { ascending: match[2].toUpperCase() === 'ASC' };
             }
         }
@@ -983,7 +987,7 @@ async function loadSerializedInventoryList() {
             .eq('sloc_id', window.selectedSlocId)
             .not('mfgrSN', 'is', null)
             .not('mfgrSN', 'eq', '')
-            .order(orderCol, orderDir);
+            .order(orderCol, orderDir.ascending ? { ascending: true } : { ascending: false });
 
         if (error) {
             console.error('Supabase error:', error);
@@ -1894,7 +1898,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Generate and append bulk item types table
             const bulkTableContainer = document.getElementById('bulkItemTypesTable');
             if (bulkTableContainer) {
-                const bulkTable = generateBulkItemTypesTable();
+                const bulkTable = await generateBulkItemTypesTable();
                 bulkTableContainer.appendChild(bulkTable);
             }
 
@@ -4284,6 +4288,7 @@ async function prepareInventoryData(rawData, action = 'receive') {
         itemTypeInfo: itemTypeInfo
     };
 }
+
 
 
 
