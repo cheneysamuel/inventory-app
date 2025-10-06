@@ -1612,6 +1612,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Initialize transaction logger for audit trail
         window.transactionLogger = new TransactionLogger();
 
+        // On page load, check if user is signed in
+        supabase.auth.getUser().then(({ data: { user } }) => {
+            if (user) {
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('app-content').style.display = '';
+                console.log('User is signed in:', user.email);
+            } else {
+                document.getElementById('login-container').style.display = '';
+                document.getElementById('app-content').style.display = 'none';
+                console.log('No user signed in');
+            }
+        });
+
         // for login functions
         document.getElementById('login-button').addEventListener('click', async () => {
             const email = document.getElementById('login-email').value;
@@ -1624,17 +1637,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 document.getElementById('app-content').style.display = '';
                 // Optionally reload or initialize your app here
                 location.reload();
-            }
-        });
-
-        // On page load, check if user is signed in
-        supabase.auth.getUser().then(({ data: { user } }) => {
-            if (user) {
-                document.getElementById('login-container').style.display = 'none';
-                document.getElementById('app-content').style.display = '';
-            } else {
-                document.getElementById('login-container').style.display = '';
-                document.getElementById('app-content').style.display = 'none';
             }
         });
         
@@ -4307,6 +4309,7 @@ function populateManageOthersDropdown() {
         dropdown.appendChild(option);
     });
 }
+
 
 
 
