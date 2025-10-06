@@ -303,6 +303,10 @@ function validateInventoryData(inventoryData, itemTypeInfo) {
  * @returns {Object} - Prepared inventory data
  */
 async function getItemTypeInfo(itemTypeId) {
+    if (!isUserLoggedIn()) {
+        console.warn('User not logged in. Skipping Supabase call.');
+        return;
+    }
     if (!itemTypeId) return { isSerializedType: false, unitsPerPackage: 1 };
     const { data, error } = await supabase
         .from('item_types')
@@ -4307,6 +4311,7 @@ async function prepareInventoryData(rawData, action = 'receive') {
         itemTypeInfo: itemTypeInfo
     };
 }
+
 
 
 
