@@ -1623,7 +1623,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             name: user.user_metadata?.full_name || user.email || 'Unknown User',
             email: user.email
         };
-        await runFullInitialization();
+
+        // Wait for SLOC selection before running full initialization
+        await initializeClientMarketSlocDropdowns();
+
+        // Listen for SLOC selection changes
+        const slocSelect = document.getElementById('slocSelect');
+        if (slocSelect) {
+            slocSelect.addEventListener('change', async function () {
+                if (this.value) {
+                    window.selectedSlocId = parseInt(this.value, 10);
+                    await runFullInitialization();
+                }
+            });
+
+            // If SLOC is already selected, run initialization immediately
+            if (slocSelect.value) {
+                window.selectedSlocId = parseInt(slocSelect.value, 10);
+                await runFullInitialization();
+            }
+        }
     } else {
         document.getElementById('login-container').style.display = '';
         document.getElementById('app-content').style.display = 'none';
@@ -3922,6 +3941,7 @@ function populateManageOthersDropdown() {
         dropdown.appendChild(option);
     });
 }
+
 
 
 
