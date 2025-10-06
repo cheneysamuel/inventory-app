@@ -1598,17 +1598,6 @@ function getInventoryOrderBy() {
         return `ORDER BY ${config.column} ${config.direction}`;
     }
     return ''; // No sort order set
-}/**
- * Get the ORDER BY clause for inventory query
- * @returns {string} - ORDER BY clause or empty string
- */
-function getInventoryOrderBy() {
-    const config = getInventorySortconfig();
-    if (config && config.column && config.direction) {
-        return `ORDER BY ${config.column} ${config.direction}`;
-    }
-    return ''; // No sort order set
-}
 
 
 function resetSerializedIssueProcess() {
@@ -4329,6 +4318,7 @@ async function prepareInventoryData(rawData, action = 'receive') {
         itemTypeInfo: itemTypeInfo
     };
 }
+
 
 
 
