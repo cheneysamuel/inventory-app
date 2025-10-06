@@ -1604,6 +1604,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Initialize transaction logger for audit trail
         window.transactionLogger = new TransactionLogger();
 
+        // for login functions
+        document.getElementById('login-button').addEventListener('click', async () => {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                document.getElementById('login-error').textContent = error.message;
+            } else {
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('app-content').style.display = '';
+                // Optionally reload or initialize your app here
+                location.reload();
+            }
+        });
+
+        // On page load, check if user is signed in
+        supabase.auth.getUser().then(({ data: { user } }) => {
+            if (user) {
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('app-content').style.display = '';
+            } else {
+                document.getElementById('login-container').style.display = '';
+                document.getElementById('app-content').style.display = 'none';
+            }
+        });
+        
         // Load lookups for inventory form
         const lookups = {
             location_id: getCachedTable('locations').map(row => [row.id, row.name]),
@@ -4254,6 +4280,7 @@ async function prepareInventoryData(rawData, action = 'receive') {
         itemTypeInfo: itemTypeInfo
     };
 }
+
 
 
 
