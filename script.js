@@ -7,12 +7,12 @@ let selectedSerializedForIssue = [];
 const buttonRequirements = {
     'receiveBtn': {
         basic: ['location_id', 'item_type_id'],
-        serialized: ['mfgrSN', 'tilsonSN'],
+        serialized: ['mfgrsn', 'tilsonsn'],
         crew: false
     },
     'issueBtn': {
         basic: ['location_id', 'item_type_id'],
-        serialized: ['mfgrSN', 'tilsonSN'],
+        serialized: ['mfgrsn', 'tilsonsn'],
         crew: true
     },
     'bulkReceiveBtn': {
@@ -168,24 +168,24 @@ function formatTilsonSN(counter) {
  */
 async function generateTilsonSNs(count) {
     const startCounter = await getCurrentTilsonSN();
-    const tilsonSNs = [];
+    const tilsonsns = [];
     for (let i = 0; i < count; i++) {
-        tilsonSNs.push(formatTilsonSN(startCounter + i));
+        tilsonsns.push(formatTilsonSN(startCounter + i));
     }
-    return tilsonSNs;
+    return tilsonsns;
 }
 
 /**
  * Reserve Tilson SNs for a batch of manufacturer SNs
  * @param {Object} database - Database instance
- * @param {Array<string>} mfgrSNs - Array of manufacturer serial numbers
- * @returns {Object} Map of mfgrSN -> tilsonSN pairs
+ * @param {Array<string>} mfgrsns - Array of manufacturer serial numbers
+ * @returns {Object} Map of mfgrsn -> tilsonsn pairs
  */
-async function reserveTilsonSNs(mfgrSNs) {
-    const tilsonSNs = await generateTilsonSNs(mfgrSNs.length);
+async function reserveTilsonSNs(mfgrsns) {
+    const tilsonsns = await generateTilsonSNs(mfgrsns.length);
     const snPairs = {};
-    mfgrSNs.forEach((mfgrSN, index) => {
-        snPairs[mfgrSN] = tilsonSNs[index];
+    mfgrsns.forEach((mfgrsn, index) => {
+        snPairs[mfgrsn] = tilsonsns[index];
     });
     return snPairs;
 }
@@ -217,9 +217,9 @@ async function updateTilsonSNCounter(count) {
  */
 function generateAutoTilsonSN(database) {
     const counter = getCurrentTilsonSN(database);
-    const tilsonSN = formatTilsonSN(counter);
+    const tilsonsn = formatTilsonSN(counter);
     updateTilsonSNCounter(database, 1);
-    return tilsonSN;
+    return tilsonsn;
 }
 
 // ============================================================================
@@ -277,10 +277,10 @@ function validateInventoryData(inventoryData, itemTypeInfo) {
     
     // Check serialized item requirements
     if (itemTypeInfo.isSerializedType) {
-        if (!inventoryData.mfgrSN) {
+        if (!inventoryData.mfgrsn) {
             errors.push('Manufacturer Serial Number is required for serialized items');
         }
-        if (!inventoryData.tilsonSN) {
+        if (!inventoryData.tilsonsn) {
             errors.push('Tilson Serial Number is required for serialized items');
         }
     }
@@ -341,7 +341,7 @@ async function insertInventoryRecord(inventoryData) {
         }
         // Prepare fields and values for insertion, excluding null values
         const insertData = {};
-        ['location_id', 'assigned_crew_id', 'dfn_id', 'item_type_id', 'mfgrSN', 'tilsonSN', 'quantity', 'status_id', 'sloc_id'].forEach(field => {
+        ['location_id', 'assigned_crew_id', 'dfn_id', 'item_type_id', 'mfgrsn', 'tilsonsn', 'quantity', 'status_id', 'sloc_id'].forEach(field => {
             if (inventoryData[field] !== null && inventoryData[field] !== undefined && inventoryData[field] !== '') {
                 insertData[field] = inventoryData[field];
             }
@@ -367,10 +367,10 @@ async function insertInventoryRecord(inventoryData) {
             }
         }
         // Update config with Tilson SN counter if serialized
-        if (inventoryData.itemTypeInfo.isSerializedType && inventoryData.tilsonSN) {
+        if (inventoryData.itemTypeInfo.isSerializedType && inventoryData.tilsonsn) {
             await supabase
                 .from('config')
-                .update({ value: inventoryData.tilsonSN.replace('T-', '') })
+                .update({ value: inventoryData.tilsonsn.replace('T-', '') })
                 .eq('key', 'last_tilson_sn');
             await updateTilsonSNCounter(1);
         }
@@ -987,8 +987,8 @@ async function loadSerializedInventoryList() {
                 location_id,
                 status_id,
                 item_type_id,
-                mfgrSN,
-                tilsonSN,
+                mfgrsn,
+                tilsonsn,
                 quantity,
                 locations(name, location_types(name)),
                 crews(name),
@@ -997,8 +997,8 @@ async function loadSerializedInventoryList() {
                 statuses(name)
             `)
             .eq('sloc_id', window.selectedSlocId)
-            .not('mfgrSN', 'is', null)
-            .not('mfgrSN', 'eq', '')
+            .not('mfgrsn', 'is', null)
+            .not('mfgrsn', 'eq', '')
             .order(orderBy.column, { ascending: orderBy.direction === 'ASC' });
 
         if (error) {
@@ -1026,8 +1026,8 @@ async function loadSerializedInventoryList() {
             item_name: row.item_types?.name || '',
             category_name: row.item_types?.categories?.name || '',
             category_id: row.item_types?.categories?.id || '',
-            mfgrSN: row.mfgrSN,
-            tilsonSN: row.tilsonSN,
+            mfgrsn: row.mfgrsn,
+            tilsonsn: row.tilsonsn,
             quantity: row.quantity,
             status_name: row.statuses?.name || ''
         }));
@@ -1148,8 +1148,8 @@ async function createSerializedInventoryHierarchy(data) {
                     <td>${item.location_name || ''}</td>
                     <td>${item.crew_name || ''}</td>
                     <td>${item.dfn_name || ''}</td>
-                    <td>${item.mfgrSN || ''}</td>
-                    <td>${item.tilsonSN || ''}</td>
+                    <td>${item.mfgrsn || ''}</td>
+                    <td>${item.tilsonsn || ''}</td>
                     <td>${item.quantity || ''}</td>
                     <td>${item.status_name || ''}</td>
                 `;
@@ -1243,8 +1243,8 @@ async function loadBulkInventoryList() {
                 location_id,
                 status_id,
                 item_type_id,
-                mfgrSN,
-                tilsonSN,
+                mfgrsn,
+                tilsonsn,
                 quantity,
                 locations(name),
                 crews(name),
@@ -1253,7 +1253,7 @@ async function loadBulkInventoryList() {
                 statuses(name)
             `)
             .eq('sloc_id', window.selectedSlocId)
-            .or('mfgrSN.is.null,mfgrSN.eq.""') // Only bulk items (no serial number)
+            .or('mfgrsn.is.null,mfgrsn.eq.""') // Only bulk items (no serial number)
             .order(orderBy.column, { ascending: orderBy.direction === 'ASC' });
 
         if (error) {
@@ -1279,8 +1279,8 @@ async function loadBulkInventoryList() {
             dfn_name: row.dfns?.name || '',
             item_name: row.item_types?.name || '',
             category_name: row.item_types?.categories?.name || '',
-            mfgrSN: row.mfgrSN,
-            tilsonSN: row.tilsonSN,
+            mfgrsn: row.mfgrsn,
+            tilsonsn: row.tilsonsn,
             quantity: row.quantity,
             status_name: row.statuses?.name || ''
         }));
@@ -1318,8 +1318,8 @@ function createInventoryTable(tableId, inventoryType) {
             ['DFN', 'd.name'],
             ['Item', 'it.name'],
             ['Category', 'cat.name'],
-            ['Mfgr. SN', 'i.mfgrSN'],
-            ['Tilson SN', 'i.tilsonSN'],
+            ['Mfgr. SN', 'i.mfgrsn'],
+            ['Tilson SN', 'i.tilsonsn'],
             ['Status', 's.name'],
             ['Actions', null]
         ];
@@ -1442,8 +1442,8 @@ function populateInventoryTable(data, tbodyId, inventoryType) {
                 <td>${item.dfn_name || ''}</td>
                 <td>${item.item_name || ''}</td>
                 <td>${item.category_name || ''}</td>
-                <td>${item.mfgrSN || ''}</td>
-                <td>${item.tilsonSN || ''}</td>
+                <td>${item.mfgrsn || ''}</td>
+                <td>${item.tilsonsn || ''}</td>
                 <td>${item.status_name || ''}</td>
             `;
         } else {
@@ -2228,14 +2228,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function handleItemTypeChange(e) {
     const itemTypeId = e.target.value;
     const quantityInput = document.querySelector('input[name="quantity"]');
-    const tilsonSNInput = document.querySelector('input[name="tilsonSN"]');
+    const tilsonsnInput = document.querySelector('input[name="tilsonsn"]');
     
     if (!itemTypeId) {
         quantityInput.disabled = false;
         quantityInput.value = '1';
-        if (tilsonSNInput) {
-            tilsonSNInput.value = '';
-            tilsonSNInput.readOnly = false;
+        if (tilsonsnInput) {
+            tilsonsnInput.value = '';
+            tilsonsnInput.readOnly = false;
         }
         return;
     }
@@ -2248,23 +2248,23 @@ async function handleItemTypeChange(e) {
         quantityInput.value = itemTypeInfo.unitsPerPackage;
         
         // Auto-generate Tilson SN for serialized items
-        if (tilsonSNInput) {
+        if (tilsonsnInput) {
             try {
                 const autoTilsonSN = formatTilsonSN(getCurrentTilsonSN());
-                tilsonSNInput.value = autoTilsonSN;
-                tilsonSNInput.readOnly = true; // Make it read-only since it's auto-generated
+                tilsonsnInput.value = autoTilsonSN;
+                tilsonsnInput.readOnly = true; // Make it read-only since it's auto-generated
                 console.log(`🏷️ Auto-generated Tilson SN: ${autoTilsonSN}`);
             } catch (error) {
                 console.error('Error auto-generating Tilson SN:', error);
-                tilsonSNInput.readOnly = false; // Allow manual entry if auto-gen fails
+                tilsonsnInput.readOnly = false; // Allow manual entry if auto-gen fails
             }
         }
     } else {
         quantityInput.disabled = false;
         quantityInput.value = '1';
-        if (tilsonSNInput) {
-            tilsonSNInput.value = '';
-            tilsonSNInput.readOnly = false;
+        if (tilsonsnInput) {
+            tilsonsnInput.value = '';
+            tilsonsnInput.readOnly = false;
         }
     }
 }
@@ -2456,8 +2456,8 @@ async function getItemTypeHistoryData(itemTypeId) {
                 assigned_crew_id,
                 dfn_id,
                 item_type_id,
-                mfgrSN,
-                tilsonSN,
+                mfgrsn,
+                tilsonsn,
                 quantity,
                 status_id,
                 statuses(name),
@@ -2477,8 +2477,8 @@ async function getItemTypeHistoryData(itemTypeId) {
                 assigned_crew_id: row.assigned_crew_id,
                 dfn_id: row.dfn_id,
                 item_type_id: row.item_type_id,
-                mfgrSN: row.mfgrSN,
-                tilsonSN: row.tilsonSN,
+                mfgrsn: row.mfgrsn,
+                tilsonsn: row.tilsonsn,
                 quantity: row.quantity || 0,
                 status_id: row.status_id,
                 status_name: row.statuses?.name || '',
@@ -2503,8 +2503,8 @@ async function getItemTypeHistoryData(itemTypeId) {
                 from_location_name,
                 date_time,
                 notes,
-                mfgrSN,
-                tilsonSN,
+                mfgrsn,
+                tilsonsn,
                 inventory_id,
                 item_type_name
             `)
@@ -2535,8 +2535,8 @@ async function getItemTypeHistoryData(itemTypeId) {
                 from_location_name: row.from_location_name,
                 date_time: row.date_time,
                 notes: row.notes,
-                mfgrSN: row.mfgrSN,
-                tilsonSN: row.tilsonSN,
+                mfgrsn: row.mfgrsn,
+                tilsonsn: row.tilsonsn,
                 inventory_id: row.inventory_id
             }));
         }
@@ -2802,7 +2802,7 @@ function generateTransactionHistorySection(transactions) {
                 <td>${transaction.dfn_name || '-'}</td>
                 <td>${transaction.assigned_crew_name || '-'}</td>
                 <td>${transaction.to_location_name || transaction.from_location_name || '-'}</td>
-                <td>${transaction.mfgrSN || transaction.tilsonSN || '-'}</td>
+                <td>${transaction.mfgrsn || transaction.tilsonsn || '-'}</td>
             </tr>
         `;
     }).join('');
@@ -3406,10 +3406,10 @@ function clearBulkReceiveForm() {
  * Update the SN preview display
  */
 function updateSNPreview() {
-    const mfgrSNs = window.mfgrSnTagify ? window.mfgrSnTagify.value.map(t => t.value) : [];
+    const mfgrsns = window.mfgrSnTagify ? window.mfgrSnTagify.value.map(t => t.value) : [];
     const previewContainer = document.getElementById('snPreview');
     
-    if (mfgrSNs.length === 0) {
+    if (mfgrsns.length === 0) {
         previewContainer.innerHTML = `
             <div class="preview-placeholder" style="text-align: center; color: #6c757d; padding: 2em;">
                 <div style="font-size: 1.5em; margin-bottom: 0.5em;">🏷️</div>
@@ -3422,23 +3422,23 @@ function updateSNPreview() {
     // Generate preview with reserved Tilson SNs
     
     try {
-        const snPairs = reserveTilsonSNs(mfgrSNs);
+        const snPairs = reserveTilsonSNs(mfgrsns);
         
         let previewHTML = `
             <div style="font-weight: bold; margin-bottom: 0.5em; color: #495057;">
-                📋 Preview: ${mfgrSNs.length} Serial Number Pairs
+                📋 Preview: ${mfgrsns.length} Serial Number Pairs
             </div>
             <div class="sn-pairs-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5em; font-family: monospace; font-size: 0.9em;">
         `;
         
-        mfgrSNs.forEach(mfgrSN => {
+        mfgrsns.forEach(mfgrsn => {
             previewHTML += `
                 <div style="display: contents;">
                     <div style="padding: 0.25em; background-color: #e9ecef; border-radius: 3px;">
-                        <strong>Mfgr:</strong> ${mfgrSN}
+                        <strong>Mfgr:</strong> ${mfgrsn}
                     </div>
                     <div style="padding: 0.25em; background-color: #d4edda; border-radius: 3px;">
-                        <strong>Tilson:</strong> ${snPairs[mfgrSN]}
+                        <strong>Tilson:</strong> ${snPairs[mfgrsn]}
                     </div>
                 </div>
             `;
@@ -3458,7 +3458,7 @@ function updateSNPreview() {
  */
 function updateBulkSerializedReceiveButton() {
     // Get form values
-    const mfgrSNs = window.mfgrSnTagify ? window.mfgrSnTagify.value.map(t => t.value) : [];
+    const mfgrsns = window.mfgrSnTagify ? window.mfgrSnTagify.value.map(t => t.value) : [];
     const itemType = $('#bulkSerializedItemType').val();
     const location = 1;
     const crew = $('#bulk_serialized_assigned_crew_id').val();
@@ -3471,14 +3471,14 @@ function updateBulkSerializedReceiveButton() {
 
     // Update count display
     if (receiveBulkSerializedCountSpan) {
-        receiveBulkSerializedCountSpan.textContent = mfgrSNs.length;
+        receiveBulkSerializedCountSpan.textContent = mfgrsns.length;
     }
     if (issueBulkSerializedCountSpan) {
-        issueBulkSerializedCountSpan.textContent = mfgrSNs.length;
+        issueBulkSerializedCountSpan.textContent = mfgrsns.length;
     }
 
     // Validation logic
-    const hasBasicRequirements = mfgrSNs.length > 0 && itemType && location;
+    const hasBasicRequirements = mfgrsns.length > 0 && itemType && location;
     const hasCrewForIssue = hasBasicRequirements && crew;
 
     // Enable/disable buttons
@@ -3540,22 +3540,22 @@ window.populateBulkSerializedDropdowns = populateBulkSerializedDropdowns;
  */
 async function processBulkSerializedReceiving() {
     console.log("processBulkSerializedReceiving called...");
-    const mfgrSNs = window.mfgrSnTagify ? window.mfgrSnTagify.value.map(t => t.value) : [];
+    const mfgrsns = window.mfgrSnTagify ? window.mfgrSnTagify.value.map(t => t.value) : [];
     const itemTypeId = $('#bulkSerializedItemType').val();
     //const locationId = $('#bulkLocation').val();
     const locationId = 1;
 
-    console.log("mfgrSNs:", mfgrSNs);
+    console.log("mfgrsns:", mfgrsns);
     console.log("itemTypeId:", itemTypeId);
     console.log("locationId:", locationId);
 
-    if (mfgrSNs.length === 0 || !itemTypeId || !locationId) {
+    if (mfgrsns.length === 0 || !itemTypeId || !locationId) {
         alert('Please fill in all required fields and add at least one manufacturer SN.');
         return;
     }
     
     try {
-        console.log(`🚀 Processing bulk serialized receiving for ${mfgrSNs.length} items...`);
+        console.log(`🚀 Processing bulk serialized receiving for ${mfgrsns.length} items...`);
         
         // Show loading state
         const button = document.getElementById('bulkReceiveSerializedBtn');
@@ -3564,14 +3564,14 @@ async function processBulkSerializedReceiving() {
         button.innerHTML = '⏳ Processing...';
         
         // Generate SN pairs
-        const snPairs = reserveTilsonSNs(mfgrSNs);
+        const snPairs = reserveTilsonSNs(mfgrsns);
         
         // Create inventory data for each item
-        const inventoryItems = mfgrSNs.map(mfgrSN => ({
+        const inventoryItems = mfgrsns.map(mfgrsn => ({
             item_type_id: itemTypeId,
             location_id: locationId,
-            mfgrSN: mfgrSN,
-            tilsonSN: snPairs[mfgrSN],
+            mfgrsn: mfgrsn,
+            tilsonsn: snPairs[mfgrsn],
             quantity: 1 // Serialized items are always quantity 1
         }));
         
@@ -3580,7 +3580,7 @@ async function processBulkSerializedReceiving() {
         
         if (result.success) {
             // Update Tilson SN counter
-            updateTilsonSNCounter(mfgrSNs.length);
+            updateTilsonSNCounter(mfgrsns.length);
             
             // Show success message
             alert(`✅ Successfully received ${result.successCount} serialized items!`);
@@ -3644,7 +3644,7 @@ async function processBulkSerializedAction(actionType) {
         return;
     }
     
-    const mfgrSNs = window.mfgrSnTagify ? window.mfgrSnTagify.value.map(t => t.value) : [];
+    const mfgrsns = window.mfgrSnTagify ? window.mfgrSnTagify.value.map(t => t.value) : [];
     const itemTypeId = $('#bulkSerializedItemType').val();
     const locationId = 1; // Hardcoded location ID
     const crewId = parseInt($('#bulk_serialized_assigned_crew_id').val());
@@ -3655,7 +3655,7 @@ async function processBulkSerializedAction(actionType) {
 
 
     // Validate based on action type
-    if (mfgrSNs.length === 0 || !itemTypeId || !locationId) {
+    if (mfgrsns.length === 0 || !itemTypeId || !locationId) {
         alert('Please fill in all required fields and add at least one manufacturer SN.');
         return;
     }
@@ -3666,13 +3666,13 @@ async function processBulkSerializedAction(actionType) {
     }
     
     try {
-        console.log(`🚀 Processing bulk ${actionType} for ${mfgrSNs.length} items...`);
+        console.log(`🚀 Processing bulk ${actionType} for ${mfgrsns.length} items...`);
         
         // Disable button during processing - CSS handles styling
         button.disabled = true;
         
         // Generate SN pairs for all items
-        const snPairs = reserveTilsonSNs(mfgrSNs);
+        const snPairs = reserveTilsonSNs(mfgrsns);
         
         // Process each item based on action type
         let successCount = 0;
@@ -3680,42 +3680,42 @@ async function processBulkSerializedAction(actionType) {
 
         
 
-        for (let i = 0; i < mfgrSNs.length; i++) {
-            const mfgrSN = mfgrSNs[i];
-            const tilsonSN = snPairs[mfgrSN];
+        for (let i = 0; i < mfgrsns.length; i++) {
+            const mfgrsn = mfgrsns[i];
+            const tilsonsn = snPairs[mfgrsn];
             
             try {
                 
                 switch (actionType) {
                     case 'receive':
-                        await receiveSerializedItem(mfgrSN, tilsonSN, itemTypeId, locationId, dfnId || null);
+                        await receiveSerializedItem(mfgrsn, tilsonsn, itemTypeId, locationId, dfnId || null);
                         break;
                         
                     case 'issue':
-                        await issueSerializedItem(mfgrSN, tilsonSN, itemTypeId, crewId, dfnId || null);
+                        await issueSerializedItem(mfgrsn, tilsonsn, itemTypeId, crewId, dfnId || null);
                         break;
                 }
                 
                 successCount++;
                 
             } catch (error) {
-                console.error(`❌ Error processing ${mfgrSN}:`, error);
-                errors.push(`${mfgrSN}: ${error.message}`);
+                console.error(`❌ Error processing ${mfgrsn}:`, error);
+                errors.push(`${mfgrsn}: ${error.message}`);
             }
         }
         
         // Show results
-        if (successCount === mfgrSNs.length) {
+        if (successCount === mfgrsns.length) {
             //alert(`✅ Successfully processed ${successCount} items with ${actionType} action!`);
             clearBulkSerializedForm();
-            updateTilsonSNCounter(mfgrSNs.length + 1);
+            updateTilsonSNCounter(mfgrsns.length + 1);
 
             // Always refresh inventory tables after bulk receive/issue
             if (typeof loadInventoryList === 'function') {
                 await loadInventoryList();
             }
         } else {
-            alert(`⚠️ Processed ${successCount} of ${mfgrSNs.length} items. Errors:\n${errors.join('\n')}`);
+            alert(`⚠️ Processed ${successCount} of ${mfgrsns.length} items. Errors:\n${errors.join('\n')}`);
             // Still refresh to reflect partial changes
             if (typeof loadInventoryList === 'function') {
                 await loadInventoryList();
@@ -3746,7 +3746,7 @@ async function processBulkSerializedAction(actionType) {
 }
 
 // Helper functions for individual actions
-async function receiveSerializedItem(mfgrSN, tilsonSN, itemTypeId, locationId, dfnId = null) {
+async function receiveSerializedItem(mfgrsn, tilsonsn, itemTypeId, locationId, dfnId = null) {
     // Get the status ID for 'Available'
     const statusId = getStatusId('Available');
     if (!statusId) throw new Error("Status 'Available' not found in cache");
@@ -3767,8 +3767,8 @@ async function receiveSerializedItem(mfgrSN, tilsonSN, itemTypeId, locationId, d
     const { data: insertData, error: insertError } = await supabase
         .from('inventory')
         .insert([{
-            tilsonSN,
-            mfgrSN,
+            tilsonsn,
+            mfgrsn,
             item_type_id: itemTypeId,
             location_id: locationId,
             status_id: statusId,
@@ -3788,8 +3788,8 @@ async function receiveSerializedItem(mfgrSN, tilsonSN, itemTypeId, locationId, d
     if (window.transactionLogger && insertedID) {
         try {
             await window.transactionLogger.logInventoryCreated(insertedID, {
-                tilsonSN,
-                mfgrSN,
+                tilsonsn,
+                mfgrsn,
                 item_type_id: itemTypeId,
                 location_id: locationId,
                 status: 'Available',
@@ -3802,14 +3802,14 @@ async function receiveSerializedItem(mfgrSN, tilsonSN, itemTypeId, locationId, d
         }
     }
 
-    console.log(`✅ Received: ${mfgrSN} → ${tilsonSN} (${statusId}) - Quantity: ${quantity}`);
+    console.log(`✅ Received: ${mfgrsn} → ${tilsonsn} (${statusId}) - Quantity: ${quantity}`);
     return insertedID;
 }
 
 
-async function issueSerializedItem(mfgrSN, tilsonSN, itemTypeId, crewId, dfnId = null) {
+async function issueSerializedItem(mfgrsn, tilsonsn, itemTypeId, crewId, dfnId = null) {
     // First, receive the item (creates inventory record as 'Available')
-    const inventoryId = await receiveSerializedItem(mfgrSN, tilsonSN, itemTypeId, 1);
+    const inventoryId = await receiveSerializedItem(mfgrsn, tilsonsn, itemTypeId, 1);
 
     // Get the location ID for 'With Crew'
     const location_id = getWithCrewLocationId();
@@ -3843,14 +3843,14 @@ async function issueSerializedItem(mfgrSN, tilsonSN, itemTypeId, crewId, dfnId =
                 inventoryId,
                 { status: 'Available' },
                 { status: 'Issued', assigned_crew_id: crewId, dfn_id: dfnId },
-                { action: 'issue', transaction_type: 'issue', mfgrSN, tilsonSN }
+                { action: 'issue', transaction_type: 'issue', mfgrsn, tilsonsn }
             );
         } catch (error) {
             console.warn('Failed to log issue transaction:', error);
         }
     }
 
-    console.log(`✅ Issued: ${mfgrSN} → ${tilsonSN} to crew ${crewId}`);
+    console.log(`✅ Issued: ${mfgrsn} → ${tilsonsn} to crew ${crewId}`);
 }
 
 
@@ -4283,13 +4283,14 @@ async function prepareInventoryData(rawData, action = 'receive') {
         assigned_crew_id: assignedCrewId,
         dfn_id: rawData.dfn_id ? parseInt(rawData.dfn_id, 10) : null,
         item_type_id: parseInt(rawData.item_type_id, 10),
-        mfgrSN: rawData.mfgrSN || null,
-        tilsonSN: rawData.tilsonSN || null,
+        mfgrsn: rawData.mfgrsn || null,
+        tilsonsn: rawData.tilsonsn || null,
         quantity: quantity,
         status_id: statusId,
         itemTypeInfo: itemTypeInfo
     };
 }
+
 
 
 
