@@ -1856,6 +1856,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function runFullInitialization() {
+    console.log('running full initialization...');
     try {
         displaySlocValue();
         await setCurrentUserFromSupabase();
@@ -1976,7 +1977,7 @@ function setupBulkForms() {
     // Bulk item types table
     const bulkTableContainer = document.getElementById('bulkItemTypesTable');
     if (bulkTableContainer) {
-        bulkTableContainer.delete();
+        bulkTableContainer.innerHTML = '';
         generateBulkItemTypesTable().then(bulkTable => bulkTableContainer.appendChild(bulkTable));
     }
 
@@ -4218,6 +4219,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
