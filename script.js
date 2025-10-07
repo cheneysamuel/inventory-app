@@ -1875,7 +1875,7 @@ async function runFullInitialization() {
 
         // Populate Manage Others dropdown with remaining lookup tables
         const managedTables = ['dfns','item_types','crews'];
-        const allTables = window.getTableNames(db);
+        const allTables = window.getTableNames();
         const othersSelect = document.getElementById('manageOthersSelect');
         allTables.filter(t => !managedTables.includes(t)).forEach(t => {
             const opt = document.createElement('option');
@@ -4186,6 +4186,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
