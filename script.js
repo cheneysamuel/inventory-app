@@ -521,6 +521,7 @@ async function processInventoryInsertion(inventoryData, action) {
  * @returns {Array<Object>} - Array of bulk item types
  */
 async function getBulkItemTypes() {
+    console.log('getting bulk item types...');
     if (!isUserLoggedIn()) {
         console.warn('User not logged in. Skipping Supabase call.');
         return;
@@ -4308,6 +4309,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
