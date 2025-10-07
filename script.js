@@ -1833,8 +1833,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function runFullInitialization() {
     try {
-        // Sidebar dropdowns
-        await initializeClientMarketSlocDropdowns();
         displaySlocValue();
         await setCurrentUserFromSupabase();
         await cacheLookupTables();
@@ -4173,6 +4171,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
