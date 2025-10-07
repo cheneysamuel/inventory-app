@@ -4233,17 +4233,23 @@ async function setCurrentUserFromSupabase() {
  * @returns {Promise<Object>} - Prepared inventory data
  */
 async function prepareInventoryData(rawData, action = 'receive') {
-    const itemTypeInfo = getItemTypeInfo(rawData.item_type_id);
+    const itemTypeInfo = await getItemTypeInfo(rawData.item_type_id);
     console.log("itemTypeInfo:", itemTypeInfo);
 
     // Determine status based on action
     let statusName;
-    let locationId = 1; // Default location ID (e.g., Warehouse)
+    let locationId;
     let assignedCrewId = null;
 
     switch (action) {
         case 'receive':
             statusName = 'Available';
+            // Get the location ID for "SLOC" location
+            locationId = getLocationId('SLOC');
+            if (!locationId) {
+                console.warn('SLOC location not found, falling back to location ID 1');
+                locationId = 1; // Fallback to original hardcoded value
+            }
             break;
         case 'issue':
             statusName = 'Issued';
@@ -4252,6 +4258,7 @@ async function prepareInventoryData(rawData, action = 'receive') {
             break;
         default:
             statusName = 'Available';
+            locationId = getLocationId('SLOC') || 1; // Default with fallback
     }
 
     const statusId = getStatusId(statusName);
@@ -4296,6 +4303,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
