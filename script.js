@@ -1920,8 +1920,6 @@ async function showSections({serializedInventory=false, inventoryReceiving=false
     // Load inventory table when serialized inventory section is shown
     loadInventoryList();
 
-    // Load bulk inventory when bulk inventory section is shown  
-    loadBulkInventoryList();
 }
 
 function populateAllDropdowns() {
@@ -4193,6 +4191,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
