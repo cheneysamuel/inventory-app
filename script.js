@@ -297,29 +297,39 @@ function validateInventoryData(inventoryData, itemTypeInfo) {
 }
 
 /**
- * Prepare inventory data for database insertion
- * @param {Object} rawData - Raw form data or input data
- * @param {string} action - Action type ('receive', 'issue')
- * @returns {Object} - Prepared inventory data
+ * Get item type information using cached data
+ * @param {number} itemTypeId - Item type ID
+ * @returns {Object} - Item type information with serialized type detection
  */
 async function getItemTypeInfo(itemTypeId) {
-    if (!isUserLoggedIn()) {
-        console.warn('User not logged in. Skipping Supabase call.');
-        return;
+    console.log("Fetching item type info for itemTypeId:", itemTypeId);
+    
+    if (!itemTypeId) {
+        return { isSerializedType: false, unitsPerPackage: 1 };
     }
-    if (!itemTypeId) return { isSerializedType: false, unitsPerPackage: 1 };
-    const { data, error } = await supabase
-        .from('item_types')
-        .select('units_per_package, inventory_type_id')
-        .eq('id', itemTypeId)
-        .eq('market_id', window.selectedMarketId)
-        .single();
-    if (error || !data) return { isSerializedType: false, unitsPerPackage: 1 };
-    // Use cache for inventory_types
-    const invType = getCachedRow('inventory_types', data.inventory_type_id);
+
+    // Get item type from cache
+    const itemType = getCachedRow('item_types', itemTypeId);
+    if (!itemType) {
+        console.warn(`Item type with ID ${itemTypeId} not found in cache`);
+        return { isSerializedType: false, unitsPerPackage: 1 };
+    }
+
+    // Check if this item type belongs to the selected market
+    if (window.selectedMarketId && itemType.market_id !== window.selectedMarketId) {
+        console.warn(`Item type ${itemTypeId} does not belong to selected market ${window.selectedMarketId}`);
+        return { isSerializedType: false, unitsPerPackage: 1 };
+    }
+
+    // Get inventory type from cache to determine if serialized
+    const inventoryType = getCachedRow('inventory_types', itemType.inventory_type_id);
+    const isSerializedType = inventoryType && inventoryType.name === 'Serialized';
+
+    console.log(`Item type ${itemTypeId}: inventory_type_id=${itemType.inventory_type_id}, inventory_type_name="${inventoryType?.name}", isSerializedType=${isSerializedType}`);
+
     return {
-        isSerializedType: invType && invType.name === 'Serialized',
-        unitsPerPackage: data.units_per_package || 1
+        isSerializedType: isSerializedType,
+        unitsPerPackage: itemType.units_per_package
     };
 }
 
@@ -4191,6 +4201,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
