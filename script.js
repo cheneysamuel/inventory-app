@@ -1094,7 +1094,7 @@ async function loadBulkInventoryList() {
         const existingTable = inventorySection.querySelector('#bulkInventoryTable');
         if (existingTable) {
             existingTable.remove();
-
+        }
         // Get current sort configuration
         const orderBy = getInventoryOrderBy();
         console.log("orderBy: ", orderBy);
@@ -4217,6 +4217,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
