@@ -4067,19 +4067,38 @@ async function initializeClientMarketSlocDropdowns() {
         console.log("selected market ID:", window.selectedMarketId, "selected SLOC ID:", window.selectedSlocId);
     });
 
-    slocSelect.addEventListener('change', function() {
-        displaySlocValue();
-        window.selectedSlocId = this.value ? parseInt(this.value, 10) : null;
-        console.log("selected market ID:", window.selectedMarketId, "selected SLOC ID:", window.selectedSlocId);
-        // Reset the process buttons:
-        resetBulkReceiveAndIssueProcessForms();
-        // Refresh the bulk table
-        refreshBulkItemTypesTable();
-        // Refresh the inventory list
-        loadInventoryList();
-        // Update button states
-        updateBulkButtonStates();
-    });
+slocSelect.addEventListener('change', function() {
+    displaySlocValue();
+    window.selectedSlocId = this.value ? parseInt(this.value, 10) : null;
+    resetBulkReceiveAndIssueProcessForms();
+
+    // Remove and refresh bulk item types table
+    const bulkTableContainer = document.getElementById('bulkItemTypesTable');
+    const existingBulkTable = bulkTableContainer.querySelector('#bulkItemTypesMatrix');
+    if (existingBulkTable) {
+        existingBulkTable.remove();
+    }
+    refreshBulkItemTypesTable();
+
+    // Remove and refresh bulk inventory table
+    const bulkInventorySection = document.getElementById('bulkInventorySection');
+    const existingBulkInventoryTable = bulkInventorySection.querySelector('#bulkInventoryTable');
+    if (existingBulkInventoryTable) {
+        existingBulkInventoryTable.remove();
+    }
+    loadBulkInventoryList();
+
+    // Remove and refresh serialized inventory hierarchy
+    const serializedInventorySection = document.getElementById('serializedInventorySection');
+    const existingSerializedHierarchy = serializedInventorySection.querySelector('#serializedInventoryHierarchy');
+    if (existingSerializedHierarchy) {
+        existingSerializedHierarchy.innerHTML = '';
+    }
+    loadSerializedInventoryList();
+
+    // Update button states
+    updateBulkButtonStates();
+});
 }
 
 
@@ -4167,6 +4186,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
