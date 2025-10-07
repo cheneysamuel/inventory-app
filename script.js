@@ -3,6 +3,9 @@
 let serializedIssueState = 'idle'; // 'idle' | 'selecting' | 'confirming'
 let selectedSerializedForIssue = [];
 
+window.serializedIssueState = serializedIssueState;
+window.selectedSerializedForIssue = selectedSerializedForIssue;
+
 // Move buttonRequirements outside and before any function definitions
 const buttonRequirements = {
     'receiveBtn': {
@@ -4303,6 +4306,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
