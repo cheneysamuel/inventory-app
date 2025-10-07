@@ -1095,13 +1095,6 @@ async function loadBulkInventoryList() {
         if (existingTable) {
             existingTable.remove();
 
-            // If selectedSlocId is not set, do not attempt to regenerate the table
-            if (!window.selectedSlocId || window.selectedMarketId === null) {
-                console.warn("selectedSlocId or selectedMarketId is not set. Skipping bulk inventory table regeneration.");
-                return;
-            }
-        }
-
         // Get current sort configuration
         const orderBy = getInventoryOrderBy();
         console.log("orderBy: ", orderBy);
@@ -1120,7 +1113,7 @@ async function loadBulkInventoryList() {
                 locations(name),
                 crews(name),
                 dfns(name),
-                item_types(name, categories(name), inventory_types(name)),
+                item_types(name, categories(name), inventory_types!inventory_type_id(name)),
                 statuses(name)
             `)
             .eq('sloc_id', window.selectedSlocId)
@@ -1151,6 +1144,7 @@ async function loadBulkInventoryList() {
             dfn_name: row.dfns?.name || '',
             item_name: row.item_types?.name || '',
             category_name: row.item_types?.categories?.name || '',
+            inventory_type_name: row.item_types?.inventory_types?.name || '',
             mfgrsn: row.mfgrsn,
             tilsonsn: row.tilsonsn,
             quantity: row.quantity,
@@ -1331,93 +1325,6 @@ async function createSerializedInventoryHierarchy(data) {
             }
         });
     });
-}
-
-/**
- * Load and display bulk inventory (items without serial numbers)
- */
-async function loadBulkInventoryList() {
-    if (!isUserLoggedIn()) {
-        console.warn('User not logged in. Skipping Supabase call.');
-        return;
-    }
-    if (!window.selectedSlocId) {
-        console.warn('No SLOC selected. Skipping bulk inventory query.');
-        return;
-    }
-    try {
-        const inventorySection = document.getElementById('bulkInventorySection');
-        if (!inventorySection) return;
-
-        // Clear the existing table
-        const existingTable = inventorySection.querySelector('#bulkInventoryTable');
-        if (existingTable) {
-            existingTable.remove();
-        }
-
-        // Get current sort configuration
-        const orderBy = getInventoryOrderBy();
-        // Supabase query with joins
-        const { data, error } = await supabase
-            .from('inventory')
-            .select(`
-                id,
-                location_id,
-                status_id,
-                item_type_id,
-                mfgrsn,
-                tilsonsn,
-                quantity,
-                locations(name),
-                crews(name),
-                dfns(name),
-                item_types(name, categories(name), inventory_types!inventory_type_id(name)),
-                statuses(name)
-            `)
-            .eq('sloc_id', window.selectedSlocId)
-            .eq('item_types.inventory_types.name', 'Bulk')
-            .order(orderBy.column, { ascending: orderBy.direction === 'ASC' });
-
-        if (error) {
-            console.error('Supabase error:', error);
-            showError('Failed to load bulk inventory: ' + error.message);
-            return;
-        }
-
-        // Filter out statuses 'Installed' and 'Removed'
-        const filtered = (data || []).filter(row =>
-            row.statuses?.name !== 'Installed' &&
-            row.statuses?.name !== 'Removed'
-        );
-
-        // Map to match your original structure
-        const mapped = filtered.map(row => ({
-            id: row.id,
-            location_id: row.location_id,
-            status_id: row.status_id,
-            item_type_id: row.item_type_id,
-            location_name: row.locations?.name || '',
-            crew_name: row.crews?.name || '',
-            dfn_name: row.dfns?.name || '',
-            item_name: row.item_types?.name || '',
-            category_name: row.item_types?.categories?.name || '',
-            inventory_type_name: row.item_types?.inventory_types?.name || '',
-            mfgrsn: row.mfgrsn,
-            tilsonsn: row.tilsonsn,
-            quantity: row.quantity,
-            status_name: row.statuses?.name || ''
-        }));
-        console.log("mapped: ", mapped);
-        // Create the table and populate it
-        const table = createInventoryTable('bulkInventoryTable', 'bulk');
-        inventorySection.appendChild(table);
-        populateInventoryTable(mapped, 'bulkInventoryBody', 'bulk');
-        //console.log(`Loaded ${mapped.length} bulk inventory items`);
-
-    } catch (error) {
-        console.error('Error loading bulk inventory:', error);
-        showError('Failed to load bulk inventory: ' + error.message);
-    }
 }
 
 /**
@@ -4310,6 +4217,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
