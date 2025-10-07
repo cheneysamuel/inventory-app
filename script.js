@@ -521,7 +521,6 @@ async function processInventoryInsertion(inventoryData, action) {
  * @returns {Array<Object>} - Array of bulk item types
  */
 async function getBulkItemTypes() {
-    console.log('getting bulk item types...');
     if (!isUserLoggedIn()) {
         console.warn('User not logged in. Skipping Supabase call.');
         return;
@@ -532,6 +531,7 @@ async function getBulkItemTypes() {
         console.warn('Bulk inventory type not found in cache. Ensure lookup tables are cached.');
         return [];
     }
+    console.log('bulkType.id: ', bulkType.id);
     console.log(`inventory type ${bulkType.name} has id ${bulkType.id}`);
     const res = await supabase
         .from('item_types')
@@ -603,6 +603,7 @@ async function getBulkInventoryAggregates(itemTypeId) {
  * @returns {HTMLTableElement} - Generated table element
  */
 async function generateBulkItemTypesTable() {
+    console.log("calling getBulkItemTypes");
     const bulkItemTypes = await getBulkItemTypes();
     
     console.log("Generating bulk item types table with " + bulkItemTypes.length + " item types");
@@ -4309,6 +4310,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
