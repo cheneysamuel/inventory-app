@@ -4138,7 +4138,7 @@ async function setCurrentUserFromSupabase() {
  * @returns {Promise<Object>} - Prepared inventory data
  */
 async function prepareInventoryData(rawData, action = 'receive') {
-    const itemTypeInfo = await getItemTypeInfo(rawData.item_type_id);
+    const itemTypeInfo = getItemTypeInfo(rawData.item_type_id);
     console.log("itemTypeInfo:", itemTypeInfo);
 
     // Determine status based on action
@@ -4201,6 +4201,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
