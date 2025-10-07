@@ -525,6 +525,13 @@ async function getBulkItemTypes() {
         console.warn('User not logged in. Skipping Supabase call.');
         return;
     }
+    // get the id for bulk inventory type from cached lookup tables
+    const bulkType = getCachedRowByField('inventory_types', 'name', 'Bulk');
+    if (!bulkType) {
+        console.warn('Bulk inventory type not found in cache. Ensure lookup tables are cached.');
+        return [];
+    }
+    console.log(`inventory type ${bulkType.name} has id ${bulkType.id}`);
     const res = await supabase
         .from('item_types')
         .select(`
@@ -536,7 +543,7 @@ async function getBulkItemTypes() {
             units_of_measure(name),
             inventory_providers(name)
         `)
-        .eq('inventory_type_id', 1)
+        .eq('inventory_type_id', bulkType.id)  // 2 = Bulk
         .eq('market_id', window.selectedMarketId);
 
     if (!res.data) return [];
@@ -602,6 +609,7 @@ async function generateBulkItemTypesTable() {
     // if the table already exists, delete the table first
     const existingTable = document.getElementById('bulkItemTypesMatrix');
     if (existingTable) {
+        console.log("table already existed.  removing before regenerating...");
         existingTable.remove();
     }
     
@@ -4300,6 +4308,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
