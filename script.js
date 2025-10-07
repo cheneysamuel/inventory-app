@@ -1913,16 +1913,12 @@ async function showSections({serializedInventory=false, inventoryReceiving=false
     }
 
     // Load inventory table when serialized inventory section is shown
-    if (serializedInventory && db) {
-        loadInventoryList();
-    }
+    loadInventoryList();
 
     // Load bulk inventory when bulk inventory section is shown  
-    if (bulkInventory && db) {
-        loadBulkInventoryList();
-    }
+    loadBulkInventoryList();
 }
-F
+
 function populateAllDropdowns() {
     const lookups = {
         location_id: getCachedTable('locations').map(row => [row.id, row.name]),
@@ -4171,6 +4167,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
