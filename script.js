@@ -1361,7 +1361,7 @@ async function loadBulkInventoryList() {
                 locations(name),
                 crews(name),
                 dfns(name),
-                item_types(name, categories(name), inventory_types(name)),
+                item_types(name, categories(name), inventory_types!inventory_type_id(name)),
                 statuses(name)
             `)
             .eq('sloc_id', window.selectedSlocId)
@@ -4300,6 +4300,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
