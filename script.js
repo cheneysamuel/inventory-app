@@ -586,7 +586,12 @@ async function generateBulkItemTypesTable() {
     
     console.log("Generating bulk item types table with " + bulkItemTypes.length + " item types");
 
-
+    // if the table already exists, delete the table first
+    const existingTable = document.getElementById('bulkItemTypesMatrix');
+    if (existingTable) {
+        existingTable.remove();
+    }
+    
     const table = document.createElement('table');
     table.id = 'bulkItemTypesMatrix';
     table.style.marginTop = '20px';
@@ -4186,6 +4191,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
