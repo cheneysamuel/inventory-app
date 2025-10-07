@@ -4131,6 +4131,7 @@ async function setCurrentUserFromSupabase() {
  */
 async function prepareInventoryData(rawData, action = 'receive') {
     const itemTypeInfo = await getItemTypeInfo(rawData.item_type_id);
+    console.log("itemTypeInfo:", itemTypeInfo);
 
     // Determine status based on action
     let statusName;
@@ -4166,6 +4167,7 @@ async function prepareInventoryData(rawData, action = 'receive') {
         tilsonsn: rawData.tilsonsn || null,
         quantity: quantity,
         status_id: statusId,
+        sloc_id: window.selectedSlocId,
         itemTypeInfo: itemTypeInfo
     };
 }
@@ -4191,6 +4193,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
