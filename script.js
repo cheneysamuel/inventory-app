@@ -649,6 +649,7 @@ async function generateBulkItemTypesTable() {
         
         // Status quantity columns first
         const aggregates = getBulkInventoryAggregates(itemType.id);
+        console.log("bulk aggregates: ", aggregates);
         ['Available', 'Issued', 'Installed', 'Rejected'].forEach(status => {
             const statusCell = document.createElement('td');
             statusCell.textContent = formatNumberWithCommas(aggregates[status]);
@@ -4248,6 +4249,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
