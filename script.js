@@ -608,47 +608,42 @@ async function getBulkInventoryAggregates(itemTypeId) {
 async function generateBulkItemTypesTable() {
     console.log('generateBulkItemTypesTable called...');
     const bulkItemTypes = await getBulkItemTypes();
-    
-    console.log("Generating bulk item types table with " + bulkItemTypes.length + " item types");
 
-    // if the table already exists, delete the table first
+    // Remove existing table
     const existingTable = document.getElementById('bulkItemTypesMatrix');
     if (existingTable) {
-        console.log("table already existed.  removing before regenerating...");
         existingTable.remove();
     }
-    
+
     const table = document.createElement('table');
     table.id = 'bulkItemTypesMatrix';
     table.style.marginTop = '20px';
-    
+
     // Create header
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
-    
     const headers = [
-        'Available', 'Issued', 'Installed', 'Rejected', , 
+        'Available', 'Issued', 'Installed', 'Rejected',
         'Quantity', 'Item', 'Description', 'Mfgr Part #', 'Category', 'Unit of Measure', 'Provider'
     ];
-    
     headers.forEach(header => {
         const th = document.createElement('th');
         th.textContent = header;
         headerRow.appendChild(th);
     });
-    
     thead.appendChild(headerRow);
     table.appendChild(thead);
-    
+
     // Create body
     const tbody = document.createElement('tbody');
 
-    bulkItemTypes.forEach(itemType => {
+    // Use for...of with await
+    for (const itemType of bulkItemTypes) {
         const row = document.createElement('tr');
         row.dataset.itemTypeId = itemType.id;
-        
-        // Status quantity columns first
-    const agg = await getBulkInventoryAggregates(itemType.id);
+
+        // Await the aggregates
+        const agg = await getBulkInventoryAggregates(itemType.id);
         ['Available', 'Issued', 'Installed', 'Rejected'].forEach(status => {
             const statusCell = document.createElement('td');
             statusCell.textContent = formatNumberWithCommas(agg[status]);
@@ -667,69 +662,53 @@ async function generateBulkItemTypesTable() {
         quantityInput.className = 'bulk-quantity-input';
         quantityInput.style.width = '80px';
         quantityInput.disabled = true;
-        
-        quantityInput.addEventListener('focus', function() {
-            // when input is focused, select the text within the input
-            this.select();
-        });
-
-        // Add event listener for quantity validation
+        quantityInput.addEventListener('focus', function() { this.select(); });
         quantityInput.addEventListener('input', function() {
-            this.value = this.value.replace(/\D/g, ''); // Only allow digits
-
-            // if user is using the bulk receive process or bulk issue process
+            this.value = this.value.replace(/\D/g, '');
             if ($('.bulk-manage-container').hasClass('inBulkReceiveMode')) {
-                // Handle bulk receive specific logic
                 let errors = evaluateBulkReceiveQuantities();
                 updateBulkButtonProcessStates(errors);
-
             } else if ($('.bulk-manage-container').hasClass('inBulkIssueMode')) {
-                // Handle bulk issue specific logic
                 let errors = evaluateBulkIssueQuantities();
                 updateBulkButtonProcessStates(errors);
-
             }
-
         });
-
         updateBulkButtonStates();
-
-        
         quantityCell.appendChild(quantityInput);
         row.appendChild(quantityCell);
-        
-        // Item type info columns after quantity
+
+        // Item type info columns
         const itemTypeCell = document.createElement('td');
         itemTypeCell.textContent = itemType.name;
         itemTypeCell.className = 'bulk-item-name-cell';
         row.appendChild(itemTypeCell);
-        
+
         const descriptionCell = document.createElement('td');
         descriptionCell.textContent = itemType.description;
         row.appendChild(descriptionCell);
-        
+
         const mfgrPartCell = document.createElement('td');
         mfgrPartCell.textContent = itemType.part_number;
         row.appendChild(mfgrPartCell);
-        
+
         const categoryCell = document.createElement('td');
         categoryCell.textContent = itemType.category;
         row.appendChild(categoryCell);
-        
+
         const unitCell = document.createElement('td');
         unitCell.textContent = itemType.unit_of_measure;
         row.appendChild(unitCell);
-        
+
         const providerCell = document.createElement('td');
         providerCell.textContent = itemType.provider;
         row.appendChild(providerCell);
-        
+
         tbody.appendChild(row);
-        
-        table.appendChild(tbody);
-        console.log('appended table: ', table);
-        return table;
-    });
+    }
+
+    table.appendChild(tbody);
+    console.log('appended table: ', table);
+    return table;
 }
 
 /**
@@ -4254,6 +4233,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
