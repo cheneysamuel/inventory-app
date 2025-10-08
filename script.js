@@ -1159,11 +1159,6 @@ async function loadBulkInventoryList() {
         }));
 
         // Create the table and populate it
-        // check first to see if the table already exists, if so, remove it first
-        const existingTable = inventorySection.querySelector('#bulkInventoryTable');
-        if (existingTable) {
-            existingTable.remove();
-        }
         const table = createInventoryTable('bulkInventoryTable', 'bulk');
         inventorySection.appendChild(table);
         populateInventoryTable(mapped, 'bulkInventoryBody', 'bulk');
@@ -4247,6 +4242,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
