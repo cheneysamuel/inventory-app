@@ -1858,71 +1858,67 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     });
-
-
-    
-    
 });
 
 async function runFullInitialization() {
     console.log('running full initialization...');
     try {
         await setCurrentUserFromSupabase();
-        console.log('before cacheLookupTables');
-        await cacheLookupTables();
-        console.log('after cacheLookupTables');
-        displaySlocValue();
-        
-        populateManageOthersDropdown();
-        window.transactionLogger = new TransactionLogger();
+        await cacheLookupTables().then(() => {
+                                              
+            displaySlocValue();
 
-        // Populate initial dropdowns
-        populateAllDropdowns();
-
-        // Inventory and bulk tables
-        await loadSerializedInventoryList();
-        await loadBulkInventoryList();
-
-        window.refreshDropdowns();
-        populateBulkSerializedDropdowns();
-
-        // Bulk receive form setup
-        setupBulkForms();
-
-        // Sidebar navigation event listeners
-        setupSidebarNavigation();
-
-        // Import/Export functionality
-        setupImportExportButtons();
-
-        // Accordion and other UI listeners
-        setupAccordionListeners();
-
-        // Serialized Issue buttons
-        setupSerializedIssueButtons();
-
-        // Item type history and bulk receiving
-        initializeItemTypeHistory();
-        initializeBulkSerializedReceiving();
-        initializeBulkReceiving();
-
-        // Set initial active button (default to View Inventory)
-        setActiveSidebarButton('viewInventoryBtn');
-        refreshAllTables();
-
-        // Populate Manage Others dropdown with remaining lookup tables
-        const managedTables = ['dfns','item_types','crews'];
-        const allTables = window.getTableNames();
-        const othersSelect = document.getElementById('manageOthersSelect');
-        allTables.filter(t => !managedTables.includes(t)).forEach(t => {
-            const opt = document.createElement('option');
-            opt.value = t;
-            opt.textContent = t;
-            othersSelect.appendChild(opt);
-        });
-
-        // Set initial view - Show View Inventory section by default
-        await showSections({serializedInventory: true, bulkInventory: true});     
+            populateManageOthersDropdown();
+            window.transactionLogger = new TransactionLogger();
+    
+            // Populate initial dropdowns
+            populateAllDropdowns();
+    
+            // Inventory and bulk tables
+            await loadSerializedInventoryList();
+            await loadBulkInventoryList();
+    
+            window.refreshDropdowns();
+            populateBulkSerializedDropdowns();
+    
+            // Bulk receive form setup
+            setupBulkForms();
+    
+            // Sidebar navigation event listeners
+            setupSidebarNavigation();
+    
+            // Import/Export functionality
+            setupImportExportButtons();
+    
+            // Accordion and other UI listeners
+            setupAccordionListeners();
+    
+            // Serialized Issue buttons
+            setupSerializedIssueButtons();
+    
+            // Item type history and bulk receiving
+            initializeItemTypeHistory();
+            initializeBulkSerializedReceiving();
+            initializeBulkReceiving();
+    
+            // Set initial active button (default to View Inventory)
+            setActiveSidebarButton('viewInventoryBtn');
+            refreshAllTables();
+    
+            // Populate Manage Others dropdown with remaining lookup tables
+            const managedTables = ['dfns','item_types','crews'];
+            const allTables = window.getTableNames();
+            const othersSelect = document.getElementById('manageOthersSelect');
+            allTables.filter(t => !managedTables.includes(t)).forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t;
+                opt.textContent = t;
+                othersSelect.appendChild(opt);
+            });
+    
+            // Set initial view - Show View Inventory section by default
+            await showSections({serializedInventory: true, bulkInventory: true});     
+        }
 
     } catch (error) {
         console.error('Error during full initialization:', error);
@@ -4239,6 +4235,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
