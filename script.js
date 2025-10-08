@@ -1673,9 +1673,9 @@ window.refreshDropdowns = function() {
  */
 function getInventoryOrderBy() {
     const config = getInventorySortconfig();
-    if (config && config.column && config.direction) {
-        return { column: config.column, direction: config.direction };
-    }
+    //if (config && config.column && config.direction) {
+    //    return { column: config.column, direction: config.direction };
+    //}
     // Default: sort by id ascending
     return { column: "id", direction: "ASC" };
 }
@@ -4233,6 +4233,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
