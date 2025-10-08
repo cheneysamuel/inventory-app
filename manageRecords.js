@@ -14,7 +14,6 @@ window.selectedSlocId = null;
  */
 function getTableNames() {
     // List your tables here, or fetch from a config table if you want it dynamic
-    console.log('getting table names...');
     return [
         'item_types', 'inventory', 'locations', 'crews', 'dfns', 'statuses',
         'categories', 'inventory_types', 'units_of_measure', 'inventory_providers',
@@ -614,10 +613,10 @@ async function populateRecordsTable(tableName, columns) {
 
     // Check if this is a lookup table
     const isLookupTable = [
-        'LOCATIONS', 'CREWS', 'DFNS', 'ITEM_TYPES', 'STATUSES',
-        'CATEGORIES', 'INVENTORY_TYPES', 'UNITS_OF_MEASURE',
-        'INVENTORY_PROVIDERS', 'LOCATION_TYPES', 'TRANSACTION_TYPES',
-        'INV_ACTION_TYPES'
+        'locations', 'crews', 'dfns', 'item_types', 'statuses',
+        'categories', 'inventory_types', 'units_of_measure',
+        'inventory_providers', 'location_types', 'transaction_types',
+        'inv_action_types'
     ].includes(tableName);
 
     try {
@@ -912,8 +911,8 @@ async function deleteModalRecord(tableName, row) {
             matchValue = row.id;
         }
 
-        // Log transaction for INVENTORY table before deletion
-        if (tableName === 'INVENTORY' && window.transactionLogger) {
+        // Log transaction for inventory table before deletion
+        if (tableName === 'inventory' && window.transactionLogger) {
             try {
                 const inventoryId = row.id;
                 await window.transactionLogger.logInventoryDeleted(inventoryId, row);
@@ -1018,8 +1017,8 @@ async function deleteRecord(table, row) {
         const matchCol = table === 'CONFIG' ? 'key' : 'id';
         const matchValue = table === 'CONFIG' ? row.key : row.id;
 
-        // Log transaction for INVENTORY table before deletion
-        if (table === 'INVENTORY' && window.transactionLogger) {
+        // Log transaction for inventory table before deletion
+        if (table === 'inventory' && window.transactionLogger) {
             try {
                 const inventoryId = row.id;
                 await window.transactionLogger.logInventoryDeleted(inventoryId, row);
@@ -1126,8 +1125,8 @@ async function insertRecord(table, formData, columns) {
         await handleTableOperationSuccess(table);
         refreshAllApplicationLists();
 
-        // Log transaction for INVENTORY table
-        if (table === 'INVENTORY' && window.transactionLogger) {
+        // Log transaction for inventory table
+        if (table === 'inventory' && window.transactionLogger) {
             try {
                 // You may want to fetch the inserted record's ID if needed
                 await window.transactionLogger.logInventoryCreated(null, null);
@@ -1175,8 +1174,8 @@ async function updateRecord(table, formData, originalRow, columns) {
         await handleTableOperationSuccess(table);
         refreshAllApplicationLists();
 
-        // Log transaction for INVENTORY table
-        if (table === 'INVENTORY' && window.transactionLogger) {
+        // Log transaction for inventory table
+        if (table === 'inventory' && window.transactionLogger) {
             try {
                 await window.transactionLogger.logInventoryUpdated(
                     originalRow.id,
@@ -1204,9 +1203,9 @@ async function updateRecord(table, formData, originalRow, columns) {
 async function getTableData(table) {
     let query = supabase.from(table).select('*');
 
-    if (table === 'ITEM_TYPES' && window.selectedMarketId) {
+    if (table === 'item_types' && window.selectedMarketId) {
         query = query.eq('market_id', window.selectedMarketId);
-    } else if (table === 'INVENTORY' && window.selectedSlocId) {
+    } else if (table === 'inventory' && window.selectedSlocId) {
         query = query.eq('sloc_id', window.selectedSlocId);
     }
 
@@ -1394,7 +1393,7 @@ async function combineBulkInventoryRecords() {
     try {
         // Get all inventory records
         const { data: inventoryRows, error: invError } = await supabase
-            .from('INVENTORY')
+            .from('inventory')
             .select('*');
         if (invError || !inventoryRows) return { success: false, combinedCount: 0, error: invError?.message };
 
@@ -1408,14 +1407,14 @@ async function combineBulkInventoryRecords() {
 
             // Get item_type_id and check if it's Bulk
             const { data: itemType, error: itemTypeError } = await supabase
-                .from('ITEM_TYPES')
+                .from('item_types')
                 .select('inventory_type_id')
                 .eq('id', row.item_type_id)
                 .single();
             if (itemTypeError || !itemType) continue;
 
             const { data: invType, error: invTypeError } = await supabase
-                .from('INVENTORY_TYPES')
+                .from('inventory_types')
                 .select('name')
                 .eq('id', itemType.inventory_type_id)
                 .single();
@@ -1439,14 +1438,14 @@ async function combineBulkInventoryRecords() {
 
                 // Check if other is also Bulk
                 const { data: otherItemType, error: otherItemTypeError } = await supabase
-                    .from('ITEM_TYPES')
+                    .from('item_types')
                     .select('inventory_type_id')
                     .eq('id', other.item_type_id)
                     .single();
                 if (otherItemTypeError || !otherItemType) continue;
 
                 const { data: otherInvType, error: otherInvTypeError } = await supabase
-                    .from('INVENTORY_TYPES')
+                    .from('inventory_types')
                     .select('name')
                     .eq('id', otherItemType.inventory_type_id)
                     .single();
@@ -1458,13 +1457,13 @@ async function combineBulkInventoryRecords() {
 
                     // Update the first record's quantity
                     await supabase
-                        .from('INVENTORY')
+                        .from('inventory')
                         .update({ quantity: newQty })
                         .eq('id', id);
 
                     // Delete the duplicate record
                     await supabase
-                        .from('INVENTORY')
+                        .from('inventory')
                         .delete()
                         .eq('id', otherId);
 
@@ -1939,5 +1938,4 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
     } catch (error) {
         console.error('Error opening table manager:', error);
     }
-
 };
