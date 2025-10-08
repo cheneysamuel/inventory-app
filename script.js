@@ -1864,8 +1864,14 @@ async function runFullInitialization() {
     console.log('running full initialization...');
     try {
         await setCurrentUserFromSupabase();
-        await cacheLookupTables().then(() => {
-                                              
+        await cacheLookupTables().then((runAfterCachedInit());
+        } catch (error) {
+            console.error('Error during full initialization:', error);
+        }
+}
+
+async function runAfterCachedInit() {
+    
             displaySlocValue();
 
             populateManageOthersDropdown();
@@ -4235,6 +4241,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
