@@ -728,7 +728,7 @@ async function generateBulkItemTypesTable() {
         });
         
         table.appendChild(tbody);
-
+        console.log('appended table: ', table);
         return table;
     });
 }
@@ -4249,6 +4249,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
