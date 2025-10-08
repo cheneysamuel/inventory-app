@@ -899,21 +899,31 @@ async function processBulkInventoryInsertion(action) {
 async function refreshBulkItemTypesTable(createTable = true) {
     console.log('refreshBulkItemTypesTable called...');
 
-    if(createTable === true){
-        const tableContainer = document.getElementById('bulkItemTypesTable');
+    const tableContainer = document.getElementById('bulkItemTypesTable');
+    if (!tableContainer) {
+        console.warn('bulkItemTypesTable container not found.');
+        return;
+    }
+
+    if (createTable === true) {
         const existingTable = tableContainer.querySelector('#bulkItemTypesMatrix');
         if (existingTable) {
             existingTable.remove();
-
-            // if selectedMarketId is not set, do not attempt to regenerate the table
-            if (!window.selectedMarketId) {
-                console.warn("selectedMarketId is not set. Skipping bulk item types table regeneration.");
-                return;
-            }
-
         }
+
+        // if selectedMarketId is not set, do not attempt to regenerate the table
+        if (!window.selectedMarketId) {
+            console.warn("selectedMarketId is not set. Skipping bulk item types table regeneration.");
+            return;
+        }
+
+        // Await the table creation and ensure it returns a Node
         const newTable = await generateBulkItemTypesTable();
-        tableContainer.appendChild(newTable);
+        if (newTable instanceof Node) {
+            tableContainer.appendChild(newTable);
+        } else {
+            console.error('generateBulkItemTypesTable did not return a Node:', newTable);
+        }
 
         setTimeout(addBulkInventorySearchBar, 0);
 
@@ -921,10 +931,8 @@ async function refreshBulkItemTypesTable(createTable = true) {
         if ($('.bulk-manage-container').hasClass('inBulkIssueMode')) {
             filterBulkIssueRowsByAvailability(true);
         }
-    }
-    else{
+    } else {
         // remove any existing table and search filter values:
-        const tableContainer = document.getElementById('bulkItemTypesTable');
         const existingTable = tableContainer.querySelector('#bulkItemTypesMatrix');
         if (existingTable) {
             existingTable.remove();
@@ -935,8 +943,6 @@ async function refreshBulkItemTypesTable(createTable = true) {
             input.value = '';
         });
     }
-
-
 }
 
 /**
@@ -4248,6 +4254,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
