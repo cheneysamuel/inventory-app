@@ -1871,7 +1871,7 @@ async function runFullInitialization() {
 }
 
 async function runAfterCachedInit() {
-    
+    try {
             displaySlocValue();
 
             populateManageOthersDropdown();
@@ -4241,6 +4241,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
