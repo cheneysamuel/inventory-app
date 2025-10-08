@@ -96,6 +96,7 @@ async function cacheLookupTables() {
     for (const table of LOOKUP_TABLES) {
         const { data, error } = await supabase.from(table).select('*');
         window.lookupCache[table] = error ? [] : (data || []);
+        console.log('cached data: ', data);
     }
 }
 
@@ -1869,6 +1870,7 @@ async function runFullInitialization() {
         displaySlocValue();
         await setCurrentUserFromSupabase();
         await cacheLookupTables();
+        
         populateManageOthersDropdown();
         window.transactionLogger = new TransactionLogger();
 
@@ -3991,6 +3993,7 @@ function updateSerializedIssueButtons() {
  * Initialize and handle Client, Market, and SLOC dropdowns in the sidebar
  */
 async function initializeClientMarketSlocDropdowns() {
+    console.log('initializeClientMarketSlocDropdowns called...');
     const clientSelect = document.getElementById('clientSelect');
     const marketSelect = document.getElementById('marketSelect');
     const slocSelect = document.getElementById('slocSelect');
@@ -4106,6 +4109,7 @@ async function initializeClientMarketSlocDropdowns() {
     });
 
 slocSelect.addEventListener('change', function() {
+    console.log('sloc selected...');
     displaySlocValue();
     window.selectedSlocId = this.value ? parseInt(this.value, 10) : null;
     resetBulkReceiveAndIssueProcessForms();
@@ -4233,6 +4237,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
