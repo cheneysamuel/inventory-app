@@ -1983,11 +1983,11 @@ function setupBulkForms() {
     setupDropdown('bulk_dfn_id', 'dfns', 'sloc_id', window.selectedSlocId);
 
     // Bulk item types table
-    const bulkTableContainer = document.getElementById('bulkItemTypesTable');
-    if (bulkTableContainer) {
-        bulkTableContainer.remove;
-        generateBulkItemTypesTable().then(bulkTable => bulkTableContainer.appendChild(bulkTable));
-    }
+    // const bulkTableContainer = document.getElementById('bulkItemTypesTable');
+    // if (bulkTableContainer) {
+    //     bulkTableContainer.remove;
+    //     generateBulkItemTypesTable().then(bulkTable => bulkTableContainer.appendChild(bulkTable));
+    // }
 
     // Form field listeners
     bulkForm.querySelectorAll('input, select').forEach(el => {
@@ -4233,6 +4233,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
