@@ -521,6 +521,7 @@ async function processInventoryInsertion(inventoryData, action) {
  * @returns {Array<Object>} - Array of bulk item types
  */
 async function getBulkItemTypes() {
+    console.log('getBulkItemTypes called...');
     if (!isUserLoggedIn()) {
         console.warn('User not logged in. Skipping Supabase call.');
         return;
@@ -568,6 +569,7 @@ async function getBulkItemTypes() {
  */
 async function getBulkInventoryAggregates(itemTypeId) {
     // Fetch all inventory rows for this item type and SLOC, including status name
+    console.log('getBulkInventoryAggregates called...');
     const { data, error } = await supabase
         .from('inventory')
         .select('quantity, statuses(name)')
@@ -603,7 +605,7 @@ async function getBulkInventoryAggregates(itemTypeId) {
  * @returns {HTMLTableElement} - Generated table element
  */
 async function generateBulkItemTypesTable() {
-    console.log("calling getBulkItemTypes");
+    console.log('generateBulkItemTypesTable called...');
     const bulkItemTypes = await getBulkItemTypes();
     
     console.log("Generating bulk item types table with " + bulkItemTypes.length + " item types");
@@ -734,7 +736,7 @@ async function generateBulkItemTypesTable() {
  * @returns {Array<Object>} - Array of inventory items to process
  */
 function getBulkInventoryData() {
-
+    console.log('getBulkInventoryData called...');
     const form = document.getElementById('bulkReceiveForm');
     const bulkIssueForm = document.getElementById('bulkIssueForm');
 
@@ -894,7 +896,7 @@ async function processBulkInventoryInsertion(action) {
  * Refresh the bulk item types table
  */
 async function refreshBulkItemTypesTable(createTable = true) {
-    console.log("Refreshing bulk item types table...");
+    console.log('refreshBulkItemTypesTable called...');
 
     if(createTable === true){
         const tableContainer = document.getElementById('bulkItemTypesTable');
@@ -977,6 +979,7 @@ function updateBulkButtonStates() {
  * Load and display both serialized and bulk inventory lists
  */
 async function loadInventoryList(loadIt = true) {
+    console.log('loadInventoryList called...');
     if (!loadIt) return;
     console.log("Loading inventory lists...");
     await Promise.all([
@@ -989,6 +992,7 @@ async function loadInventoryList(loadIt = true) {
  * Load and display serialized inventory in hierarchical format (items with serialized inventory type)
  */
 async function loadSerializedInventoryList() {
+    console.log('loadSerializedInventoryList called...');
     if (!isUserLoggedIn()) {
         console.warn('User not logged in. Skipping Supabase call.');
         return;
@@ -1078,6 +1082,7 @@ async function loadSerializedInventoryList() {
  * Load and display bulk inventory (items with bulk inventory type)
  */
 async function loadBulkInventoryList() {
+    console.log('loadBulkInventoryList called...');
     if (!isUserLoggedIn()) {
         console.warn('User not logged in. Skipping Supabase call.');
         return;
@@ -1091,7 +1096,7 @@ async function loadBulkInventoryList() {
         if (!inventorySection) return;
 
         // Clear the existing table
-        const existingTable = inventorySection.querySelector('#bulkInventoryTable');
+        const existingTable = inventorySection.getElementById(#bulkInventoryTable');
         if (existingTable) {
             existingTable.remove();
         }
@@ -1168,6 +1173,7 @@ async function loadBulkInventoryList() {
  * Create hierarchical display for serialized inventory
  */
 async function createSerializedInventoryHierarchy(data) {
+    console.log('createSerializedInventoryHierarchy called...');
     const hierarchyContainer = document.getElementById('serializedInventoryHierarchy');
     if (!hierarchyContainer) return;
     
@@ -1331,6 +1337,7 @@ async function createSerializedInventoryHierarchy(data) {
  * Create an inventory table with specified ID and type
  */
 function createInventoryTable(tableId, inventoryType) {
+    console.log('createInventoryTable called...');
     const table = document.createElement('table');
     table.id = tableId;
     table.className = 'table table-striped';
@@ -1444,6 +1451,7 @@ function createInventoryTable(tableId, inventoryType) {
  * Populate an inventory table with data
  */
 function populateInventoryTable(data, tbodyId, inventoryType) {
+    console.log('populateInventoryTable called...');
     const tbody = document.getElementById(tbodyId);
     if (!tbody) return;
     
@@ -1568,7 +1576,7 @@ function setInventorySortconfig(column, direction) {
  * Refresh all tables on the page after database changes
  */
 function refreshAllTables() {
-    console.log("Refreshing all tables...");
+    console.log("refreshAllTables called...");
     try {
 
         // if a SLOC is selected, reload the inventory lists
@@ -1920,6 +1928,7 @@ async function runFullInitialization() {
 // --- Helper Functions ---
 // Section visibility control
 async function showSections({serializedInventory=false, inventoryReceiving=false, bulkInventory=false, bulkReceive=false}) {
+    console.log('showSections called...');
     const inventoryAccordion = document.getElementById('inventoryAccordion');
     if (inventoryAccordion) {
         inventoryAccordion.classList.toggle('active', serializedInventory);
@@ -1943,6 +1952,7 @@ async function showSections({serializedInventory=false, inventoryReceiving=false
 }
 
 function populateAllDropdowns() {
+    console.log('populateAllDropdowns called...');
     const lookups = {
         location_id: getCachedTable('locations').map(row => [row.id, row.name]),
         assigned_crew_id: getCachedTable('crews').map(row => [row.id, row.name]),
@@ -2245,7 +2255,7 @@ function showHistoryPlaceholder() {
  * @param {number} itemTypeId - The item type ID to analyze
  */
 async function loadItemTypeHistory(itemTypeId) {
-
+    console.log('loadItemTypeHistory called...');
     const historyContent = document.getElementById('itemHistoryContent');
     if (!historyContent) return;
 
@@ -2273,6 +2283,7 @@ async function loadItemTypeHistory(itemTypeId) {
  * @returns {Object} Comprehensive item type data
  */
 async function getItemTypeHistoryData(itemTypeId) {
+    console.log('getItemTypeHistoryData called...');
     const data = {
         itemType: null,
         transactions: [],
@@ -2435,6 +2446,7 @@ async function getItemTypeHistoryData(itemTypeId) {
  * @param {Object} data - Item type data object
  */
 function calculateItemTypeMetrics(data) {
+    console.log('calculateItemTypeMetrics called...');
     const metrics = data.metrics;
     
     // Initialize breakdowns
@@ -2499,6 +2511,7 @@ function calculateItemTypeMetrics(data) {
  * @param {Object} data - Item type history data
  */
 function displayItemTypeHistory(data) {
+    console.log('displayItemTypeHistory called...');
     const historyContent = document.getElementById('itemHistoryContent');
     if (!historyContent) return;
 
@@ -2547,7 +2560,7 @@ function displayItemTypeHistory(data) {
             </div>
         </div>
 
-        ${generateStatusBredownSection(metrics.statusBreakdown)}
+        ${generateStatusBreakdownSection(metrics.statusBreakdown)}
         ${generateDFNBreakdownSection(metrics.dfnBreakdown)}
         ${generateCrewBreakdownSection(metrics.crewBreakdown)}
         ${generateLocationBreakdownSection(metrics.locationBreakdown)}
@@ -2558,7 +2571,8 @@ function displayItemTypeHistory(data) {
 /**
  * Generate status breakdown section
  */
-function generateStatusBredownSection(statusBreakdown) {
+function generateStatusBreakdownSection(statusBreakdown) {
+    console.log('generateStatusBreakdownSection called...');
     if (Object.keys(statusBreakdown).length === 0) return '';
     
     const items = Object.entries(statusBreakdown)
@@ -2897,7 +2911,7 @@ function initializeBulkSerializedReceiving() {
  * Initialize bulk receiving functionality
  */
 function initializeBulkReceiving() {
-    //console.log('🚀 initializeBulkReceiving() started');
+    console.log('🚀 initializeBulkReceiving() started');
     
     // Check if buttons exist
     const bulkReceiveBtn = document.getElementById('bulkItemReceiveBtn');
@@ -4219,6 +4233,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
