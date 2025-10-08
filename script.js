@@ -1340,6 +1340,12 @@ async function createSerializedInventoryHierarchy(data) {
  */
 function createInventoryTable(tableId, inventoryType) {
     console.log('createInventoryTable called...');
+    // check to see if table exist already. If so, use it
+    const existingTable = document.getElementById(tableId);
+    if (existingTable) {
+        return existingTable;
+    }
+
     const table = document.createElement('table');
     table.id = tableId;
     table.className = 'table table-striped';
@@ -4242,6 +4248,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
