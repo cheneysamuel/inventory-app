@@ -331,33 +331,6 @@ function createInputElement(column, foreignKeys, db, value = null) {
 }
 
 /**
- * Validate form data against table schema
- * @param {FormData} formData - Form data
- * @param {Array} columns - Table column information
- * @returns {Object} - {isValid: boolean, errors: Array}
- */
-function validateFormData(formData, columns) {
-    const errors = [];
-    
-    // Check NOT NULL constraints
-    const notNullFields = columns
-        .filter(c => c.notnull === 1 && !(c.pk && c.name === 'id'))
-        .map(c => c.name);
-    
-    const missingFields = notNullFields.filter(field => 
-        !formData.get(field) && formData.get(field) !== '0');
-    
-    if (missingFields.length > 0) {
-        errors.push(`Required fields cannot be empty: ${missingFields.join(', ')}`);
-    }
-    
-    return {
-        isValid: errors.length === 0,
-        errors: errors
-    };
-}
-
-/**
  * Generate a dynamic form based on table schema
  * @param {Object} db - Database instance
  * @param {string} table - Table name
@@ -370,7 +343,7 @@ function generateForm(db, table, columns, foreignKeys, rowData = null) {
     const form = document.createElement('form');
     form.id = rowData ? 'editForm' : 'addForm';
     form.className = 'table-management-form';
-    
+
     // Add form title
     const title = document.createElement('h3');
     title.textContent = rowData ? `Edit ${table} Record` : `Add New ${table} Record`;
@@ -381,34 +354,37 @@ function generateForm(db, table, columns, foreignKeys, rowData = null) {
     title.style.borderBottom = '2px solid #667eea';
     title.style.paddingBottom = '8px';
     form.appendChild(title);
-    
+
     // Create compact form fields container
     const fieldsContainer = document.createElement('div');
     fieldsContainer.className = 'compact-form-grid';
-    
+
     columns.forEach(col => {
+        // Get column name safely
+        const colName = typeof col === 'object' ? col.name : col;
+
         // Skip primary key fields for add forms unless they are foreign keys
-        if (!rowData && col.pk && col.type === 'INTEGER' && 
-            !foreignKeys.some(fk => fk.from === col.name)) return;
-        
+        if (!rowData && col.pk && col.type === 'INTEGER' &&
+            !foreignKeys.some(fk => fk.from === colName)) return;
+
         // Create compact field row
         const fieldRow = document.createElement('div');
         fieldRow.className = 'compact-form-row';
-        
+
         const label = document.createElement('label');
-        label.textContent = col.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        label.textContent = colName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         label.className = 'compact-form-label';
-        
+
         // Add required indicator for non-nullable fields
         if (col.notnull && !col.pk) {
             label.style.color = '#dc3545';
         }
-        
+
         fieldRow.appendChild(label);
-        
-        const value = rowData ? rowData[col.name] : null;
+
+        const value = rowData ? rowData[colName] : null;
         const input = createInputElement(col, foreignKeys, db, value);
-        
+
         // Apply compact styling based on input type
         if (input.tagName === 'SELECT') {
             input.className = 'compact-form-select';
@@ -423,47 +399,47 @@ function generateForm(db, table, columns, foreignKeys, rowData = null) {
             checkboxWrapper.style.display = 'flex';
             checkboxWrapper.style.alignItems = 'center';
             checkboxWrapper.style.gap = '8px';
-            
+
             // Add the input to wrapper (no need to remove from fieldRow since it was never added)
             checkboxWrapper.appendChild(input);
-            
+
             // Add a label for the checkbox
             const checkboxLabel = document.createElement('span');
             checkboxLabel.textContent = 'System Required';
             checkboxLabel.style.fontSize = '14px';
             checkboxLabel.style.color = '#6c757d';
             checkboxWrapper.appendChild(checkboxLabel);
-            
+
             fieldRow.appendChild(checkboxWrapper);
-            
+
             // Skip the normal input addition since we added the wrapper
             fieldsContainer.appendChild(fieldRow);
             return; // Exit early to avoid duplicate addition
         } else {
             input.className = 'compact-form-input';
         }
-        
+
         // Disable primary key fields in edit mode
         if (rowData && col.pk) {
             input.disabled = true;
             input.style.backgroundColor = '#f8f9fa';
         }
-        
+
         fieldRow.appendChild(input);
         fieldsContainer.appendChild(fieldRow);
     });
-    
+
     form.appendChild(fieldsContainer);
-    
+
     // Create compact button container
     const buttonContainer = document.createElement('div');
     buttonContainer.className = 'compact-action-buttons';
-    
+
     const button = document.createElement('button');
     button.type = 'submit';
     button.textContent = rowData ? '💾 Update' : '➕ Add';
     button.className = 'compact-btn ' + (rowData ? 'compact-btn-update' : 'compact-btn-add');
-    
+
     const cancelButton = document.createElement('button');
     cancelButton.type = 'button';
     cancelButton.textContent = '🗑️ Clear';
@@ -474,11 +450,11 @@ function generateForm(db, table, columns, foreignKeys, rowData = null) {
         // Reset edit mode if active
         window.currentEditingId = null;
     };
-    
+
     buttonContainer.appendChild(button);
     buttonContainer.appendChild(cancelButton);
     form.appendChild(buttonContainer);
-    
+
     return form;
 }
 
@@ -1939,3 +1915,4 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
