@@ -1293,8 +1293,10 @@ function handleActionSelect(action, inventoryId = null) {
         case 'displaybulkreceivereceiptmodal':
             console.log('Attempting to show bulk receive receipt modal');
             try {
-                const receiptData = getBulkReceiveReceiptData();
-                displayBulkReceiveReceipt(receiptData);
+                const receiptData = getBulkReceiveReceiptData().then(data => {
+                    console.log("receiptData (from promise): ", data);
+                    displayBulkReceiveReceipt(data);
+                });
             } catch (error) {
                 console.error('Error showing bulk receive receipt modal:', error);
                 alert('Error opening bulk receive receipt modal: ' + error.message);
@@ -1304,9 +1306,10 @@ function handleActionSelect(action, inventoryId = null) {
         case 'displaybulkissuereceiptmodal':
             console.log('Attempting to show bulk issue receipt modal');
             try {
-                const receiptData = getBulkIssueReceiptData();
-                console.log("receiptData: ", receiptData);
-                displayBulkIssueReceipt(receiptData);
+                const receiptData = getBulkIssueReceiptData().then(data => {
+                    console.log("receiptData (from promise): ", data);
+                    displayBulkIssueReceipt(data);
+                });
             } catch (error) {
                 console.error('Error showing bulk issue receipt modal:', error);
                 alert('Error opening bulk issue receipt modal: ' + error.message);
@@ -1471,6 +1474,7 @@ async function displayBulkReceiveReceipt(receiptData) {
  * @param {Object} receiptData - { receiptNumber, crewIssuedTo, dfn, items }
  */
 async function displayBulkIssueReceipt(receiptData) {
+    console.log('Displaying bulk issue receipt with data:', receiptData);
     // Get crew name for display
     let crewName = receiptData.crewIssuedTo ? (getCachedRow('crews', receiptData.crewIssuedTo)?.name || 'Unknown Crew') : 'Unknown Crew';
     let dfnName = receiptData.dfn ? (getCachedRow('dfns', receiptData.dfn)?.name || 'No DFN') : 'No DFN';
@@ -5665,6 +5669,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
