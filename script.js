@@ -1867,9 +1867,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function runFullInitialization() {
     console.log('running full initialization...');
     try {
-        displaySlocValue();
         await setCurrentUserFromSupabase();
+        console.log('before cacheLookupTables');
         await cacheLookupTables();
+        console.log('after cacheLookupTables');
+        displaySlocValue();
         
         populateManageOthersDropdown();
         window.transactionLogger = new TransactionLogger();
@@ -4237,6 +4239,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
