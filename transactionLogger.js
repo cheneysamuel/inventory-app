@@ -120,8 +120,8 @@ class TransactionLogger {
             units_per_package: transactionData.units_per_package || null,
             provider_name: transactionData.provider_name || null,
             category_name: transactionData.category_name || null,
-            mfgrSN: transactionData.mfgrSN || null,
-            tilsonSN: transactionData.tilsonSN || null,
+            mfgrsn: transactionData.mfgrsn || null,
+            tilsonsn: transactionData.tilsonsn || null,
             from_location_name: transactionData.from_location_name || null,
             from_location_type: transactionData.from_location_type || null,
             to_location_name: transactionData.to_location_name || null,
@@ -346,3 +346,4 @@ class TransactionLogger {
 
 // Export for use in other modules
 window.TransactionLogger = TransactionLogger;
+
