@@ -1096,7 +1096,7 @@ async function loadBulkInventoryList() {
         if (!inventorySection) return;
 
         // Clear the existing table
-        const existingTable = inventorySection.getElementById(#bulkInventoryTable');
+        const existingTable = inventorySection.getElementById('bulkInventoryTable');
         if (existingTable) {
             existingTable.remove();
         }
@@ -4233,6 +4233,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
