@@ -239,11 +239,10 @@ window.getForeignKeys = getForeignKeys;
  * Create input element based on column type and foreign key information
  * @param {Object} column - Column information
  * @param {Array} foreignKeys - Foreign key information
- * @param {Object} db - Database instance
  * @param {any} value - Current value (for edit mode)
  * @returns {HTMLElement} - Input element
  */
-function createInputElement(column, foreignKeys, db, value = null) {
+function createInputElement(column, foreignKeys, value = null) {
     const fks = foreignKeys.filter(f => f.from === column.name);
     let input;
     
@@ -332,14 +331,13 @@ function createInputElement(column, foreignKeys, db, value = null) {
 
 /**
  * Generate a dynamic form based on table schema
- * @param {Object} db - Database instance
  * @param {string} table - Table name
  * @param {Array} columns - Table column information
  * @param {Array} foreignKeys - Foreign key information
  * @param {Object} rowData - Row data for edit mode (null for add mode)
  * @returns {HTMLFormElement} - Generated form element
  */
-function generateForm(db, table, columns, foreignKeys, rowData = null) {
+function generateForm(table, columns, foreignKeys, rowData = null) {
     const form = document.createElement('form');
     form.id = rowData ? 'editForm' : 'addForm';
     form.className = 'table-management-form';
@@ -385,7 +383,7 @@ function generateForm(db, table, columns, foreignKeys, rowData = null) {
         fieldRow.appendChild(label);
 
         const value = rowData ? rowData[colName] : null;
-        const input = createInputElement(col, foreignKeys, db, value);
+        const input = createInputElement(col, foreignKeys, value);
 
         // Apply compact styling based on input type
         if (input.tagName === 'SELECT') {
@@ -1294,22 +1292,21 @@ function clearFormFields(form) {
 
 /**
  * Refresh table display after data changes
- * @param {Object} db - Database instance
  * @param {string} table - Table name
  * @param {Array} columns - Table column information
  * @param {Array} foreignKeys - Foreign key information
  * @param {HTMLElement} manager - Manager container element
  * @param {HTMLElement} modal - Modal element
  */
-function refreshTableDisplay(db, table, columns, foreignKeys, manager, modal) {
-    const newData = getTableData(db, table);
+function refreshTableDisplay(table, columns, foreignKeys, manager, modal) {
+    const newData = getTableData(table);
     const tableElement = manager.querySelector('table');
     if (tableElement) tableElement.remove();
-    manager.insertBefore(generateTableDisplay(db, table, columns, newData, foreignKeys), modal);
+    manager.insertBefore(generateTableDisplay(table, columns, newData, foreignKeys), modal);
 }
 
 // Function to load and manage a specific table's data
-window.loadTableManager = async function(db, table) {
+window.loadTableManager = async function(table) {
     console.log(`🔄 Loading table manager for: ${table}`);
     
     if (!table) {
@@ -1332,13 +1329,12 @@ window.loadTableManager = async function(db, table) {
 };
 
 // Function to handle editing a specific row
-window.editRow = function(db, table, row) {
-    if (!db) db = window.db;
+window.editRow = function(table, row) {
     const manager = document.getElementById('tableManager');
 
     const columns = getTableInfo(table);
     const foreignKeys = getForeignKeys(table);
-    const editForm = generateForm(db, table, columns, foreignKeys, row);
+    const editForm = generateForm(table, columns, foreignKeys, row);
     const modal = createModal('editModal', editForm);
     
     manager.appendChild(modal);
@@ -1347,10 +1343,10 @@ window.editRow = function(db, table, row) {
         e.preventDefault();
         const formData = new FormData(editForm);
         
-        const result = await updateRecord(db, table, formData, row, columns);
+        const result = await updateRecord(table, formData, row, columns);
         
         if (result.success) {
-            refreshTableDisplay(db, table, columns, foreignKeys, manager, modal);
+            refreshTableDisplay(table, columns, foreignKeys, manager, modal);
             modal.style.display = 'none';
             // Refresh all tables on the page
             if (window.refreshAllTables) {
@@ -1920,7 +1916,5 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
-
-
 
 
