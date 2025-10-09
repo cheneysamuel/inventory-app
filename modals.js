@@ -3058,6 +3058,7 @@ function updateIssueValidation(inventoryData, isSerializedItem) {
 
 /**
  * Execute the issue operation (Supabase version, includes transaction logging)
+ * Ensures only valid inventory columns are inserted for partial issues.
  * @param {Object} inventoryData - Inventory item data
  * @param {boolean} isSerializedItem - Whether item is serialized
  */
@@ -3120,14 +3121,16 @@ async function executeIssueOperation(inventoryData, isSerializedItem) {
                 quantity: currentQuantity - issueQuantity
             }).eq('id', itemId);
 
-            // Remove fields not in inventory table
+            // Only include valid inventory columns for insert
             const {
                 id, item_name, inventory_type, status_name, location_name, crew_name,
+                item_types, statuses, locations, crews,
                 ...insertData
             } = inventoryData;
 
             const { data } = await supabase.from('inventory').insert([{
                 ...insertData,
+                id: undefined,
                 quantity: issueQuantity,
                 status_id: issuedStatusId,
                 location_id: withCrewLocationId,
@@ -3165,7 +3168,6 @@ async function executeIssueOperation(inventoryData, isSerializedItem) {
         ModalUtils.handleError(error, 'issue operation');
     }
 }
-
 
 // ============================================================================
 // REJECT MODAL FUNCTIONALITY
@@ -5655,6 +5657,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
