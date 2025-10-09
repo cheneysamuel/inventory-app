@@ -29,115 +29,115 @@ function getTableNames() {
 function getTableInfo(table) {
     const schemas = {
         clients: [
-        { name: 'id', type: 'INTEGER', pk: true },
-        { name: 'name', type: 'TEXT' },
+        { name: 'id', type: 'INTEGER', pk: true, notnull: true },
+        { name: 'name', type: 'TEXT', notnull: true },
         { name: 'address', type: 'TEXT' },
         { name: 'created_at', type: 'TIMESTAMP' },
         { name: 'updated_at', type: 'TIMESTAMP' }
     ],
         markets: [
-            { name: 'id', type: 'INTEGER', pk: true },
-            { name: 'name', type: 'TEXT' },
-            { name: 'client_id', type: 'INTEGER' },
+            { name: 'id', type: 'INTEGER', pk: true, notnull: true },
+            { name: 'name', type: 'TEXT', notnull: true },
+            { name: 'client_id', type: 'INTEGER', notnull: true },
             { name: 'created_at', type: 'TIMESTAMP' },
             { name: 'updated_at', type: 'TIMESTAMP' }
         ],
         slocs: [
-            { name: 'id', type: 'INTEGER', pk: true },
-            { name: 'name', type: 'TEXT' },
+            { name: 'id', type: 'INTEGER', pk: true, notnull: true },
+            { name: 'name', type: 'TEXT', notnull: true },
             { name: 'address', type: 'TEXT' },
-            { name: 'market_id', type: 'INTEGER' },
+            { name: 'market_id', type: 'INTEGER', notnull: true },
             { name: 'created_at', type: 'TIMESTAMP' },
             { name: 'updated_at', type: 'TIMESTAMP' }
         ],
         transaction_types: [
-            { name: 'id', type: 'INTEGER', pk: true },
-            { name: 'name', type: 'TEXT' }
+            { name: 'id', type: 'INTEGER', pk: true, notnull: true },
+            { name: 'name', type: 'TEXT', notnull: true }
         ],
         units_of_measure: [
-            { name: 'id', type: 'INTEGER', pk: true },
-            { name: 'name', type: 'TEXT' }
+            { name: 'id', type: 'INTEGER', pk: true, notnull: true },
+            { name: 'name', type: 'TEXT', notnull: true }
         ],
         inventory_providers: [
-            { name: 'id', type: 'INTEGER', pk: true },
-            { name: 'name', type: 'TEXT' }
+            { name: 'id', type: 'INTEGER', pk: true, notnull: true },
+            { name: 'name', type: 'TEXT', notnull: true }
         ],
         inventory_types: [
-            { name: 'id', type: 'INTEGER', pk: true },
-            { name: 'name', type: 'TEXT' }
+            { name: 'id', type: 'INTEGER', pk: true, notnull: true },
+            { name: 'name', type: 'TEXT', notnull: true }
         ],
         categories: [
-            { name: 'id', type: 'INTEGER', pk: true },
-            { name: 'name', type: 'TEXT' }
+            { name: 'id', type: 'INTEGER', pk: true, notnull: true },
+            { name: 'name', type: 'TEXT', notnull: true }
         ],
         item_types: [
-            { name: 'id', type: 'INTEGER', pk: true },
-            { name: 'inventory_type_id', type: 'INTEGER' },
-            { name: 'name', type: 'TEXT' },
+            { name: 'id', type: 'INTEGER', pk: true, notnull: true },
+            { name: 'inventory_type_id', type: 'INTEGER', notnull: true },
+            { name: 'name', type: 'TEXT', notnull: true },
             { name: 'manufacturer', type: 'TEXT' },
             { name: 'part_number', type: 'TEXT' },
-            { name: 'unit_of_measure_id', type: 'INTEGER' },
-            { name: 'units_per_package', type: 'INTEGER' },
+            { name: 'unit_of_measure_id', type: 'INTEGER', notnull: true },
+            { name: 'units_per_package', type: 'INTEGER', notnull: true },
             { name: 'description', type: 'TEXT' },
-            { name: 'provider_id', type: 'INTEGER' },
+            { name: 'provider_id', type: 'INTEGER', notnull: true },
             { name: 'low_units_quantity', type: 'INTEGER' },
             { name: 'category_id', type: 'INTEGER' },
             { name: 'image_path', type: 'TEXT' },
             { name: 'meta', type: 'JSONB' },
-            { name: 'market_id', type: 'INTEGER' },
+            { name: 'market_id', type: 'INTEGER', notnull: true },
             { name: 'created_at', type: 'TIMESTAMP' },
             { name: 'updated_at', type: 'TIMESTAMP' }
         ],
         location_types: [
-            { name: 'id', type: 'INTEGER', pk: true },
-            { name: 'name', type: 'TEXT' }
+            { name: 'id', type: 'INTEGER', pk: true, notnull: true },
+            { name: 'name', type: 'TEXT', notnull: true }
         ],
         locations: [
-            { name: 'id', type: 'INTEGER', pk: true },
-            { name: 'name', type: 'TEXT' },
-            { name: 'loc_type_id', type: 'INTEGER' },
+            { name: 'id', type: 'INTEGER', pk: true, notnull: true },
+            { name: 'name', type: 'TEXT', notnull: true },
+            { name: 'loc_type_id', type: 'INTEGER'},
             { name: 'is_system_required', type: 'BOOLEAN' }
         ],
         crews: [
-            { name: 'id', type: 'INTEGER', pk: true },
-            { name: 'name', type: 'TEXT' },
-            { name: 'market_id', type: 'INTEGER' },
+            { name: 'id', type: 'INTEGER', pk: true, notnull: true },
+            { name: 'name', type: 'TEXT', notnull: true },
+            { name: 'market_id', type: 'INTEGER', notnull: true },
             { name: 'created_at', type: 'TIMESTAMP' },
             { name: 'updated_at', type: 'TIMESTAMP' }
         ],
         dfns: [
-            { name: 'id', type: 'INTEGER', pk: true },
-            { name: 'name', type: 'TEXT' },
-            { name: 'sloc_id', type: 'INTEGER' },
+            { name: 'id', type: 'INTEGER', pk: true, notnull: true },
+            { name: 'name', type: 'TEXT', notnull: true },
+            { name: 'sloc_id', type: 'INTEGER', notnull: true },
             { name: 'created_at', type: 'TIMESTAMP' },
             { name: 'updated_at', type: 'TIMESTAMP' }
         ],
         statuses: [
-            { name: 'id', type: 'INTEGER', pk: true },
-            { name: 'name', type: 'TEXT' }
+            { name: 'id', type: 'INTEGER', pk: true, notnull: true },
+            { name: 'name', type: 'TEXT', notnull: true }
         ],
         inv_action_types: [
-            { name: 'id', type: 'INTEGER', pk: true },
-            { name: 'name', type: 'TEXT' },
+            { name: 'id', type: 'INTEGER', pk: true, notnull: true },
+            { name: 'name', type: 'TEXT', notnull: true },
             { name: 'loc_type_id', type: 'INTEGER' },
             { name: 'description', type: 'TEXT' }
         ],
         action_statuses: [
-            { name: 'id', type: 'INTEGER', pk: true },
-            { name: 'inv_action_id', type: 'INTEGER' },
-            { name: 'status_id', type: 'INTEGER' }
+            { name: 'id', type: 'INTEGER', pk: true, notnull: true },
+            { name: 'inv_action_id', type: 'INTEGER', notnull: true },
+            { name: 'status_id', type: 'INTEGER', notnull: true }
         ],
         inventory: [
-            { name: 'id', type: 'INTEGER', pk: true },
-            { name: 'location_id', type: 'INTEGER' },
+            { name: 'id', type: 'INTEGER', pk: true, notnull: true },
+            { name: 'location_id', type: 'INTEGER', notnull: true },
             { name: 'assigned_crew_id', type: 'INTEGER' },
             { name: 'dfn_id', type: 'INTEGER' },
-            { name: 'item_type_id', type: 'INTEGER' },
-            { name: 'mfgrSN', type: 'TEXT' },
-            { name: 'tilsonSN', type: 'TEXT' },
-            { name: 'quantity', type: 'INTEGER' },
-            { name: 'status_id', type: 'INTEGER' },
-            { name: 'sloc_id', type: 'INTEGER' },
+            { name: 'item_type_id', type: 'INTEGER', notnull: true },
+            { name: 'mfgrsn', type: 'TEXT' },
+            { name: 'tilsonsn', type: 'TEXT' },
+            { name: 'quantity', type: 'INTEGER', notnull: true },
+            { name: 'status_id', type: 'INTEGER', notnull: true },
+            { name: 'sloc_id', type: 'INTEGER', notnull: true },
             { name: 'created_at', type: 'TIMESTAMP' },
             { name: 'updated_at', type: 'TIMESTAMP' }
         ],
@@ -152,10 +152,10 @@ function getTableInfo(table) {
             { name: 'notes', type: 'TEXT' }
         ],
         transactions: [
-            { name: 'id', type: 'INTEGER', pk: true },
+            { name: 'id', type: 'INTEGER', pk: true, notnull: true },
             { name: 'inventory_id', type: 'INTEGER' },
-            { name: 'transaction_type', type: 'TEXT' },
-            { name: 'action', type: 'TEXT' },
+            { name: 'transaction_type', type: 'TEXT', notnull: true },
+            { name: 'action', type: 'TEXT', notnull: true },
             { name: 'client', type: 'TEXT' },
             { name: 'market', type: 'TEXT' },
             { name: 'sloc', type: 'TEXT' },
@@ -168,8 +168,8 @@ function getTableInfo(table) {
             { name: 'units_per_package', type: 'INTEGER' },
             { name: 'provider_name', type: 'TEXT' },
             { name: 'category_name', type: 'TEXT' },
-            { name: 'mfgrSN', type: 'TEXT' },
-            { name: 'tilsonSN', type: 'TEXT' },
+            { name: 'mfgrsn', type: 'TEXT' },
+            { name: 'tilsonsn', type: 'TEXT' },
             { name: 'from_location_name', type: 'TEXT' },
             { name: 'from_location_type', type: 'TEXT' },
             { name: 'to_location_name', type: 'TEXT' },
@@ -190,7 +190,7 @@ function getTableInfo(table) {
             { name: 'after_state', type: 'TEXT' }
         ],
         config: [
-            { name: 'key', type: 'TEXT' },
+            { name: 'key', type: 'TEXT', notnull: true, pk: true },
             { name: 'value', type: 'TEXT' }
         ]
     };
@@ -2043,6 +2043,7 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
 
 
