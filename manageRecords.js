@@ -480,6 +480,8 @@ function generateForm(table, columns, foreignKeys, rowData = null) {
     const fieldsContainer = document.createElement('div');
     fieldsContainer.className = 'compact-form-grid';
 
+    console.log(`columns: ${JSON.stringify(columns)}`);
+    
     columns.forEach(col => {
         // Get column name safely
         const colName = typeof col === 'object' ? col.name : col;
@@ -497,8 +499,6 @@ function generateForm(table, columns, foreignKeys, rowData = null) {
         const label = document.createElement('label');
         label.textContent = colName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         label.className = 'compact-form-label';
-
-        console.log(` col: ${JSON.stringify(col)}, colName: ${colName}, notnull: ${col.notnull}, pk: ${col.pk}`);
         
         // Add required indicator for non-nullable fields
         if (col.notnull && !col.pk) {
@@ -2043,6 +2043,7 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
 
 
