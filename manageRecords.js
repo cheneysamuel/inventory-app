@@ -760,7 +760,8 @@ async function populateRecordsTable(tableName, columns) {
             // Display columns in the order defined by the columns parameter
             for (const col of columns) {
                 const td = document.createElement('td');
-                let value = row[col];
+                const colName = typeof col === 'object' ? col.name : col;
+                let value = row[colName];
 
                 // Special handling for boolean fields like is_system_required
                 if (col === 'is_system_required') {
@@ -2040,6 +2041,7 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
 
 
