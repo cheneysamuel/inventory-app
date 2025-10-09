@@ -140,10 +140,10 @@ const ModalUtils = {
                     *,
                     item_types:item_types (
                         name,
-                        inventory_type_id
-                    ),
-                    inventory_types:inventory_types (
-                        name
+                        inventory_type_id,
+                        inventory_types:inventory_types (
+                            name
+                        )
                     ),
                     statuses:statuses (
                         name
@@ -157,18 +157,18 @@ const ModalUtils = {
                 `)
                 .eq('id', inventoryId)
                 .single();
-
+    
             if (error || !data) {
                 console.error('Error fetching inventory data:', error);
                 return null;
             }
-
+    
             // Flatten joined data for easier access
             return {
                 ...data,
                 item_name: data.item_types?.name,
                 inventory_type_id: data.item_types?.inventory_type_id,
-                inventory_type: data.inventory_types?.name,
+                inventory_type: data.item_types?.inventory_types?.name,
                 status_name: data.statuses?.name,
                 location_name: data.locations?.name,
                 crew_name: data.crews?.name
@@ -176,21 +176,6 @@ const ModalUtils = {
         } catch (error) {
             console.error('Error fetching inventory data:', error);
             return null;
-        }
-    },
-
-    /**
-     * Common error handler for modal operations
-     * @param {Error|string} error - Error object or message
-     * @param {string} operation - Operation description
-     */
-    handleError(error, operation = 'operation') {
-        if (typeof error === 'string') {
-            console.error(`Error during ${operation}:`, error);
-            alert(`Failed to ${operation}: ${error}`);
-        } else {
-            console.error(`Error during ${operation}:`, error);
-            alert(`Failed to ${operation}: ${error.message}`);
         }
     },
 
@@ -5669,6 +5654,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
