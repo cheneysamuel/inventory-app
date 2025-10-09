@@ -794,6 +794,7 @@ function editRecord(tableName, columns, row) {
     // Populate form fields
     columns.forEach(col => {
         const colName = typeof col === 'object' ? col.name : col;
+        if (!colName) return;
         const input = form.querySelector(`[name="${colName}"]`);
         if (input) {
             // Special handling for checkboxes
@@ -1919,6 +1920,7 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
 
 
