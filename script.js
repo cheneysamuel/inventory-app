@@ -80,7 +80,7 @@ const LOOKUP_TABLES = [
     'action_statuses', 'categories', 'inv_action_types', 'inventory_providers',
     'inventory_types', 'item_types', 'location_types', 'locations', 'statuses', 'units_of_measure',
     'crews', 'dfns', 'clients', 'markets', 'slocs'
-
+    ]
 window.lookupCache = {}; // { tableName: [rows...] }
 
 /**
@@ -4283,6 +4283,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
