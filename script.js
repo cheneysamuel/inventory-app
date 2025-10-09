@@ -816,60 +816,110 @@ function addBulkInventorySearchBar() {
 
 
 /**
- * Process bulk inventory insertion
- * @param {string} action - Action type ('receive', 'issue')
- * @returns {Promise<void>}
+ * Process bulk inventory issue action for Manage Bulk Inventory.
+ * Combines issued quantities with existing records if possible.
  */
-async function processBulkInventoryInsertion(action) {
-    console.log(`Processing bulk inventory ${action}...`);
-    try {
-        const inventoryItems = getBulkInventoryData();
-        
-        if (inventoryItems.length === 0) {
-            alert('Please enter quantities for at least one item type.');
-            return;
+async function processBulkInventoryInsertion(actionType = 'issue') {
+    // Only process if actionType is 'issue'
+    if (actionType !== 'issue') return;
+
+    // Get crew and DFN from the UI
+    const assignedCrewId = $('#bulk_issue_assigned_crew_id').val();
+    const dfnId = $('#bulk_issue_dfn_id').val();
+
+    // Get status IDs
+    const issuedStatusId = await ModalUtils.getStatusId('Issued');
+    const availableStatusId = await ModalUtils.getStatusId('Available');
+
+    // Get "With Crew" location ID
+    const { data: withCrewLoc } = await supabase
+        .from('locations')
+        .select('id')
+        .eq('name', 'With Crew')
+        .single();
+    const withCrewLocationId = withCrewLoc?.id;
+
+    // Iterate through the bulk items table
+    $('#bulkItemTypesMatrix tbody tr').each(async function () {
+        const itemTypeId = $(this).data('itemTypeId');
+        const issueQuantity = parseInt($(this).find('.bulk-quantity-input').val()) || 0;
+        if (issueQuantity > 0) {
+            // Find the available inventory record for this item type
+            const { data: availableRows } = await supabase
+                .from('inventory')
+                .select('id, quantity')
+                .eq('item_type_id', itemTypeId)
+                .eq('status_id', availableStatusId)
+                .eq('sloc_id', window.selectedSlocId)
+                .single();
+
+            if (!availableRows || availableRows.quantity < issueQuantity) {
+                console.warn('Not enough available quantity for item type:', itemTypeId);
+                return;
+            }
+
+            // Find an existing issued record for this item type, crew, DFN, SLOC
+            const { data: issuedRow } = await supabase
+                .from('inventory')
+                .select('id, quantity')
+                .eq('item_type_id', itemTypeId)
+                .eq('assigned_crew_id', assignedCrewId)
+                .eq('dfn_id', dfnId)
+                .eq('sloc_id', window.selectedSlocId)
+                .eq('status_id', issuedStatusId)
+                .single();
+
+            if (issuedRow) {
+                // Update the existing issued record's quantity
+                await supabase
+                    .from('inventory')
+                    .update({
+                        quantity: issuedRow.quantity + issueQuantity
+                    })
+                    .eq('id', issuedRow.id);
+            } else {
+                // Insert a new issued record
+                await supabase
+                    .from('inventory')
+                    .insert([{
+                        item_type_id: itemTypeId,
+                        assigned_crew_id: assignedCrewId,
+                        dfn_id: dfnId,
+                        sloc_id: window.selectedSlocId,
+                        quantity: issueQuantity,
+                        status_id: issuedStatusId,
+                        location_id: withCrewLocationId
+                    }]);
+            }
+
+            // Reduce the available quantity
+            await supabase
+                .from('inventory')
+                .update({
+                    quantity: availableRows.quantity - issueQuantity
+                })
+                .eq('id', availableRows.id);
+
+            // Optionally log transaction here
+            if (window.transactionLogger) {
+                await window.transactionLogger.logInventoryUpdated(
+                    availableRows.id,
+                    { quantity: availableRows.quantity },
+                    { quantity: availableRows.quantity - issueQuantity },
+                    [`Bulk issue: ${issueQuantity} units issued to crew`]
+                );
+            }
         }
-        
-        // Prepare inventory data for each item
-        const preparedData = await Promise.all(inventoryItems.map(item => prepareInventoryData(item, action)));
-        
-        // Process bulk insertion
-        console.log("preparedData:", preparedData);
-        const result = await processInventoryInsertion(preparedData, action);
-        console.log("result: ", result);
-        if (result.success) {
-            console.log(`Successfully processed ${result.results.length} bulk inventory items`);
-            
-            // Clear quantity inputs
-            document.querySelectorAll('.bulk-quantity-input').forEach(input => {
-                input.value = '';
-            });
+    });
 
-            // Reset the process buttons:
-            resetBulkReceiveAndIssueProcessForms();
-
-            // Refresh the bulk table
-            refreshBulkItemTypesTable();
-            
-            // Refresh the inventory list
-            loadInventoryList();
-            
-            // Update button states
-            updateBulkButtonStates();
-
-            
-            //alert(`Bulk ${action} completed! ${result.results.length} items processed successfully.`);
-        } else {
-            console.error('Bulk inventory processing failed:', result.error);
-            alert('Bulk inventory processing failed: ' + result.error);
-        }
-        
-    } catch (error) {
-        console.error('Error in bulk inventory processing:', error);
-        alert('Error in bulk inventory processing: ' + error.message);
+    // Optionally refresh tables and UI
+    if (typeof window.refreshBulkItemTypesTable === 'function') {
+        await window.refreshBulkItemTypesTable();
     }
-
-        
+    if (typeof window.refreshAllTables === 'function') {
+        window.refreshAllTables();
+    }
+    alert('Bulk issue process completed.');
 }
 
 /**
@@ -4233,6 +4283,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
