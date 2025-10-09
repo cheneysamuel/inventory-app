@@ -3122,21 +3122,25 @@ async function executeIssueOperation(inventoryData, isSerializedItem) {
             }).eq('id', itemId);
 
             // Only include valid inventory columns for insert
+            const safeInt = v => v === null || v === undefined ? null : parseInt(v, 10);
+            
             const {
                 id, item_name, inventory_type, status_name, location_name, crew_name,
                 item_types, statuses, locations, crews,
-                ...insertData
+                ...rawInsertData
             } = inventoryData;
-
-            const { data } = await supabase.from('inventory').insert([{
-                ...insertData,
+            
+            const insertData = {
+                ...rawInsertData,
                 id: undefined,
                 quantity: issueQuantity,
-                status_id: issuedStatusId,
-                location_id: withCrewLocationId,
-                assigned_crew_id: crewId,
-                dfn_id: dfnId
-            }]).select('id').single();
+                status_id: safeInt(issuedStatusId),
+                location_id: safeInt(withCrewLocationId),
+                assigned_crew_id: safeInt(crewId),
+                dfn_id: safeInt(dfnId)
+            };
+            
+            const { data } = await supabase.from('inventory').insert([insertData]).select('id').single();
             newIssuedRecordId = data?.id;
 
             if (window.transactionLogger) {
@@ -5657,6 +5661,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
