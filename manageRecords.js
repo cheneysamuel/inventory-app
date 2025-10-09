@@ -498,6 +498,8 @@ function generateForm(table, columns, foreignKeys, rowData = null) {
         label.textContent = colName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         label.className = 'compact-form-label';
 
+        console.log(` col: ${JSON.stringify(col)}, colName: ${colName}, notnull: ${col.notnull}, pk: ${col.pk}`);
+        
         // Add required indicator for non-nullable fields
         if (col.notnull && !col.pk) {
             label.style.color = '#dc3545';
@@ -2041,6 +2043,7 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
 
 
