@@ -362,6 +362,8 @@ function generateForm(db, table, columns, foreignKeys, rowData = null) {
     columns.forEach(col => {
         // Get column name safely
         const colName = typeof col === 'object' ? col.name : col;
+        if (!colName) return; // Skip columns with no name
+
 
         // Skip primary key fields for add forms unless they are foreign keys
         if (!rowData && col.pk && col.type === 'INTEGER' &&
@@ -1915,4 +1917,5 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
