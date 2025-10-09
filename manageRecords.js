@@ -779,6 +779,8 @@ async function populateRecordsTable(tableName, columns) {
  * @param {Object} row - Row data to edit
  */
 function editRecord(tableName, columns, row) {
+    console.log('columns: ', columns);
+    console.log('row: ', row);
     const form = document.getElementById('editForm') || document.getElementById('addForm');
     if (!form) return;
 
@@ -810,7 +812,7 @@ function editRecord(tableName, columns, row) {
     }
 
     // Add warning for system-required locations
-    if (tableName === 'LOCATIONS' && row.is_system_required === 1) {
+    if (tableName === 'locations' && row.is_system_required === 1) {
         // Remove any existing warning
         const existingWarning = form.querySelector('.system-required-warning');
         if (existingWarning) {
@@ -1917,5 +1919,6 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
 
