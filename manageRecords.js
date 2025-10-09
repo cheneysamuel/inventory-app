@@ -726,7 +726,8 @@ async function populateRecordsTable(tableName, columns) {
         } else if (tableName === 'inventory' && window.selectedSlocId) {
             query = query.eq('sloc_id', window.selectedSlocId);
         }
-        query = query.order(columns[0], { ascending: true });
+        const orderCol = typeof columns[0] === 'object' ? columns[0].name : columns[0];
+        query = query.order(orderCol, { ascending: true });
 
         const { data, error } = await query;
         if (error) {
@@ -2039,5 +2040,6 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
 
