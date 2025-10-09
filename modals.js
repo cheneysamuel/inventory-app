@@ -3079,13 +3079,9 @@ async function executeIssueOperation(inventoryData, isSerializedItem) {
         }
 
         const issuedStatusId = await ModalUtils.getStatusId('Issued');
-        // Get "With Crew" location ID
-        const { data: withCrewLoc } = await supabase
-            .from('locations')
-            .select('id')
-            .eq('name', 'With Crew')
-            .single();
-        const withCrewLocationId = withCrewLoc?.id;
+        // Use cached "With Crew" location
+        const withCrewLocationRow = getCachedRowByField('locations', 'name', 'With Crew');
+        const withCrewLocationId = withCrewLocationRow?.id;
 
         let newIssuedRecordId = null;
 
@@ -3124,9 +3120,14 @@ async function executeIssueOperation(inventoryData, isSerializedItem) {
                 quantity: currentQuantity - issueQuantity
             }).eq('id', itemId);
 
+            // Remove fields not in inventory table
+            const {
+                id, item_name, inventory_type, status_name, location_name, crew_name,
+                ...insertData
+            } = inventoryData;
+
             const { data } = await supabase.from('inventory').insert([{
-                ...inventoryData,
-                id: undefined,
+                ...insertData,
                 quantity: issueQuantity,
                 status_id: issuedStatusId,
                 location_id: withCrewLocationId,
@@ -3138,7 +3139,7 @@ async function executeIssueOperation(inventoryData, isSerializedItem) {
             if (window.transactionLogger) {
                 if (newIssuedRecordId) {
                     await window.transactionLogger.logInventoryCreated(newIssuedRecordId, {
-                        ...inventoryData,
+                        ...insertData,
                         quantity: issueQuantity,
                         status_id: issuedStatusId,
                         location_id: withCrewLocationId,
@@ -5654,6 +5655,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
