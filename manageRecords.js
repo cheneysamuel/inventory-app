@@ -28,48 +28,171 @@ function getTableNames() {
  */
 function getTableInfo(table) {
     const schemas = {
-        clients: ['id', 'name', 'address', 'created_at', 'updated_at'],
-        markets: ['id', 'name', 'client_id', 'created_at', 'updated_at'],
-        slocs: ['id', 'name', 'address', 'market_id', 'created_at', 'updated_at'],
-        transaction_types: ['id', 'name'],
-        units_of_measure: ['id', 'name'],
-        inventory_providers: ['id', 'name'],
-        inventory_types: ['id', 'name'],
-        categories: ['id', 'name'],
-        item_types: [
-            'id', 'inventory_type_id', 'name', 'manufacturer', 'part_number',
-            'unit_of_measure_id', 'units_per_package', 'description', 'provider_id',
-            'low_units_quantity', 'category_id', 'image_path', 'meta', 'market_id',
-            'created_at', 'updated_at'
+        clients: [
+        { name: 'id', type: 'INTEGER', pk: true },
+        { name: 'name', type: 'TEXT' },
+        { name: 'address', type: 'TEXT' },
+        { name: 'created_at', type: 'TIMESTAMP' },
+        { name: 'updated_at', type: 'TIMESTAMP' }
+    ],
+        markets: [
+            { name: 'id', type: 'INTEGER', pk: true },
+            { name: 'name', type: 'TEXT' },
+            { name: 'client_id', type: 'INTEGER' },
+            { name: 'created_at', type: 'TIMESTAMP' },
+            { name: 'updated_at', type: 'TIMESTAMP' }
         ],
-        location_types: ['id', 'name'],
-        locations: ['id', 'name', 'loc_type_id', 'is_system_required'],
-        crews: ['id', 'name', 'market_id', 'created_at', 'updated_at'],
-        dfns: ['id', 'name', 'sloc_id', 'created_at', 'updated_at'],
-        statuses: ['id', 'name'],
-        inv_action_types: ['id', 'name', 'loc_type_id', 'description'],
-        action_statuses: ['id', 'inv_action_id', 'status_id'],
+        slocs: [
+            { name: 'id', type: 'INTEGER', pk: true },
+            { name: 'name', type: 'TEXT' },
+            { name: 'address', type: 'TEXT' },
+            { name: 'market_id', type: 'INTEGER' },
+            { name: 'created_at', type: 'TIMESTAMP' },
+            { name: 'updated_at', type: 'TIMESTAMP' }
+        ],
+        transaction_types: [
+            { name: 'id', type: 'INTEGER', pk: true },
+            { name: 'name', type: 'TEXT' }
+        ],
+        units_of_measure: [
+            { name: 'id', type: 'INTEGER', pk: true },
+            { name: 'name', type: 'TEXT' }
+        ],
+        inventory_providers: [
+            { name: 'id', type: 'INTEGER', pk: true },
+            { name: 'name', type: 'TEXT' }
+        ],
+        inventory_types: [
+            { name: 'id', type: 'INTEGER', pk: true },
+            { name: 'name', type: 'TEXT' }
+        ],
+        categories: [
+            { name: 'id', type: 'INTEGER', pk: true },
+            { name: 'name', type: 'TEXT' }
+        ],
+        item_types: [
+            { name: 'id', type: 'INTEGER', pk: true },
+            { name: 'inventory_type_id', type: 'INTEGER' },
+            { name: 'name', type: 'TEXT' },
+            { name: 'manufacturer', type: 'TEXT' },
+            { name: 'part_number', type: 'TEXT' },
+            { name: 'unit_of_measure_id', type: 'INTEGER' },
+            { name: 'units_per_package', type: 'INTEGER' },
+            { name: 'description', type: 'TEXT' },
+            { name: 'provider_id', type: 'INTEGER' },
+            { name: 'low_units_quantity', type: 'INTEGER' },
+            { name: 'category_id', type: 'INTEGER' },
+            { name: 'image_path', type: 'TEXT' },
+            { name: 'meta', type: 'JSONB' },
+            { name: 'market_id', type: 'INTEGER' },
+            { name: 'created_at', type: 'TIMESTAMP' },
+            { name: 'updated_at', type: 'TIMESTAMP' }
+        ],
+        location_types: [
+            { name: 'id', type: 'INTEGER', pk: true },
+            { name: 'name', type: 'TEXT' }
+        ],
+        locations: [
+            { name: 'id', type: 'INTEGER', pk: true },
+            { name: 'name', type: 'TEXT' },
+            { name: 'loc_type_id', type: 'INTEGER' },
+            { name: 'is_system_required', type: 'BOOLEAN' }
+        ],
+        crews: [
+            { name: 'id', type: 'INTEGER', pk: true },
+            { name: 'name', type: 'TEXT' },
+            { name: 'market_id', type: 'INTEGER' },
+            { name: 'created_at', type: 'TIMESTAMP' },
+            { name: 'updated_at', type: 'TIMESTAMP' }
+        ],
+        dfns: [
+            { name: 'id', type: 'INTEGER', pk: true },
+            { name: 'name', type: 'TEXT' },
+            { name: 'sloc_id', type: 'INTEGER' },
+            { name: 'created_at', type: 'TIMESTAMP' },
+            { name: 'updated_at', type: 'TIMESTAMP' }
+        ],
+        statuses: [
+            { name: 'id', type: 'INTEGER', pk: true },
+            { name: 'name', type: 'TEXT' }
+        ],
+        inv_action_types: [
+            { name: 'id', type: 'INTEGER', pk: true },
+            { name: 'name', type: 'TEXT' },
+            { name: 'loc_type_id', type: 'INTEGER' },
+            { name: 'description', type: 'TEXT' }
+        ],
+        action_statuses: [
+            { name: 'id', type: 'INTEGER', pk: true },
+            { name: 'inv_action_id', type: 'INTEGER' },
+            { name: 'status_id', type: 'INTEGER' }
+        ],
         inventory: [
-            'id', 'location_id', 'assigned_crew_id', 'dfn_id', 'item_type_id',
-            'mfgrSN', 'tilsonSN', 'quantity', 'status_id', 'sloc_id',
-            'created_at', 'updated_at'
+            { name: 'id', type: 'INTEGER', pk: true },
+            { name: 'location_id', type: 'INTEGER' },
+            { name: 'assigned_crew_id', type: 'INTEGER' },
+            { name: 'dfn_id', type: 'INTEGER' },
+            { name: 'item_type_id', type: 'INTEGER' },
+            { name: 'mfgrSN', type: 'TEXT' },
+            { name: 'tilsonSN', type: 'TEXT' },
+            { name: 'quantity', type: 'INTEGER' },
+            { name: 'status_id', type: 'INTEGER' },
+            { name: 'sloc_id', type: 'INTEGER' },
+            { name: 'created_at', type: 'TIMESTAMP' },
+            { name: 'updated_at', type: 'TIMESTAMP' }
         ],
         qty_allocations: [
-            'id', 'quantity_id', 'dfn_id', 'allocated_quantity', 'installed_quantity',
-            'allocated_date', 'allocation_name', 'notes'
+            { name: 'id', type: 'INTEGER', pk: true },
+            { name: 'quantity_id', type: 'INTEGER' },
+            { name: 'dfn_id', type: 'INTEGER' },
+            { name: 'allocated_quantity', type: 'INTEGER' },
+            { name: 'installed_quantity', type: 'INTEGER' },
+            { name: 'allocated_date', type: 'TIMESTAMP' },
+            { name: 'allocation_name', type: 'TEXT' },
+            { name: 'notes', type: 'TEXT' }
         ],
         transactions: [
-            'id', 'inventory_id', 'transaction_type', 'action',
-            'client', 'market', 'sloc',
-            'item_type_name', 'inventory_type_name', 'manufacturer', 'part_number',
-            'description', 'unit_of_measure', 'units_per_package', 'provider_name',
-            'category_name', 'mfgrSN', 'tilsonSN', 'from_location_name',
-            'from_location_type', 'to_location_name', 'to_location_type',
-            'assigned_crew_name', 'dfn_name', 'status_name', 'old_status_name',
-            'quantity', 'old_quantity', 'user_name', 'date_time', 'session_id',
-            'notes', 'ip_address', 'user_agent', 'before_state', 'after_state'
+            { name: 'id', type: 'INTEGER', pk: true },
+            { name: 'inventory_id', type: 'INTEGER' },
+            { name: 'transaction_type', type: 'TEXT' },
+            { name: 'action', type: 'TEXT' },
+            { name: 'client', type: 'TEXT' },
+            { name: 'market', type: 'TEXT' },
+            { name: 'sloc', type: 'TEXT' },
+            { name: 'item_type_name', type: 'TEXT' },
+            { name: 'inventory_type_name', type: 'TEXT' },
+            { name: 'manufacturer', type: 'TEXT' },
+            { name: 'part_number', type: 'TEXT' },
+            { name: 'description', type: 'TEXT' },
+            { name: 'unit_of_measure', type: 'TEXT' },
+            { name: 'units_per_package', type: 'INTEGER' },
+            { name: 'provider_name', type: 'TEXT' },
+            { name: 'category_name', type: 'TEXT' },
+            { name: 'mfgrSN', type: 'TEXT' },
+            { name: 'tilsonSN', type: 'TEXT' },
+            { name: 'from_location_name', type: 'TEXT' },
+            { name: 'from_location_type', type: 'TEXT' },
+            { name: 'to_location_name', type: 'TEXT' },
+            { name: 'to_location_type', type: 'TEXT' },
+            { name: 'assigned_crew_name', type: 'TEXT' },
+            { name: 'dfn_name', type: 'TEXT' },
+            { name: 'status_name', type: 'TEXT' },
+            { name: 'old_status_name', type: 'TEXT' },
+            { name: 'quantity', type: 'INTEGER' },
+            { name: 'old_quantity', type: 'INTEGER' },
+            { name: 'user_name', type: 'TEXT' },
+            { name: 'date_time', type: 'TIMESTAMP' },
+            { name: 'session_id', type: 'TEXT' },
+            { name: 'notes', type: 'TEXT' },
+            { name: 'ip_address', type: 'TEXT' },
+            { name: 'user_agent', type: 'TEXT' },
+            { name: 'before_state', type: 'TEXT' },
+            { name: 'after_state', type: 'TEXT' }
         ],
-        config: ['key', 'value']
+        config: [
+            { name: 'key', type: 'TEXT' },
+            { name: 'value', type: 'TEXT' }
+        ]
     };
     // Support both lowercase and uppercase table names
     return schemas[table] || schemas[table?.toLowerCase()] || [];
