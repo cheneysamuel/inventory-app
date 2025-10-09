@@ -820,6 +820,7 @@ function addBulkInventorySearchBar() {
  * Combines issued quantities with existing records if possible.
  */
 async function processBulkInventoryInsertion(actionType = 'issue') {
+    console.log('processBulkInventoryInsertion called with actionType:', actionType);
     // Only process if actionType is 'issue'
     if (actionType !== 'issue') return;
 
@@ -4283,6 +4284,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
