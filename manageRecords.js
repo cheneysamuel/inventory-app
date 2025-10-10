@@ -1217,13 +1217,30 @@ window.generateTableDisplay = generateTableDisplay;
  */
 async function insertRecord(table, formData, columns) {
     try {
+        // Get foreign key fields for this table
+        const foreignKeys = getForeignKeys(table);
+        const fkIntFields = foreignKeys.map(fk => fk.from);
+
+        // Get all columns that are type INTEGER
+        const integerFields = columns
+            .filter(col => typeof col === 'object' && col.type && col.type.toUpperCase().includes('INT'))
+            .map(col => col.name);
+
+        // Combine and deduplicate
+        const allIntFields = Array.from(new Set([...fkIntFields, ...integerFields]));
+
         // Prepare insert object
         const insertObj = {};
         columns.forEach(col => {
             const colName = typeof col === 'object' ? col.name : col;
             let val = formData.get(colName);
             if (val !== null && val !== undefined && val !== '') {
-                insertObj[colName] = val;
+                // Convert to number if field is in allIntFields
+                if (allIntFields.includes(colName)) {
+                    insertObj[colName] = Number(val);
+                } else {
+                    insertObj[colName] = val;
+                }
             }
         });
 
@@ -1235,7 +1252,6 @@ async function insertRecord(table, formData, columns) {
         // Log transaction for inventory table
         if (table === 'inventory' && window.transactionLogger) {
             try {
-                // You may want to fetch the inserted record's ID if needed
                 await window.transactionLogger.logInventoryCreated(null, null);
             } catch (logError) {
                 console.warn('Failed to log inventory creation transaction:', logError);
@@ -2050,6 +2066,7 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
 
 
