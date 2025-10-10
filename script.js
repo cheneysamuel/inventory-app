@@ -4261,6 +4261,52 @@ function setActiveSidebarButton(buttonId) {
     if (activeBtn) activeBtn.classList.add('active');
 }
 
+/**
+ * Handle click events on inventory table rows
+ * @param {HTMLTableRowElement} row - The clicked table row
+ * @param {Event} event - The click event (optional, for cursor positioning)
+ */
+async function handleInventoryRowClick(row, event) {
+    // Check if we are in serialized item selection mode
+    if (window.serializedIssueState === 'selecting') {
+        console.log('Selecting serialized item for issue mode');
+        const mfgrsn = row.children[3]?.textContent;
+        const tilsonsn = row.children[4]?.textContent;
+        const inventoryId = row.dataset.inventoryId;
+        // Toggle selection
+        const idx = window.selectedSerializedForIssue.findIndex(item => item.inventoryId === inventoryId);
+        if (idx >= 0) {
+            window.selectedSerializedForIssue.splice(idx, 1);
+            row.classList.remove('selected-for-issue');
+        } else {
+            window.selectedSerializedForIssue.push({ inventoryId, mfgrSN: mfgrsn, tilsonSN: tilsonsn });
+            row.classList.add('selected-for-issue');
+        }
+        updateSelectedSerializedForIssueDisplay();
+        // Do NOT show actions modal in selection mode
+        return;
+    }
+
+    try {
+        const inventoryId = row.dataset.inventoryId;
+        const locationId = row.dataset.locationId;
+        const statusId = row.dataset.statusId;
+
+        // Use Supabase version to get available actions
+        const availableActions = await getAvailableActionsSupabase(locationId, statusId, inventoryId);
+
+        if (availableActions.length > 0) {
+            // Show action modal with available actions
+            showActionModal(availableActions, inventoryId, row, event);
+        } else {
+            alert('No actions available for this item.');
+        }
+    } catch (error) {
+        console.error('Error handling inventory row click:', error);
+    }
+}
+
+window.handleInventoryRowClick = handleInventoryRowClick;
 
 
 
