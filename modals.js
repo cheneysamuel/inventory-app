@@ -676,8 +676,9 @@ window.debugItemActions = async function(inventoryId) {
 async function handleInventoryRowClick(row, event) {
     // Check if we are in serialized item selection mode
     if (window.serializedIssueState === 'selecting') {
-        const mfgrSN = row.children[3]?.textContent;
-        const tilsonSN = row.children[4]?.textContent;
+        console.log('Selecting serialized item for issue mode');
+        const mfgrsn = row.children[3]?.textContent;
+        const tilsonsn = row.children[4]?.textContent;
         const inventoryId = row.dataset.inventoryId;
         // Toggle selection
         const idx = window.selectedSerializedForIssue.findIndex(item => item.inventoryId === inventoryId);
@@ -685,7 +686,7 @@ async function handleInventoryRowClick(row, event) {
             window.selectedSerializedForIssue.splice(idx, 1);
             row.classList.remove('selected-for-issue');
         } else {
-            window.selectedSerializedForIssue.push({ inventoryId, mfgrSN, tilsonSN });
+            window.selectedSerializedForIssue.push({ inventoryId, mfgrsn, tilsonsn });
             row.classList.add('selected-for-issue');
         }
         updateSelectedSerializedForIssueDisplay();
@@ -5664,6 +5665,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
