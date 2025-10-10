@@ -1639,8 +1639,8 @@ function refreshAllTables() {
     }
 }
 
-window.refreshDropdowns = function() {
-    // Reload lookups from cached tables
+function refreshAllDropdowns() {
+    // Build lookups from cache
     const updatedLookups = {
         location_id: getCachedTable('locations').map(row => [row.id, row.name]),
         assigned_crew_id: getCachedTable('crews').filter(row => row.market_id == window.selectedMarketId).map(row => [row.id, row.name]),
@@ -1649,27 +1649,23 @@ window.refreshDropdowns = function() {
         status_id: getCachedTable('statuses').map(row => [row.id, row.name])
     };
 
-    // Clear and repopulate all dropdowns except bulkSerializedItemType
+    // Populate all dropdowns except bulkSerializedItemType
     ['location_id', 'assigned_crew_id', 'dfn_id', 'item_type_id'].forEach(field => {
         const selects = document.querySelectorAll(`select[name="${field}"]:not(#bulkSerializedItemType)`);
         selects.forEach(select => {
             if (select && updatedLookups[field] && Array.isArray(updatedLookups[field])) {
                 const currentValue = select.value;
-                // Clear existing options
                 select.innerHTML = '';
-                // Add default placeholder
                 const defaultOption = document.createElement('option');
                 defaultOption.value = '';
                 defaultOption.textContent = `Select ${field.replace('_id', '').replace('_', ' ')}`;
                 select.appendChild(defaultOption);
-                // Add new options
                 updatedLookups[field].forEach(([id, label]) => {
                     const option = document.createElement('option');
                     option.value = id;
                     option.textContent = label || id;
                     select.appendChild(option);
                 });
-                // Restore value if it still exists
                 if (currentValue && select.querySelector(`option[value="${currentValue}"]`)) {
                     select.value = currentValue;
                 }
@@ -1708,7 +1704,10 @@ window.refreshDropdowns = function() {
             bulkDfnSelect.value = currentValue;
         }
     }
-};
+}
+
+// Expose globally
+window.refreshAllDropdowns = refreshAllDropdowns;
 
 /**
  * Get the column and direction for Supabase .order() call
@@ -1920,14 +1919,11 @@ async function runAfterCachedInit() {
         populateManageOthersDropdown();
         window.transactionLogger = new TransactionLogger();
 
-        // Populate initial dropdowns
-        populateAllDropdowns();
-
         // Inventory and bulk tables
         await loadSerializedInventoryList();
         await loadBulkInventoryList();
 
-        window.refreshDropdowns();
+        refreshAllDropdowns();
         populateBulkSerializedDropdowns();
 
         // Bulk receive form setup
@@ -1997,32 +1993,6 @@ async function showSections({serializedInventory=false, inventoryReceiving=false
     // Load inventory table when serialized inventory section is shown
     loadInventoryList();
 
-}
-
-function populateAllDropdowns() {
-    console.log('populateAllDropdowns called...');
-    const lookups = {
-        location_id: getCachedTable('locations').map(row => [row.id, row.name]),
-        assigned_crew_id: getCachedTable('crews').map(row => [row.id, row.name]),
-        dfn_id: getCachedTable('dfns').map(row => [row.id, row.name]),
-        item_type_id: getCachedTable('item_types').map(row => [row.id, row.name]),
-        status_id: getCachedTable('statuses').map(row => [row.id, row.name])
-    };
-    ['location_id', 'assigned_crew_id', 'dfn_id', 'item_type_id'].forEach(field => {
-        // Skip the serialized item type dropdown
-        const selects = document.querySelectorAll(`select[name="${field}"]:not(#bulkSerializedItemType)`);
-        console.log("selects for", field, selects);
-        selects.forEach(select => {
-            if (select && lookups[field] && Array.isArray(lookups[field])) {
-                lookups[field].forEach(([id, label]) => {
-                    const option = document.createElement('option');
-                    option.value = id;
-                    option.textContent = label || id;
-                    select.appendChild(option);
-                });
-            }
-        });
-    });
 }
 
 function setupBulkForms() {
@@ -4289,6 +4259,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
