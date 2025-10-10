@@ -780,7 +780,7 @@ async function populateRecordsTable(tableName, columns) {
                 }
 
                 // For foreign key columns, display label from cache
-                const fk = getForeignKeys(tableName).find(fk => fk.from === col);
+                const fk = getForeignKeys(tableName).find(fk => fk.from === colName);
                 if (fk) {
                     const labelCol = getForeignKeyLabelColumn(fk.table);
                     const tableNameLower = fk.table.toLowerCase();
@@ -2050,6 +2050,7 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
 
 
