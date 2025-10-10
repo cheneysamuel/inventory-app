@@ -1883,6 +1883,9 @@ async function handleTableOperationSuccess(changedTableName) {
         await cacheLookupTables();
         if (typeof window.refreshDropdowns === 'function') window.refreshDropdowns();
         if (typeof populateBulkSerializedDropdowns === 'function') populateBulkSerializedDropdowns();
+        if (typeof window.populateReceiveSerializedDropdown === 'function') {
+            window.populateReceiveSerializedDropdown();
+        }
     }
 }
 
@@ -2066,6 +2069,7 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
 
 
