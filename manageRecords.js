@@ -1219,10 +1219,11 @@ async function insertRecord(table, formData, columns) {
     try {
         // Prepare insert object
         const insertObj = {};
-        columns.forEach(c => {
-            let val = formData.get(c);
+        columns.forEach(col => {
+            const colName = typeof col === 'object' ? col.name : col;
+            let val = formData.get(colName);
             if (val !== null && val !== undefined && val !== '') {
-                insertObj[c] = val;
+                insertObj[colName] = val;
             }
         });
 
@@ -2043,6 +2044,7 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
 
 
