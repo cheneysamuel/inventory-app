@@ -3434,6 +3434,7 @@ async function populateBulkSerializedDropdowns() {
     // Serialized Item Types
     const itemTypes = getCachedTable('item_types').filter(row => {
         const invType = getCachedRow('inventory_types', row.inventory_type_id);
+        console.log('Checking item type:', row.name, 'with inventory type:', invType ? invType.name : 'N/A');
         return invType && invType.name === 'Serialized';
     });
     const bulkItemTypeSelect = document.getElementById('bulkSerializedItemType');
@@ -4283,6 +4284,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
