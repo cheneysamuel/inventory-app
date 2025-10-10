@@ -3437,6 +3437,7 @@ async function populateBulkSerializedDropdowns() {
         console.log('Checking item type:', row.name, 'with inventory type:', invType ? invType.name : 'N/A');
         return invType && invType.name === 'Serialized';
     });
+    console.log('Serialized item types for dropdown:', itemTypes);
     const bulkItemTypeSelect = document.getElementById('bulkSerializedItemType');
     bulkItemTypeSelect.innerHTML = '<option value="">Select Serialized Item Type</option>';
     itemTypes.sort((a, b) => a.name.localeCompare(b.name)).forEach(row => {
@@ -4284,6 +4285,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
