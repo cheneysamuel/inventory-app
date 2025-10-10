@@ -1651,7 +1651,7 @@ function refreshAllDropdowns() {
 
     // Populate all dropdowns except bulkSerializedItemType
     ['location_id', 'assigned_crew_id', 'dfn_id', 'item_type_id'].forEach(field => {
-        const selects = document.querySelectorAll(`select[name="${field}"]:not(#bulkSerializedItemType)`);
+        const selects = document.querySelectorAll(`select[name="${field}"]:not([name="bulkSerializedItemType"])`);
         selects.forEach(select => {
             if (select && updatedLookups[field] && Array.isArray(updatedLookups[field])) {
                 const currentValue = select.value;
@@ -4259,6 +4259,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
