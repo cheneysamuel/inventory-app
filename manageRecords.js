@@ -855,7 +855,7 @@ async function populateRecordsTable(tableName, columns) {
                 };
             } else {
                 // Normal edit functionality
-                editBtn.onclick = () => editRecord(null, tableName, columns, [], row);
+                editBtn.onclick = () => editRecord(tableName, columns, row);
 
                 // Check if record can be deleted (no dependencies for lookup tables)
                 if (isLookupTable) {
@@ -2044,6 +2044,7 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
 
 
