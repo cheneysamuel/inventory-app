@@ -1882,10 +1882,8 @@ async function handleTableOperationSuccess(changedTableName) {
     if (LOOKUP_TABLES.includes(changedTableName.toLowerCase())) {
         await cacheLookupTables();
         if (typeof window.refreshDropdowns === 'function') window.refreshDropdowns();
-        if (typeof populateBulkSerializedDropdowns === 'function') populateBulkSerializedDropdowns();
-        if (typeof window.populateReceiveSerializedDropdown === 'function') {
-            window.populateReceiveSerializedDropdown();
-        }
+        if (typeof window.populateBulkSerializedDropdowns === 'function') window.populateBulkSerializedDropdowns();
+
     }
 }
 
@@ -2069,6 +2067,7 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
 
 
