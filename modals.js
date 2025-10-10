@@ -3435,6 +3435,10 @@ async function showInstallModal(inventoryId) {
 
         // Setup validation
         setTimeout(() => {
+            const dfnSelect = document.getElementById('installDfnSelect');
+            if (dfnSelect && inventoryData.dfn_id) {
+                dfnSelect.value = String(inventoryData.dfn_id);
+            }
             if (isSerialized) {
                 const qtyInput = document.getElementById('installSerializedQuantity');
                 const dfnSelect = document.getElementById('installDfnSelect');
@@ -5618,6 +5622,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
