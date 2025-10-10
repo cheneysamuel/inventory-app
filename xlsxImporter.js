@@ -731,11 +731,11 @@ async function executeXlsxImport() {
         }
         
         // Refresh dropdowns to include newly imported item types
-        if (window.refreshDropdowns) {
-            console.log('Calling refreshDropdowns after XLSX import...');
-            window.refreshDropdowns();
+        if (window.refreshAllDropdowns) {
+            console.log('Calling refreshAllDropdowns after XLSX import...');
+            window.refreshAllDropdowns();
         } else {
-            console.warn('refreshDropdowns function not available');
+            console.warn('refreshAllDropdowns function not available');
         }
         
     } catch (error) {
@@ -1553,3 +1553,4 @@ window.importFromExcel = function() {
         alert('Import Excel functionality not available');
     }
 };
+
