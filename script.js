@@ -1653,6 +1653,7 @@ function refreshAllDropdowns() {
     ['location_id', 'assigned_crew_id', 'dfn_id', 'item_type_id'].forEach(field => {
         const selects = document.querySelectorAll(`select[name="${field}"]:not([name="bulkSerializedItemType"])`);
         selects.forEach(select => {
+            console.log('select id:', select.id);
             if (select && updatedLookups[field] && Array.isArray(updatedLookups[field])) {
                 const currentValue = select.value;
                 select.innerHTML = '';
@@ -4259,6 +4260,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
