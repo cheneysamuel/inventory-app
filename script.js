@@ -1725,8 +1725,8 @@ function getInventoryOrderBy() {
 
 
 function resetSerializedIssueProcess() {
-    serializedIssueState = 'idle';
-    selectedSerializedForIssue = [];
+    window.serializedIssueState = 'idle';
+    window.selectedSerializedForIssue = [];
     document.getElementById('serializedIssueSelectionInstructions').style.display = 'none';
     document.getElementById('completeSerializedIssueBtn').style.display = 'none';
     document.getElementById('cancelSerializedIssueBtn').style.display = 'none';
@@ -2128,8 +2128,8 @@ function setupSerializedIssueButtons() {
     const beginBtn = document.getElementById('beginSerializedIssueBtn');
     if (beginBtn) {
         beginBtn.addEventListener('click', () => {
-            serializedIssueState = 'selecting';
-            selectedSerializedForIssue = [];
+            window.serializedIssueState = 'selecting';
+            window.selectedSerializedForIssue = [];
             document.getElementById('serializedIssueSelectionInstructions').style.display = '';
             document.getElementById('completeSerializedIssueBtn').style.display = '';
             document.getElementById('cancelSerializedIssueBtn').style.display = '';
@@ -2154,8 +2154,8 @@ function setupSerializedIssueButtons() {
                 alert('Select at least one item to issue.');
                 return;
             }
-            serializedIssueState = 'confirming';
-            showMultiSerializedIssueModal(selectedSerializedForIssue);
+            window.serializedIssueState = 'confirming';
+            showMultiSerializedIssueModal(window.selectedSerializedForIssue);
             updateSerializedIssueButtons();
         });
     }
@@ -4028,7 +4028,7 @@ function filterBulkIssueRowsByAvailability(showOnlyAvailable) {
 function updateSerializedIssueButtons() {
     const beginBtn = document.getElementById('beginSerializedIssueBtn');
     if (!beginBtn) return;
-    if (serializedIssueState === 'selecting' || serializedIssueState === 'confirming') {
+    if (window.serializedIssueState === 'selecting' || window.serializedIssueState === 'confirming') {
         beginBtn.style.display = 'none';
     } else {
         beginBtn.style.display = '';
@@ -4283,6 +4283,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
