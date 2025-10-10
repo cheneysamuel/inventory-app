@@ -2011,6 +2011,7 @@ function populateAllDropdowns() {
     ['location_id', 'assigned_crew_id', 'dfn_id', 'item_type_id'].forEach(field => {
         // Skip the serialized item type dropdown
         const selects = document.querySelectorAll(`select[name="${field}"]:not(#bulkSerializedItemType)`);
+        console.log("selects for", field, selects);
         selects.forEach(select => {
             if (select && lookups[field] && Array.isArray(lookups[field])) {
                 lookups[field].forEach(([id, label]) => {
@@ -4288,6 +4289,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
