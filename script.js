@@ -2125,7 +2125,7 @@ function setupSerializedIssueButtons() {
     const completeBtn = document.getElementById('completeSerializedIssueBtn');
     if (completeBtn) {
         completeBtn.addEventListener('click', () => {
-            if (selectedSerializedForIssue.length === 0) {
+            if (window.selectedSerializedForIssue.length === 0) {
                 alert('Select at least one item to issue.');
                 return;
             }
@@ -4307,6 +4307,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
