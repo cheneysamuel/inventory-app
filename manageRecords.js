@@ -486,7 +486,7 @@ function generateForm(table, columns, foreignKeys, rowData = null) {
         // Get column name safely
         const colName = typeof col === 'object' ? col.name : col;
         if (!colName) return; // Skip columns with no name
-
+        if (colName === 'created_at' || colName === 'updated_at') return;
 
         // Skip primary key fields for add forms unless they are foreign keys
         if (!rowData && col.pk && col.type === 'INTEGER' &&
@@ -1259,14 +1259,20 @@ async function insertRecord(table, formData, columns) {
  */
 async function updateRecord(table, formData, originalRow, columns) {
     try {
-        // Prepare update object
         const updateObj = {};
-        columns.forEach(c => {
-            let val = formData.get(c);
+        columns.forEach(col => {
+            const colName = typeof col === 'object' ? col.name : col;
+            if (!colName || colName === 'created_at') return; // Never update created_at
+            let val = formData.get(colName);
             if (val !== null && val !== undefined && val !== '') {
-                updateObj[c] = val;
+                updateObj[colName] = val;
             }
         });
+
+        // Always update updated_at to current timestamp
+        if (columns.some(col => (typeof col === 'object' ? col.name : col) === 'updated_at')) {
+            updateObj['updated_at'] = new Date().toISOString();
+        }
 
         const matchCol = table === 'CONFIG' ? 'key' : 'id';
         const matchValue = table === 'CONFIG' ? originalRow.key : originalRow.id;
@@ -2044,6 +2050,7 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
 
 
