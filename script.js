@@ -2009,15 +2009,18 @@ function populateAllDropdowns() {
         status_id: getCachedTable('statuses').map(row => [row.id, row.name])
     };
     ['location_id', 'assigned_crew_id', 'dfn_id', 'item_type_id'].forEach(field => {
-        const select = document.querySelector(`select[name="${field}"]`);
-        if (select && lookups[field] && Array.isArray(lookups[field])) {
-            lookups[field].forEach(([id, label]) => {
-                const option = document.createElement('option');
-                option.value = id;
-                option.textContent = label || id;
-                select.appendChild(option);
-            });
-        }
+        // Skip the serialized item type dropdown
+        const selects = document.querySelectorAll(`select[name="${field}"]:not(#bulkSerializedItemType)`);
+        selects.forEach(select => {
+            if (select && lookups[field] && Array.isArray(lookups[field])) {
+                lookups[field].forEach(([id, label]) => {
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = label || id;
+                    select.appendChild(option);
+                });
+            }
+        });
     });
 }
 
@@ -4285,6 +4288,7 @@ function setActiveSidebarButton(buttonId) {
     const activeBtn = document.getElementById(buttonId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
 
 
 
