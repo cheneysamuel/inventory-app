@@ -1243,7 +1243,7 @@ async function insertRecord(table, formData, columns) {
                 }
             }
         });
-
+        console.log('Insert Object:', insertObj);
         const { error } = await supabase.from(table).insert([insertObj]);
         if (error) return { success: false, error: error.message };
         await handleTableOperationSuccess(table);
@@ -2066,6 +2066,7 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
 
 
