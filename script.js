@@ -747,7 +747,8 @@ function getBulkInventoryData() {
                 dfn_id: dfnId || null,
                 item_type_id: itemTypeId,
                 quantity: quantity,
-                batch_note: formData.get('batch_note') || null
+                batch_note: formData.get('batch_note') || null,
+                itemTypeInfo
             });
         }
     });
@@ -4330,6 +4331,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
