@@ -180,6 +180,16 @@ const ModalUtils = {
     },
 
     /**
+     * Common error handler for modal operations
+     * @param {Error} error - Error object
+     * @param {string} operation - Operation description
+     */
+    handleError(error, operation = 'operation') {
+        console.error(`Error during ${operation}:`, error);
+        alert(`Failed to ${operation}: ${error.message}`);
+    },
+    
+    /**
      * Common success handler for modal operations
      * @param {string} modalId - Modal ID to close
      * @param {string} message - Success message
@@ -5624,6 +5634,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
