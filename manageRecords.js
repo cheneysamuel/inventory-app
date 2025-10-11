@@ -1878,12 +1878,14 @@ function resetManageOthersDropdown() {
 
 // call after any table operation to refresh caches and dropdowns if needed
 async function handleTableOperationSuccess(changedTableName) {
-    // Only recache if the table is in the lookup cache list
-    if (LOOKUP_TABLES.includes(changedTableName.toLowerCase())) {
-        await cacheLookupTables();
+    // Only recache the changed table
+    const table = changedTableName.toLowerCase();
+    if (LOOKUP_TABLES.includes(table)) {
+        // Fetch and update cache for just this table
+        const { data, error } = await supabase.from(table).select('*');
+        window.lookupCache[table] = error ? [] : (data || []);
         if (typeof window.refreshDropdowns === 'function') window.refreshDropdowns();
         if (typeof window.populateBulkSerializedDropdowns === 'function') window.populateBulkSerializedDropdowns();
-
     }
 }
 
@@ -2067,6 +2069,7 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
 
 
