@@ -132,7 +132,7 @@ class TransactionLogger {
             old_status_name: transactionData.old_status_name || null,
             quantity: transactionData.quantity || null,
             old_quantity: transactionData.old_quantity || null,
-            user_name: 'system',
+            user_name: window.currentUser || 'system',
             session_id: this.sessionId,
             ip_address: this.userInfo.ipAddress,
             user_agent: this.userInfo.userAgent,
@@ -346,4 +346,5 @@ class TransactionLogger {
 
 // Export for use in other modules
 window.TransactionLogger = TransactionLogger;
+
 
