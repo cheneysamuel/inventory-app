@@ -820,97 +820,120 @@ function addBulkInventorySearchBar() {
  */
 async function processBulkInventoryInsertion(actionType) {
     console.log('processBulkInventoryInsertion called with actionType:', actionType);
+
+    if (actionType === 'receive') {
+        // Get bulk inventory data to receive
+        const inventoryItems = getBulkInventoryData();
+        if (inventoryItems.length === 0) {
+            alert('No quantities entered for receiving.');
+            return;
+        }
+        // Insert all records using Supabase
+        const result = await insertBulkInventoryRecords(inventoryItems);
+        if (result.success) {
+            alert(`✅ Successfully received ${result.successCount} bulk items!`);
+            // Optionally refresh tables/UI
+            if (typeof refreshBulkItemTypesTable === 'function') await refreshBulkItemTypesTable();
+            if (typeof refreshAllTables === 'function') refreshAllTables();
+        } else {
+            alert(`❌ Error: ${result.errors.map(e => e.error).join(', ')}`);
+        }
+        return;
+    }
+
     // Only process if actionType is 'issue'
-    if (actionType !== 'issue') return;
+    if (actionType === 'issue') {
 
-    // Get crew and DFN from the UI
-    const assignedCrewId = $('#bulk_issue_assigned_crew_id').val();
-    const dfnId = $('#bulk_issue_dfn_id').val();
+        // Get crew and DFN from the UI
+        const assignedCrewId = $('#bulk_issue_assigned_crew_id').val();
+        const dfnId = $('#bulk_issue_dfn_id').val();
 
-    // Get status IDs
-    const issuedStatusId = await ModalUtils.getStatusId('Issued');
-    const availableStatusId = await ModalUtils.getStatusId('Available');
+        // Get status IDs
+        const issuedStatusId = await ModalUtils.getStatusId('Issued');
+        const availableStatusId = await ModalUtils.getStatusId('Available');
 
-    // Get "With Crew" location ID
-    const { data: withCrewLoc } = await supabase
-        .from('locations')
-        .select('id')
-        .eq('name', 'With Crew')
-        .single();
-    const withCrewLocationId = withCrewLoc?.id;
+        // Get "With Crew" location ID
+        const { data: withCrewLoc } = await supabase
+            .from('locations')
+            .select('id')
+            .eq('name', 'With Crew')
+            .single();
+        const withCrewLocationId = withCrewLoc?.id;
 
-    // Iterate through the bulk items table
-    $('#bulkItemTypesMatrix tbody tr').each(async function () {
-        const itemTypeId = $(this).data('itemTypeId');
-        const issueQuantity = parseInt($(this).find('.bulk-quantity-input').val()) || 0;
-        if (issueQuantity > 0) {
-            // Find the available inventory record for this item type
-            const { data: availableRows } = await supabase
-                .from('inventory')
-                .select('id, quantity')
-                .eq('item_type_id', itemTypeId)
-                .eq('status_id', availableStatusId)
-                .eq('sloc_id', window.selectedSlocId)
-                .single();
+        // Iterate through the bulk items table
+        $('#bulkItemTypesMatrix tbody tr').each(async function () {
+            const itemTypeId = $(this).data('itemTypeId');
+            const issueQuantity = parseInt($(this).find('.bulk-quantity-input').val()) || 0;
+            if (issueQuantity > 0) {
+                // Find the available inventory record for this item type
+                const { data: availableRows } = await supabase
+                    .from('inventory')
+                    .select('id, quantity')
+                    .eq('item_type_id', itemTypeId)
+                    .eq('status_id', availableStatusId)
+                    .eq('sloc_id', window.selectedSlocId)
+                    .single();
 
-            if (!availableRows || availableRows.quantity < issueQuantity) {
-                console.warn('Not enough available quantity for item type:', itemTypeId);
-                return;
-            }
+                if (!availableRows || availableRows.quantity < issueQuantity) {
+                    console.warn('Not enough available quantity for item type:', itemTypeId);
+                    return;
+                }
 
-            // Find an existing issued record for this item type, crew, DFN, SLOC
-            const { data: issuedRow } = await supabase
-                .from('inventory')
-                .select('id, quantity')
-                .eq('item_type_id', itemTypeId)
-                .eq('assigned_crew_id', assignedCrewId)
-                .eq('dfn_id', dfnId)
-                .eq('sloc_id', window.selectedSlocId)
-                .eq('status_id', issuedStatusId)
-                .single();
+                // Find an existing issued record for this item type, crew, DFN, SLOC
+                const { data: issuedRow } = await supabase
+                    .from('inventory')
+                    .select('id, quantity')
+                    .eq('item_type_id', itemTypeId)
+                    .eq('assigned_crew_id', assignedCrewId)
+                    .eq('dfn_id', dfnId)
+                    .eq('sloc_id', window.selectedSlocId)
+                    .eq('status_id', issuedStatusId)
+                    .single();
 
-            if (issuedRow) {
-                // Update the existing issued record's quantity
+                if (issuedRow) {
+                    // Update the existing issued record's quantity
+                    await supabase
+                        .from('inventory')
+                        .update({
+                            quantity: issuedRow.quantity + issueQuantity
+                        })
+                        .eq('id', issuedRow.id);
+                } else {
+                    // Insert a new issued record
+                    await supabase
+                        .from('inventory')
+                        .insert([{
+                            item_type_id: itemTypeId,
+                            assigned_crew_id: assignedCrewId,
+                            dfn_id: dfnId,
+                            sloc_id: window.selectedSlocId,
+                            quantity: issueQuantity,
+                            status_id: issuedStatusId,
+                            location_id: withCrewLocationId
+                        }]);
+                }
+
+                // Reduce the available quantity
                 await supabase
                     .from('inventory')
                     .update({
-                        quantity: issuedRow.quantity + issueQuantity
+                        quantity: availableRows.quantity - issueQuantity
                     })
-                    .eq('id', issuedRow.id);
-            } else {
-                // Insert a new issued record
-                await supabase
-                    .from('inventory')
-                    .insert([{
-                        item_type_id: itemTypeId,
-                        assigned_crew_id: assignedCrewId,
-                        dfn_id: dfnId,
-                        sloc_id: window.selectedSlocId,
-                        quantity: issueQuantity,
-                        status_id: issuedStatusId,
-                        location_id: withCrewLocationId
-                    }]);
-            }
+                    .eq('id', availableRows.id);
 
-            // Reduce the available quantity
-            await supabase
-                .from('inventory')
-                .update({
-                    quantity: availableRows.quantity - issueQuantity
-                })
-                .eq('id', availableRows.id);
-
-            // Optionally log transaction here
-            if (window.transactionLogger) {
-                await window.transactionLogger.logInventoryUpdated(
-                    availableRows.id,
-                    { quantity: availableRows.quantity },
-                    { quantity: availableRows.quantity - issueQuantity },
-                    [`Bulk issue: ${issueQuantity} units issued to crew`]
-                );
+                // Optionally log transaction here
+                if (window.transactionLogger) {
+                    await window.transactionLogger.logInventoryUpdated(
+                        availableRows.id,
+                        { quantity: availableRows.quantity },
+                        { quantity: availableRows.quantity - issueQuantity },
+                        [`Bulk issue: ${issueQuantity} units issued to crew`]
+                    );
+                }
             }
-        }
-    });
+        });
+
+    }
 
     // Optionally refresh tables and UI
     if (typeof window.refreshBulkItemTypesTable === 'function') {
@@ -4307,6 +4330,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
