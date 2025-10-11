@@ -3770,12 +3770,14 @@ async function executeInstallOperation(inventoryId, inventoryData, isSerializedT
     try {
         const notes = document.getElementById('installNotes')?.value.trim() || '';
         const installedStatusId = await ModalUtils.getStatusId('Installed');
-        const { data: fieldInstalledLoc } = await supabase
-            .from('locations')
-            .select('id')
-            .eq('name', 'Field Installed')
-            .single();
-        const fieldInstalledLocationId = fieldInstalledLoc?.id;
+        // Use cached "Field Installed" location
+        const fieldInstalledLocRow = getCachedRowByField('locations', 'name', 'Field Installed');
+        const fieldInstalledLocationId = fieldInstalledLocRow?.id;
+
+        if (!fieldInstalledLocationId) {
+            ModalUtils.handleError('Could not find "Field Installed" location in cached values.');
+            return;
+        }
 
         if (isSerializedType) {
             // Serialized: install all units together
@@ -5622,6 +5624,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
