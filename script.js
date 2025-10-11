@@ -714,7 +714,7 @@ async function generateBulkItemTypesTable() {
  * Get bulk inventory data from the form
  * @returns {Array<Object>} - Array of inventory items to process
  */
-function getBulkInventoryData() {
+async function getBulkInventoryData() {
     console.log('getBulkInventoryData called...');
     const form = document.getElementById('bulkReceiveForm');
     const bulkIssueForm = document.getElementById('bulkIssueForm');
@@ -725,7 +725,6 @@ function getBulkInventoryData() {
     const formData = new FormData(form);
     const inventoryItems = [];
     
-    // if using bulk issue form, get the assigned crew and dfn from that dropdowns
     if ($('.bulk-manage-container').hasClass('inBulkIssueMode')) {
         assignedCrewId = bulkIssueForm.querySelector('#bulk_issue_assigned_crew_id').value;
         dfnId = bulkIssueForm.querySelector('#bulk_issue_dfn_id').value;
@@ -734,13 +733,13 @@ function getBulkInventoryData() {
         dfnId = formData.get('dfn_id');
     }
 
-
     const quantityInputs = document.querySelectorAll('.bulk-quantity-input');
     
-    quantityInputs.forEach(input => {
+    for (const input of quantityInputs) {
         const quantity = parseInt(input.value, 10) || 0;
         if (quantity > 0) {
             const itemTypeId = input.name.replace('quantity_', '');
+            const itemTypeInfo = await getItemTypeInfo(itemTypeId); // <-- fetch info here
             inventoryItems.push({
                 location_id: formData.get('location_id'),
                 assigned_crew_id: assignedCrewId || null,
@@ -751,7 +750,7 @@ function getBulkInventoryData() {
                 itemTypeInfo
             });
         }
-    });
+    }
     
     return inventoryItems;
 }
@@ -824,7 +823,7 @@ async function processBulkInventoryInsertion(actionType) {
 
     if (actionType === 'receive') {
         // Get bulk inventory data to receive
-        const inventoryItems = getBulkInventoryData();
+        const inventoryItems = await getBulkInventoryData();
         if (inventoryItems.length === 0) {
             alert('No quantities entered for receiving.');
             return;
@@ -4331,6 +4330,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
