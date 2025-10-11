@@ -818,7 +818,7 @@ function addBulkInventorySearchBar() {
  * Process bulk inventory issue action for Manage Bulk Inventory.
  * Combines issued quantities with existing records if possible.
  */
-async function processBulkInventoryInsertion(actionType = 'issue') {
+async function processBulkInventoryInsertion(actionType) {
     console.log('processBulkInventoryInsertion called with actionType:', actionType);
     // Only process if actionType is 'issue'
     if (actionType !== 'issue') return;
@@ -4307,6 +4307,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
