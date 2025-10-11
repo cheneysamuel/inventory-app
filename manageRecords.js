@@ -1884,7 +1884,7 @@ async function handleTableOperationSuccess(changedTableName) {
         // Fetch and update cache for just this table
         const { data, error } = await supabase.from(table).select('*');
         window.lookupCache[table] = error ? [] : (data || []);
-        if (typeof window.refreshDropdowns === 'function') window.refreshDropdowns();
+        if (typeof window.refreshAllDropdowns === 'function') window.refreshAllDropdowns();
         if (typeof window.populateBulkSerializedDropdowns === 'function') window.populateBulkSerializedDropdowns();
     }
 }
@@ -2069,6 +2069,7 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
 
 
