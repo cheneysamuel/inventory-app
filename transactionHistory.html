@@ -15,6 +15,8 @@
         .filter-section select, .filter-section input { margin-right: 15px; padding: 5px; }
         .summary { background-color: #e7f3ff; padding: 10px; margin-bottom: 20px; border-radius: 5px; }
     </style>
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
     <h1>Transaction History</h1>
@@ -67,18 +69,16 @@
         </table>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.13.0/dist/sql-wasm.js"></script>
-    <script src="schema.js"></script>
-    <script src="transactionLogger.js"></script>
-    <script src="manageRecords.js"></script>
-    
     <script>
-        let db;
+        // --- Supabase Setup ---
+        const supabaseUrl = 'https://jhvtntafqbhmuseqmwns.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodnRudGFmcWJobXVzZXFtd25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1NzM4NjQsImV4cCI6MjA3NTE0OTg2NH0.Gu6M3ewKrc1qv5tbpHd6CeFawRDQJnw5PYSrWK-QjWU';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
         let allTransactions = [];
-        
+
         async function initTransactionViewer() {
             try {
-                db = await window.initDatabase();
                 await loadTransactions();
                 setupFilters();
                 updateSummary();
@@ -88,20 +88,18 @@
                     '<strong style="color: red;">Error loading transactions: ' + error.message + '</strong>';
             }
         }
-        
+
         async function loadTransactions() {
             try {
-                const stmt = db.prepare(`
-                    SELECT * FROM TRANSACTIONS 
-                    ORDER BY date_time DESC
-                `);
-                
-                allTransactions = [];
-                while (stmt.step()) {
-                    allTransactions.push(stmt.getAsObject());
-                }
-                stmt.free();
-                
+                // Fetch all transactions from Supabase
+                const { data, error } = await supabase
+                    .from('transactions')
+                    .select('*')
+                    .order('date_time', { ascending: false });
+
+                if (error) throw error;
+
+                allTransactions = data || [];
                 displayTransactions(allTransactions);
             } catch (error) {
                 console.error('Error loading transactions:', error);
@@ -109,20 +107,20 @@
                     '<tr><td colspan="13">Error loading transactions: ' + error.message + '</td></tr>';
             }
         }
-        
+
         function displayTransactions(transactions) {
             const tbody = document.getElementById('transactionTableBody');
             tbody.innerHTML = '';
-            
-            if (transactions.length === 0) {
+
+            if (!transactions || transactions.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="13">No transactions found</td></tr>';
                 return;
             }
-            
+
             transactions.forEach(transaction => {
                 const row = document.createElement('tr');
                 row.className = 'transaction-row';
-                
+
                 row.innerHTML = `
                     <td>${transaction.id}</td>
                     <td>${formatDateTime(transaction.date_time)}</td>
@@ -138,25 +136,27 @@
                     <td class="json-data">${formatJsonData(transaction.before_state)}</td>
                     <td class="json-data">${formatJsonData(transaction.after_state)}</td>
                 `;
-                
+
                 tbody.appendChild(row);
             });
         }
-        
+
         function setupFilters() {
             // Get unique actions
             const actions = [...new Set(allTransactions.map(t => t.action))].filter(a => a);
             const actionFilter = document.getElementById('actionFilter');
+            actionFilter.innerHTML = '<option value="">All Actions</option>';
             actions.forEach(action => {
                 const option = document.createElement('option');
                 option.value = action;
                 option.textContent = action;
                 actionFilter.appendChild(option);
             });
-            
+
             // Get unique users
             const users = [...new Set(allTransactions.map(t => t.user_name))].filter(u => u);
             const userFilter = document.getElementById('userFilter');
+            userFilter.innerHTML = '<option value="">All Users</option>';
             users.forEach(user => {
                 const option = document.createElement('option');
                 option.value = user;
@@ -164,35 +164,35 @@
                 userFilter.appendChild(option);
             });
         }
-        
+
         function filterTransactions() {
             const actionFilter = document.getElementById('actionFilter').value;
             const userFilter = document.getElementById('userFilter').value;
             const dateFrom = document.getElementById('dateFrom').value;
             const dateTo = document.getElementById('dateTo').value;
-            
+
             let filtered = allTransactions;
-            
+
             if (actionFilter) {
                 filtered = filtered.filter(t => t.action === actionFilter);
             }
-            
+
             if (userFilter) {
                 filtered = filtered.filter(t => t.user_name === userFilter);
             }
-            
+
             if (dateFrom) {
                 filtered = filtered.filter(t => t.date_time >= dateFrom);
             }
-            
+
             if (dateTo) {
                 filtered = filtered.filter(t => t.date_time <= dateTo + ' 23:59:59');
             }
-            
+
             displayTransactions(filtered);
             updateSummary(filtered);
         }
-        
+
         function clearFilters() {
             document.getElementById('actionFilter').value = '';
             document.getElementById('userFilter').value = '';
@@ -201,68 +201,68 @@
             displayTransactions(allTransactions);
             updateSummary();
         }
-        
+
         function updateSummary(transactions = allTransactions) {
             const summary = document.getElementById('transactionSummary');
             const actionCounts = {};
-            
+
             transactions.forEach(t => {
                 actionCounts[t.action] = (actionCounts[t.action] || 0) + 1;
             });
-            
+
             const actionSummary = Object.entries(actionCounts)
                 .map(([action, count]) => `${action}: ${count}`)
                 .join(', ');
-            
+
             summary.innerHTML = `
                 <strong>Total Transactions: ${transactions.length}</strong><br>
                 Actions: ${actionSummary}
             `;
         }
-        
+
         function formatDateTime(dateTime) {
             if (!dateTime) return '';
             return new Date(dateTime).toLocaleString();
         }
-        
+
         function formatSerials(mfgrSN, tilsonSN) {
             const parts = [];
             if (mfgrSN) parts.push(`Mfgr: ${mfgrSN}`);
             if (tilsonSN) parts.push(`Tilson: ${tilsonSN}`);
             return parts.join('<br>');
         }
-        
+
         function formatLocation(toLocation, fromLocation) {
             const parts = [];
             if (fromLocation) parts.push(`From: ${fromLocation}`);
             if (toLocation) parts.push(`To: ${toLocation}`);
             return parts.join('<br>');
         }
-        
+
         function formatQuantity(quantity, oldQuantity) {
             if (oldQuantity && quantity !== oldQuantity) {
                 return `${oldQuantity} → ${quantity}`;
             }
             return quantity || '';
         }
-        
+
         function formatStatus(status, oldStatus) {
             if (oldStatus && status !== oldStatus) {
                 return `${oldStatus} → ${status}`;
             }
             return status || '';
         }
-        
+
         function formatJsonData(jsonData) {
             if (!jsonData) return '';
             try {
-                const parsed = JSON.parse(jsonData);
+                const parsed = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
                 return JSON.stringify(parsed, null, 2);
             } catch (e) {
                 return jsonData;
             }
         }
-        
+
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', initTransactionViewer);
     </script>
