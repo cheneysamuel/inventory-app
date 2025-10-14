@@ -828,6 +828,7 @@ async function processBulkInventoryInsertion(actionType) {
             alert('No quantities entered for receiving.');
             return;
         }
+        console.log('inventoryItems to receive:', inventoryItems);
         // Insert all records using Supabase
         const result = await insertBulkInventoryRecords(inventoryItems);
         if (result.success) {
@@ -4330,6 +4331,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
