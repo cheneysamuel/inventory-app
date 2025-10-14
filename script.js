@@ -408,7 +408,7 @@ async function insertInventoryRecord(inventoryData) {
 async function insertBulkInventoryRecords(inventoryDataArray) {
     const results = [];
     const errors = [];
-    
+    console.log('Inserting bulk inventory records:', inventoryDataArray);
     for (let index = 0; index < inventoryDataArray.length; index++) {
         const inventoryData = inventoryDataArray[index];
         const result = await insertInventoryRecord(inventoryData);
@@ -4331,6 +4331,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
