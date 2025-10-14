@@ -714,7 +714,7 @@ async function generateBulkItemTypesTable() {
  * Get bulk inventory data from the form
  * @returns {Array<Object>} - Array of inventory items to process
  */
-async function getBulkInventoryData() {
+async function getBulkInventoryData(actionType) {
     console.log('getBulkInventoryData called...');
     const form = document.getElementById('bulkReceiveForm');
     const bulkIssueForm = document.getElementById('bulkIssueForm');
@@ -733,6 +733,8 @@ async function getBulkInventoryData() {
         dfnId = formData.get('dfn_id');
     }
 
+    const location = actionType === 'receive' ? formData.get('location_id') : getLocationId('With Crew');
+    const status = actionType === 'receive' ? getStatusId('Available') : getStatusId('Issued');
     const quantityInputs = document.querySelectorAll('.bulk-quantity-input');
     
     for (const input of quantityInputs) {
@@ -741,13 +743,14 @@ async function getBulkInventoryData() {
             const itemTypeId = input.name.replace('quantity_', '');
             const itemTypeInfo = await getItemTypeInfo(itemTypeId); // <-- fetch info here
             inventoryItems.push({
-                location_id: formData.get('location_id'),
+                location_id: location
                 assigned_crew_id: assignedCrewId || null,
                 dfn_id: dfnId || null,
                 item_type_id: itemTypeId,
                 quantity: quantity,
                 batch_note: formData.get('batch_note') || null,
-                itemTypeInfo
+                itemTypeInfo: itemTypeInfo,
+                status_id: status
             });
         }
     }
@@ -4331,6 +4334,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
