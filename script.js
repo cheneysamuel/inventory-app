@@ -743,7 +743,7 @@ async function getBulkInventoryData(actionType) {
             const itemTypeId = input.name.replace('quantity_', '');
             const itemTypeInfo = await getItemTypeInfo(itemTypeId); // <-- fetch info here
             inventoryItems.push({
-                location_id: location
+                location_id: location,
                 assigned_crew_id: assignedCrewId || null,
                 dfn_id: dfnId || null,
                 item_type_id: itemTypeId,
@@ -4334,6 +4334,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
