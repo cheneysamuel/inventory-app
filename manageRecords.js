@@ -1514,95 +1514,76 @@ window.editRow = function(table, row) {
 
 /**
  * Combine bulk inventory records with matching criteria using Supabase
+ * Optimized to query inventory only once (filtered by SLOC), and use cached values for item_types and inventory_types.
  * @returns {Promise<Object>} - {success: boolean, combinedCount: number, error?: string}
  */
 async function combineBulkInventoryRecords() {
     console.log('🔄 Combining bulk inventory records...');
     try {
-        // Get all inventory records
-        const { data: inventoryRows, error: invError } = await supabase
-            .from('inventory')
-            .select('*');
-        if (invError || !inventoryRows) return { success: false, combinedCount: 0, error: invError?.message };
+        // Get cached inventory_types to find 'Bulk' type
+        const invTypes = getCachedTable('inventory_types');
+        const bulkType = invTypes.find(t => t.name === 'Bulk');
+        if (!bulkType) {
+            return { success: false, combinedCount: 0, error: 'Bulk inventory type not found in cache' };
+        }
+
+        // Get cached item_types, filtered by current market, and find those that are 'Bulk'
+        let itemTypes = getCachedTable('item_types');
+        if (window.selectedMarketId) {
+            itemTypes = itemTypes.filter(it => it.market_id == window.selectedMarketId);
+        }
+        const bulkItemTypeIds = itemTypes
+            .filter(it => it.inventory_type_id == bulkType.id)
+            .map(it => it.id);
+
+        // Query inventory only once, filtered by current SLOC if set
+        let query = supabase.from('inventory').select('*');
+        if (window.selectedSlocId) {
+            query = query.eq('sloc_id', window.selectedSlocId);
+        }
+        const { data: inventoryRows, error: invError } = await query;
+        if (invError || !inventoryRows) {
+            return { success: false, combinedCount: 0, error: invError?.message || 'Failed to fetch inventory' };
+        }
+
+        // Filter inventory to only bulk item types
+        const bulkInventory = inventoryRows.filter(row => bulkItemTypeIds.includes(row.item_type_id));
+
+        // Group by matching fields: location_id, assigned_crew_id, dfn_id, item_type_id, status_id
+        // Use string keys with null handling
+        const groups = {};
+        bulkInventory.forEach(row => {
+            const key = `${row.location_id || 'null'}_${row.assigned_crew_id || 'null'}_${row.dfn_id || 'null'}_${row.item_type_id}_${row.status_id}`;
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(row);
+        });
 
         let combinedCount = 0;
-        const processed = new Set();
 
-        for (let i = 0; i < inventoryRows.length; i++) {
-            const row = inventoryRows[i];
-            const id = row.id;
-            if (processed.has(id)) continue;
+        // Process each group
+        for (const group of Object.values(groups)) {
+            if (group.length > 1) {
+                // Sort by ID to keep the earliest record
+                group.sort((a, b) => a.id - b.id);
+                const first = group[0];
+                let totalQty = group.reduce((sum, row) => sum + (row.quantity || 0), 0);
 
-            // Get item_type_id and check if it's Bulk
-            const { data: itemType, error: itemTypeError } = await supabase
-                .from('item_types')
-                .select('inventory_type_id')
-                .eq('id', row.item_type_id)
-                .single();
-            if (itemTypeError || !itemType) continue;
+                // Update the first record with combined quantity
+                await supabase
+                    .from('inventory')
+                    .update({ quantity: totalQty })
+                    .eq('id', first.id);
 
-            const { data: invType, error: invTypeError } = await supabase
-                .from('inventory_types')
-                .select('name')
-                .eq('id', itemType.inventory_type_id)
-                .single();
-            if (invTypeError || !invType || invType.name !== 'Bulk') continue;
-
-            // Find other matching bulk records (excluding itself)
-            for (let j = i + 1; j < inventoryRows.length; j++) {
-                const other = inventoryRows[j];
-                const otherId = other.id;
-                if (processed.has(otherId)) continue;
-
-                // Check if other record matches on the 5 fields (including proper null handling)
-                const fields = ['location_id', 'assigned_crew_id', 'dfn_id', 'item_type_id', 'status_id'];
-                const isMatch = fields.every(field => {
-                    const val1 = row[field];
-                    const val2 = other[field];
-                    if ((val1 == null) && (val2 == null)) return true;
-                    if ((val1 == null) !== (val2 == null)) return false;
-                    return val1 === val2;
-                });
-
-                // Check if other is also Bulk
-                const { data: otherItemType, error: otherItemTypeError } = await supabase
-                    .from('item_types')
-                    .select('inventory_type_id')
-                    .eq('id', other.item_type_id)
-                    .single();
-                if (otherItemTypeError || !otherItemType) continue;
-
-                const { data: otherInvType, error: otherInvTypeError } = await supabase
-                    .from('inventory_types')
-                    .select('name')
-                    .eq('id', otherItemType.inventory_type_id)
-                    .single();
-                if (otherInvTypeError || !otherInvType || otherInvType.name !== 'Bulk') continue;
-
-                if (isMatch) {
-                    // Combine quantities
-                    const newQty = (row.quantity || 0) + (other.quantity || 0);
-
-                    // Update the first record's quantity
-                    await supabase
-                        .from('inventory')
-                        .update({ quantity: newQty })
-                        .eq('id', id);
-
-                    // Delete the duplicate record
+                // Delete the duplicate records
+                for (let i = 1; i < group.length; i++) {
                     await supabase
                         .from('inventory')
                         .delete()
-                        .eq('id', otherId);
-
-                    processed.add(otherId);
-                    combinedCount++;
-
-                    // Update our row's quantity for further matches
-                    row.quantity = newQty;
+                        .eq('id', group[i].id);
                 }
+
+                combinedCount += group.length - 1;
             }
-            processed.add(id);
         }
 
         return { success: true, combinedCount };
@@ -1612,7 +1593,7 @@ async function combineBulkInventoryRecords() {
     }
 }
 
-// Export bulk inventory utility
+// Export the refactored function
 window.combineBulkInventory = combineBulkInventoryRecords;
 
 // ============================================================================
@@ -2070,6 +2051,7 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
 
 
