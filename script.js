@@ -3162,12 +3162,8 @@ function resetBulkReceiveAndIssueProcessForms() {
 
 }
 
-
-
-
-
 function useBulkReceiveMode(setAsActive) {
-    //console.log('🔄 Entering bulk receive mode');
+    console.log('🔄 Entering bulk receive mode');
     if (setAsActive) {
         $('.bulk-manage-container').addClass('inBulkReceiveMode');
         $('.bulk-manage-container').removeClass('inBulkIssueMode');
@@ -3176,52 +3172,55 @@ function useBulkReceiveMode(setAsActive) {
         $('#bulkCancelReceiveProcessBtn').show();
     } else {
         $('.bulk-manage-container').removeClass('inBulkReceiveMode');
-        $('.bulk-manage-right-section').show();
-        $('.bulk-manage-left-section').show();
+        $('.bulk-manage-right-section').hide();  // Hide issue section when not in receive mode
+        $('.bulk-manage-left-section').hide();   // Hide receive section when not in receive mode
         $('#bulkBeginReceiveProcessBtn').text("Begin Receive Process");
         $('#bulkCancelReceiveProcessBtn').hide();
     }
 
-    // clear all inputs
+    // Preserve user-entered values when activating; clear when deactivating
     document.querySelectorAll('.bulk-quantity-input').forEach(input => {
-        input.value = setAsActive ? 0 : '';
+        if (!setAsActive) {
+            input.value = '';  // Clear only when deactivating
+        }
+        // When activating, keep existing values (don't overwrite)
     });
 
-    // clear bulk-process-status
+    // Clear bulk-process-status
     $('.bulk-process-status').text('');
-
 }
 
 function useBulkIssueMode(setAsActive) {
-    //console.log('🔄 Entering bulk issue mode');
+    console.log('🔄 Entering bulk issue mode');
     if (setAsActive) {
         $('.bulk-manage-container').addClass('inBulkIssueMode');
         $('.bulk-manage-container').removeClass('inBulkReceiveMode');
         $('.bulk-manage-left-section').hide();
         $('#bulkBeginIssueProcessBtn').text("Complete Issue Process");
-        //disable the button to begin with
         $('#bulkBeginIssueProcessBtn').prop('disabled', true);
         $('#bulkCancelIssueProcessBtn').show();
         evaluateBulkIssueQuantities();
     } else {
         $('.bulk-manage-container').removeClass('inBulkIssueMode');
-        $('.bulk-manage-right-section').show();
-        $('.bulk-manage-left-section').show();
+        $('.bulk-manage-right-section').hide();  // Hide issue section when not in issue mode
+        $('.bulk-manage-left-section').hide();   // Hide receive section when not in issue mode
         $('#bulkBeginIssueProcessBtn').text("Begin Issue Process");
         $('#bulkCancelIssueProcessBtn').hide();
     }
 
-    // clear all inputs
+    // Preserve user-entered values when activating; clear when deactivating
     document.querySelectorAll('.bulk-quantity-input').forEach(input => {
-        input.value = setAsActive ? 0 : '';
+        if (!setAsActive) {
+            input.value = '';  // Clear only when deactivating
+        }
+        // When activating, keep existing values (don't overwrite)
     });
 
-    // clear bulk-process-status
+    // Clear bulk-process-status
     $('.bulk-process-status').text('');
 
-    // initial evaluate to disable fields
+    // Initial evaluate to disable fields
     evaluateBulkIssueQuantities();
-
 }
 
 
@@ -4357,6 +4356,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
