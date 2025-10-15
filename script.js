@@ -5,7 +5,6 @@ let selectedSerializedForIssue = [];
 
 window.serializedIssueState = serializedIssueState;
 window.selectedSerializedForIssue = selectedSerializedForIssue;
-window.isInventoryLoading = false;
 
 // Move buttonRequirements outside and before any function definitions
 const buttonRequirements = {
@@ -1654,13 +1653,7 @@ function refreshAllTables() {
     console.log("refreshAllTables called...");
     try {
         if (window.selectedSlocId && window.selectedMarketId) {
-            // Only refresh inventory if the section is active (and element exists)
-            const inventoryAccordion = document.getElementById('inventoryAccordion');
-            if (inventoryAccordion && inventoryAccordion.classList.contains('active')) {
-                loadInventoryList();
-            } else if (!inventoryAccordion) {
-                console.warn('inventoryAccordion element not found. Skipping conditional inventory load.');
-            }
+            loadInventoryList();
             refreshBulkItemTypesTable();
         } else {
             loadInventoryList(false);
@@ -1985,8 +1978,13 @@ async function runAfterCachedInit() {
         // Call showSections first to create DOM elements
         await showSections({serializedInventory: true, bulkInventory: true});
         
-        // Now refresh tables (after DOM is ready)
-        refreshAllTables();
+        // Ensure both Supabase tables are loaded and DOM is ready before refreshing tables
+        // (cacheLookupTables is already awaited in runFullInitialization, and DOMContentLoaded ensures DOM readiness)
+        if (window.lookupCache && Object.keys(window.lookupCache).length > 0 && document.readyState === 'complete') {
+            refreshAllTables();
+        } else {
+            console.warn('Supabase tables or DOM not fully ready. Skipping refreshAllTables.');
+        }
 
         // Populate Manage Others dropdown with remaining lookup tables
         const managedTables = ['dfns','item_types','crews'];
@@ -4349,6 +4347,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
