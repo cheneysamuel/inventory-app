@@ -832,7 +832,7 @@ async function processBulkInventoryInsertion(actionType) {
 
     if (actionType === 'receive') {
         // Get bulk inventory data to receive
-        const inventoryItems = await getBulkInventoryData();
+        const inventoryItems = getBulkInventoryData('receive');
         if (inventoryItems.length === 0) {
             alert('No quantities entered for receiving.');
             return;
@@ -4342,6 +4342,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
