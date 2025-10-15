@@ -4771,8 +4771,6 @@ async function executeReturnAsReservedOperation(inventoryId, inventoryData, isSe
 // RETURN AS AVAILABLE MODAL FUNCTIONALITY
 // ============================================================================
 
-showReturnAsAvailableModal
-
 /**
  * Setup validation for the return as available modal
  * @param {Object} inventoryData - Inventory item data
@@ -5478,6 +5476,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
