@@ -1050,16 +1050,10 @@ async function loadInventoryList(loadIt = true) {
     console.log('loadInventoryList called...');
     if (!loadIt) return;
     console.log("Loading inventory lists...");
-    if(window.isInventoryLoading) {
-        console.warn("Inventory load already in progress. Skipping duplicate call.");
-        return;
-    }
-    window.isInventoryLoading = true;
     await Promise.all([
         loadSerializedInventoryList(),
         loadBulkInventoryList()
     ]);
-    window.isInventoryLoading = false;
 }
 
 /**
@@ -1660,9 +1654,12 @@ function refreshAllTables() {
     console.log("refreshAllTables called...");
     try {
         if (window.selectedSlocId && window.selectedMarketId) {
-            // Only refresh inventory if the section is active
-            if (document.getElementById('inventoryAccordion').classList.contains('active')) {
+            // Only refresh inventory if the section is active (and element exists)
+            const inventoryAccordion = document.getElementById('inventoryAccordion');
+            if (inventoryAccordion && inventoryAccordion.classList.contains('active')) {
                 loadInventoryList();
+            } else if (!inventoryAccordion) {
+                console.warn('inventoryAccordion element not found. Skipping conditional inventory load.');
             }
             refreshBulkItemTypesTable();
         } else {
@@ -4352,6 +4349,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
