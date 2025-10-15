@@ -843,8 +843,9 @@ async function processBulkInventoryInsertion(actionType) {
         if (result.success) {
             alert(`✅ Successfully received ${result.successCount} bulk items!`);
             // Optionally refresh tables/UI
-            if (typeof refreshBulkItemTypesTable === 'function') await refreshBulkItemTypesTable();
-            if (typeof refreshAllTables === 'function') refreshAllTables();
+            useBulkReceiveMode(false); 
+            await refreshBulkItemTypesTable();
+            refreshAllTables();
         } else {
             alert(`❌ Error: ${result.errors.map(e => e.error).join(', ')}`);
         }
@@ -4341,6 +4342,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
