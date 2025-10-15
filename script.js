@@ -3178,12 +3178,13 @@ function useBulkReceiveMode(setAsActive) {
         $('#bulkCancelReceiveProcessBtn').hide();
     }
 
-    // Preserve user-entered values when activating; clear when deactivating
+    // Set default values when activating; clear when deactivating
     document.querySelectorAll('.bulk-quantity-input').forEach(input => {
-        if (!setAsActive) {
-            input.value = '';  // Clear only when deactivating
+        if (setAsActive) {
+            if (!input.value) input.value = '0';  // Set to '0' if empty
+        } else {
+            input.value = '';  // Clear when deactivating
         }
-        // When activating, keep existing values (don't overwrite)
     });
 
     // Clear bulk-process-status
@@ -3208,12 +3209,13 @@ function useBulkIssueMode(setAsActive) {
         $('#bulkCancelIssueProcessBtn').hide();
     }
 
-    // Preserve user-entered values when activating; clear when deactivating
+    // Set default values when activating; clear when deactivating
     document.querySelectorAll('.bulk-quantity-input').forEach(input => {
-        if (!setAsActive) {
-            input.value = '';  // Clear only when deactivating
+        if (setAsActive) {
+            if (!input.value) input.value = '0';  // Set to '0' if empty
+        } else {
+            input.value = '';  // Clear when deactivating
         }
-        // When activating, keep existing values (don't overwrite)
     });
 
     // Clear bulk-process-status
@@ -4356,6 +4358,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
