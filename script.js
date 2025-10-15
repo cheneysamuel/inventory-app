@@ -367,6 +367,8 @@ async function insertInventoryRecord(inventoryData) {
         if (error) {
             return { success: false, error: error.message };
         }
+
+        console.log(
         // Log transaction for inventory creation and wait for completion
         if (window.transactionLogger && data && data.id) {
             try {
@@ -441,8 +443,10 @@ async function insertBulkInventoryRecords(inventoryDataArray) {
  * @param {Object|Array} inventoryData - Single inventory data or array for bulk
  * @returns {Promise<Object>} - {success: boolean, error?: string}
  */
-async function processInventoryInsertion(inventoryData, action) {
+async function processInventoryInsertion(action) {
 
+    const inventoryData = getBulkInventoryData('receive');
+    
     console.log("Processing inventory insertion:", inventoryData);
 
     try {
@@ -3005,7 +3009,8 @@ function initializeBulkReceiving() {
             $('#bulkReceiveForm').show();
         } else {
             // it's already in bulk receive mode.  Now the button will be the submit:
-            processBulkInventoryInsertion('receive');
+            //processBulkInventoryInsertion('receive');
+            processInventoryInsertion('receive');
             // actionOb = {name: 'displaybulkreceivereceiptmodal'};
             // console.log("Action object created:", actionOb);
             // handleActionSelect(actionOb);
@@ -4334,6 +4339,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
