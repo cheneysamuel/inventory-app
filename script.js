@@ -3017,8 +3017,8 @@ function initializeBulkReceiving() {
             $('#bulkReceiveForm').show();
         } else {
             // it's already in bulk receive mode.  Now the button will be the submit:
-            //processBulkInventoryInsertion('receive');
-            processInventoryInsertion('receive');
+            processBulkInventoryInsertion('receive');
+            //processInventoryInsertion('receive');
             // actionOb = {name: 'displaybulkreceivereceiptmodal'};
             // console.log("Action object created:", actionOb);
             // handleActionSelect(actionOb);
@@ -4347,6 +4347,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
