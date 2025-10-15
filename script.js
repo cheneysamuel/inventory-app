@@ -1984,6 +1984,11 @@ async function runAfterCachedInit() {
 
         // Set initial active button (default to View Inventory)
         setActiveSidebarButton('viewInventoryBtn');
+        
+        // Call showSections first to create DOM elements
+        await showSections({serializedInventory: true, bulkInventory: true});
+        
+        // Now refresh tables (after DOM is ready)
         refreshAllTables();
 
         // Populate Manage Others dropdown with remaining lookup tables
@@ -1998,8 +2003,7 @@ async function runAfterCachedInit() {
         });
 
         // Set initial view - Show View Inventory section by default
-        await showSections({serializedInventory: true, bulkInventory: true});     
-
+        // (Already done above, so remove duplicate if present)
     } catch (error) {
         console.error('Error during full initialization:', error);
     }
@@ -4348,6 +4352,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
