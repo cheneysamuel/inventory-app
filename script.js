@@ -2008,7 +2008,7 @@ async function runAfterCachedInit() {
 // --- Helper Functions ---
 // Section visibility control
 async function showSections({serializedInventory=false, inventoryReceiving=false, bulkInventory=false, bulkReceive=false}) {
-    console.log('showSections called...');
+    //console.log('showSections called...');
     const inventoryAccordion = document.getElementById('inventoryAccordion');
     if (inventoryAccordion) {
         const wasActive = inventoryAccordion.classList.contains('active');
@@ -4354,6 +4354,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
