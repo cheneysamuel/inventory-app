@@ -3114,7 +3114,7 @@ function initializeBulkReceiving() {
 
 
 function resetBulkReceiveAndIssueProcessForms() {
-    
+    console.log('🔄 Resetting bulk receive and issue process forms');
     // reset receive and issue process buttons
     $('#bulkBeginReceiveProcessBtn').prop('disabled', false);
     $('#bulkBeginIssueProcessBtn').prop('disabled', false);
@@ -4358,6 +4358,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
