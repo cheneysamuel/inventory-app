@@ -4176,43 +4176,43 @@ async function initializeClientMarketSlocDropdowns() {
         console.log("selected market ID:", window.selectedMarketId, "selected SLOC ID:", window.selectedSlocId);
     });
 
-slocSelect.addEventListener('change', function() {
-    console.log('sloc selected...');
-    displaySlocValue();
-    window.selectedSlocId = this.value ? parseInt(this.value, 10) : null;
-    resetBulkReceiveAndIssueProcessForms();
-
-    // Reset bulk item types loaded flag for new SLOC
-    window.bulkItemTypesLoaded = false;
-
-    // Remove and refresh bulk item types table
-    const bulkTableContainer = document.getElementById('bulkItemTypesTable');
-    const existingBulkTable = bulkTableContainer.querySelector('#bulkItemTypesMatrix');
-    if (existingBulkTable) {
-        existingBulkTable.remove();
-    }
-    // Note: We don't call refreshBulkItemTypesTable here anymore, as it will be called when the section is opened
-
-    // Remove and refresh bulk inventory table
-    const bulkInventorySection = document.getElementById('bulkInventorySection');
-    const existingBulkInventoryTable = bulkInventorySection.querySelector('#bulkInventoryTable');
-    if (existingBulkInventoryTable) {
-        existingBulkInventoryTable.remove();
-    }
-    loadBulkInventoryList();
-
-    // Remove and refresh serialized inventory hierarchy
-    const serializedInventorySection = document.getElementById('serializedInventorySection');
-    const existingSerializedHierarchy = serializedInventorySection.querySelector('#serializedInventoryHierarchy');
-    if (existingSerializedHierarchy) {
-        existingSerializedHierarchy.innerHTML = '';
-    }
-    loadSerializedInventoryList();
-
-    // Update button states
-    updateBulkButtonStates();
-});
-
+    slocSelect.addEventListener('change', function() {
+        console.log('sloc selected...');
+        displaySlocValue();
+        window.selectedSlocId = this.value ? parseInt(this.value, 10) : null;
+        resetBulkReceiveAndIssueProcessForms();
+    
+        // Reset bulk item types loaded flag for new SLOC
+        window.bulkItemTypesLoaded = false;
+    
+        // Remove and refresh bulk item types table
+        const bulkTableContainer = document.getElementById('bulkItemTypesTable');
+        const existingBulkTable = bulkTableContainer.querySelector('#bulkItemTypesMatrix');
+        if (existingBulkTable) {
+            existingBulkTable.remove();
+        }
+        // Note: We don't call refreshBulkItemTypesTable here anymore, as it will be called when the section is opened
+    
+        // Remove and refresh bulk inventory table
+        const bulkInventorySection = document.getElementById('bulkInventorySection');
+        const existingBulkInventoryTable = bulkInventorySection.querySelector('#bulkInventoryTable');
+        if (existingBulkInventoryTable) {
+            existingBulkInventoryTable.remove();
+        }
+        loadBulkInventoryList();
+    
+        // Remove and refresh serialized inventory hierarchy
+        const serializedInventorySection = document.getElementById('serializedInventorySection');
+        const existingSerializedHierarchy = serializedInventorySection.querySelector('#serializedInventoryHierarchy');
+        if (existingSerializedHierarchy) {
+            existingSerializedHierarchy.innerHTML = '';
+        }
+        loadSerializedInventoryList();
+    
+        // Update button states
+        updateBulkButtonStates();
+    });
+}
 
 async function setCurrentUserFromSupabase() {
     const { data: { user }, error } = await supabase.auth.getUser();
@@ -4354,6 +4354,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
