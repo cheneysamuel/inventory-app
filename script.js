@@ -3191,35 +3191,33 @@ function useBulkReceiveMode(setAsActive) {
 }
 
 function useBulkIssueMode(setAsActive) {
-    //console.log('🔄 Entering bulk issue mode');
+    console.log('🔄 Entering bulk issue mode');
     if (setAsActive) {
         $('.bulk-manage-container').addClass('inBulkIssueMode');
         $('.bulk-manage-container').removeClass('inBulkReceiveMode');
         $('.bulk-manage-left-section').hide();
         $('#bulkBeginIssueProcessBtn').text("Complete Issue Process");
-        //disable the button to begin with
         $('#bulkBeginIssueProcessBtn').prop('disabled', true);
         $('#bulkCancelIssueProcessBtn').show();
         evaluateBulkIssueQuantities();
     } else {
         $('.bulk-manage-container').removeClass('inBulkIssueMode');
-        $('.bulk-manage-right-section').show();
-        $('.bulk-manage-left-section').show();
+        $('.bulk-manage-right-section').hide();  // Hide issue section when not in issue mode
+        $('.bulk-manage-left-section').hide();   // Hide receive section when not in issue mode
         $('#bulkBeginIssueProcessBtn').text("Begin Issue Process");
         $('#bulkCancelIssueProcessBtn').hide();
     }
 
-    // clear all inputs
+    // Clear all inputs
     document.querySelectorAll('.bulk-quantity-input').forEach(input => {
         input.value = setAsActive ? 0 : '';
     });
 
-    // clear bulk-process-status
+    // Clear bulk-process-status
     $('.bulk-process-status').text('');
 
-    // initial evaluate to disable fields
+    // Initial evaluate to disable fields
     evaluateBulkIssueQuantities();
-
 }
 
 
@@ -4355,6 +4353,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
