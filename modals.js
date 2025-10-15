@@ -3297,13 +3297,17 @@ async function executeRejectOperation(inventoryId, inventoryData) {
             const newQuantity = inventoryData.quantity - rejectQuantity;
             // 1. Reduce quantity of original item
             await supabase.from('inventory').update({ quantity: newQuantity }).eq('id', inventoryId);
-            // 2. Create new rejected item
+            // 2. Create new rejected item (only include valid inventory table columns)
             const { data } = await supabase.from('inventory').insert([{
-                ...inventoryData,
-                id: undefined,
+                item_type_id: inventoryData.item_type_id,
+                location_id: inventoryData.location_id,
+                assigned_crew_id: null, // Clear crew assignment for rejected items
+                dfn_id: inventoryData.dfn_id,
+                mfgrsn: inventoryData.mfgrsn,
+                tilsonsn: inventoryData.tilsonsn,
                 quantity: rejectQuantity,
                 status_id: rejectedStatusId,
-                assigned_crew_id: null // Clear crew assignment for rejected items
+                sloc_id: inventoryData.sloc_id
             }]).select('id').single();
             newRejectedRecordId = data?.id;
 
@@ -3311,10 +3315,15 @@ async function executeRejectOperation(inventoryId, inventoryData) {
             if (window.transactionLogger) {
                 if (newRejectedRecordId) {
                     await window.transactionLogger.logInventoryCreated(newRejectedRecordId, {
-                        ...inventoryData,
+                        item_type_id: inventoryData.item_type_id,
+                        location_id: inventoryData.location_id,
+                        assigned_crew_id: null,
+                        dfn_id: inventoryData.dfn_id,
+                        mfgrsn: inventoryData.mfgrsn,
+                        tilsonsn: inventoryData.tilsonsn,
                         quantity: rejectQuantity,
                         status_id: rejectedStatusId,
-                        assigned_crew_id: null
+                        sloc_id: inventoryData.sloc_id
                     });
                 }
                 await window.transactionLogger.logQuantityAdjusted(
@@ -5476,6 +5485,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
