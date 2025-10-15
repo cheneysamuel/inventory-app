@@ -1517,6 +1517,7 @@ window.editRow = function(table, row) {
  * @returns {Promise<Object>} - {success: boolean, combinedCount: number, error?: string}
  */
 async function combineBulkInventoryRecords() {
+    console.log('🔄 Combining bulk inventory records...');
     try {
         // Get all inventory records
         const { data: inventoryRows, error: invError } = await supabase
@@ -2069,6 +2070,7 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
 
 
