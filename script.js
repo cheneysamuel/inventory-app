@@ -5,6 +5,7 @@ let selectedSerializedForIssue = [];
 
 window.serializedIssueState = serializedIssueState;
 window.selectedSerializedForIssue = selectedSerializedForIssue;
+window.isInventoryLoading = false;
 
 // Move buttonRequirements outside and before any function definitions
 const buttonRequirements = {
@@ -573,35 +574,30 @@ async function getBulkItemTypes() {
  * @returns {Object} - Object with status quantities
  */
 async function getBulkInventoryAggregates(itemTypeId) {
-    // Fetch all inventory rows for this item type and SLOC, including status name
-    console.log('getBulkInventoryAggregates called...');
-    const { data, error } = await supabase
-        .from('inventory')
-        .select('quantity, statuses(name)')
-        .eq('item_type_id', itemTypeId)
-        .eq('sloc_id', window.selectedSlocId);
-
+    // Note: This is now a wrapper for batch fetching. For full optimization, refactor generateBulkItemTypesTable to fetch all aggregates at once.
     const aggregates = {
         'Available': 0,
         'Issued': 0,
         'Installed': 0,
         'Rejected': 0,
     };
-
+    // Fetch all relevant inventory in one query (if not already cached)
+    const { data, error } = await supabase
+        .from('inventory')
+        .select('quantity, status_id, item_type_id')
+        .eq('sloc_id', window.selectedSlocId)
+        .in('item_type_id', [itemTypeId]);  // Or expand to all bulk item types for batching
     if (error) {
         console.error('Supabase error:', error);
         return aggregates;
     }
-
-    if (data && Array.isArray(data)) {
-        data.forEach(row => {
-            const status = row.statuses?.name;
-            if (status && aggregates.hasOwnProperty(status)) {
-                aggregates[status] += row.quantity || 0;
-            }
-        });
-    }
-
+    // Group by status
+    data.forEach(row => {
+        const statusName = getCachedRow('statuses', row.status_id)?.name;
+        if (statusName && aggregates.hasOwnProperty(statusName)) {
+            aggregates[statusName] += row.quantity || 0;
+        }
+    });
     return aggregates;
 }
 
@@ -844,7 +840,6 @@ async function processBulkInventoryInsertion(actionType) {
             alert(`✅ Successfully received ${result.successCount} bulk items!`);
             // Optionally refresh tables/UI
             useBulkReceiveMode(false); 
-            await refreshBulkItemTypesTable();
             refreshAllTables();
         } else {
             alert(`❌ Error: ${result.errors.map(e => e.error).join(', ')}`);
@@ -961,10 +956,13 @@ async function processBulkInventoryInsertion(actionType) {
  */
 async function refreshBulkItemTypesTable(createTable = true) {
     console.log('refreshBulkItemTypesTable called...');
-
     const tableContainer = document.getElementById('bulkItemTypesTable');
     if (!tableContainer) {
         console.warn('bulkItemTypesTable container not found.');
+        return;
+    }
+    // Skip if bulk receive section isn't active
+    if (!document.getElementById('bulkReceiveAccordion').classList.contains('active')) {
         return;
     }
 
@@ -1052,10 +1050,16 @@ async function loadInventoryList(loadIt = true) {
     console.log('loadInventoryList called...');
     if (!loadIt) return;
     console.log("Loading inventory lists...");
+    if(window.isInventoryLoading) {
+        console.warn("Inventory load already in progress. Skipping duplicate call.");
+        return;
+    }
+    window.isInventoryLoading = true;
     await Promise.all([
         loadSerializedInventoryList(),
         loadBulkInventoryList()
     ]);
+    window.isInventoryLoading = false;
 }
 
 /**
@@ -1655,19 +1659,16 @@ function setInventorySortconfig(column, direction) {
 function refreshAllTables() {
     console.log("refreshAllTables called...");
     try {
-
-        // if a SLOC is selected, reload the inventory lists
-        if (window.selectedSlocId  && window.selectedMarketId) {
-            loadInventoryList();
+        if (window.selectedSlocId && window.selectedMarketId) {
+            // Only refresh inventory if the section is active
+            if (document.getElementById('inventoryAccordion').classList.contains('active')) {
+                loadInventoryList();
+            }
             refreshBulkItemTypesTable();
-        }
-        else{
-            // if no SLOC is selected, just clear the inventory lists and bulk table
+        } else {
             loadInventoryList(false);
             refreshBulkItemTypesTable(false);
         }
-
-
     } catch (error) {
         console.error('Error refreshing tables:', error);
     }
@@ -2010,7 +2011,12 @@ async function showSections({serializedInventory=false, inventoryReceiving=false
     console.log('showSections called...');
     const inventoryAccordion = document.getElementById('inventoryAccordion');
     if (inventoryAccordion) {
+        const wasActive = inventoryAccordion.classList.contains('active');
         inventoryAccordion.classList.toggle('active', serializedInventory);
+        // Only load if newly activated
+        if (serializedInventory && !wasActive) {
+            await loadInventoryList();
+        }
     }
     const receiveAccordion = document.getElementById('receiveAccordion');
     if (receiveAccordion) {
@@ -4342,6 +4348,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
