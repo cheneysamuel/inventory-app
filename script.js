@@ -367,8 +367,6 @@ async function insertInventoryRecord(inventoryData) {
         if (error) {
             return { success: false, error: error.message };
         }
-
-        console.log(
         // Log transaction for inventory creation and wait for completion
         if (window.transactionLogger && data && data.id) {
             try {
@@ -4339,6 +4337,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
