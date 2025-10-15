@@ -343,6 +343,7 @@ async function getItemTypeInfo(itemTypeId) {
  * @returns {Promise<Object>} - {success: boolean, error?: string, insertId?: number}
  */
 async function insertInventoryRecord(inventoryData) {
+    console.log('insertInventoryRecord: Inserting inventory record:', inventoryData);
     try {
         // Validate data before insertion
         const validation = validateInventoryData(inventoryData, inventoryData.itemTypeInfo);
@@ -4337,6 +4338,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
