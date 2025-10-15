@@ -948,7 +948,7 @@ async function processBulkInventoryInsertion(actionType) {
         }
 
         // Reset the bulk issue mode and button
-        useBulkIssueMode(false);
+        resetBulkReceiveAndIssueProcessForms();
 
         alert('Bulk issue process completed.');
     }
@@ -4357,6 +4357,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
