@@ -752,7 +752,7 @@ async function getBulkInventoryData(actionType) {
     for (const input of quantityInputs) {
         const quantity = parseInt(input.value, 10) || 0;
         if (quantity > 0) {
-            const itemTypeId = input.name.replace('quantity_', '');
+            const itemTypeId = Number(input.name.replace('quantity_', ''));
             const itemTypeInfo = await getItemTypeInfo(itemTypeId); // <-- fetch info here
             inventoryItems.push({
                 location_id: location,
@@ -4347,6 +4347,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
