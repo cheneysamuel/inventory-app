@@ -3167,7 +3167,7 @@ function resetBulkReceiveAndIssueProcessForms() {
 
 
 function useBulkReceiveMode(setAsActive) {
-    console.log('🔄 Entering bulk receive mode');
+    //console.log('🔄 Entering bulk receive mode');
     if (setAsActive) {
         $('.bulk-manage-container').addClass('inBulkReceiveMode');
         $('.bulk-manage-container').removeClass('inBulkIssueMode');
@@ -3176,49 +3176,52 @@ function useBulkReceiveMode(setAsActive) {
         $('#bulkCancelReceiveProcessBtn').show();
     } else {
         $('.bulk-manage-container').removeClass('inBulkReceiveMode');
-        $('.bulk-manage-right-section').hide();  // Hide issue section when not in receive mode
-        $('.bulk-manage-left-section').hide();   // Hide receive section when not in receive mode
+        $('.bulk-manage-right-section').show();
+        $('.bulk-manage-left-section').show();
         $('#bulkBeginReceiveProcessBtn').text("Begin Receive Process");
         $('#bulkCancelReceiveProcessBtn').hide();
     }
 
-    // Clear all inputs (use empty string to prompt user entry)
+    // clear all inputs
     document.querySelectorAll('.bulk-quantity-input').forEach(input => {
-        input.value = setAsActive ? '' : '';
+        input.value = setAsActive ? 0 : '';
     });
 
-    // Clear bulk-process-status
+    // clear bulk-process-status
     $('.bulk-process-status').text('');
+
 }
 
 function useBulkIssueMode(setAsActive) {
-    console.log('🔄 Entering bulk issue mode');
+    //console.log('🔄 Entering bulk issue mode');
     if (setAsActive) {
         $('.bulk-manage-container').addClass('inBulkIssueMode');
         $('.bulk-manage-container').removeClass('inBulkReceiveMode');
         $('.bulk-manage-left-section').hide();
         $('#bulkBeginIssueProcessBtn').text("Complete Issue Process");
+        //disable the button to begin with
         $('#bulkBeginIssueProcessBtn').prop('disabled', true);
         $('#bulkCancelIssueProcessBtn').show();
         evaluateBulkIssueQuantities();
     } else {
         $('.bulk-manage-container').removeClass('inBulkIssueMode');
-        $('.bulk-manage-right-section').hide();  // Hide issue section when not in issue mode
-        $('.bulk-manage-left-section').hide();   // Hide receive section when not in issue mode
+        $('.bulk-manage-right-section').show();
+        $('.bulk-manage-left-section').show();
         $('#bulkBeginIssueProcessBtn').text("Begin Issue Process");
         $('#bulkCancelIssueProcessBtn').hide();
     }
 
-    // Clear all inputs (use empty string to prompt user entry)
+    // clear all inputs
     document.querySelectorAll('.bulk-quantity-input').forEach(input => {
-        input.value = setAsActive ? '' : '';
+        input.value = setAsActive ? 0 : '';
     });
 
-    // Clear bulk-process-status
+    // clear bulk-process-status
     $('.bulk-process-status').text('');
 
-    // Initial evaluate to disable fields
+    // initial evaluate to disable fields
     evaluateBulkIssueQuantities();
+
 }
 
 
@@ -4354,6 +4357,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
