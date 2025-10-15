@@ -843,7 +843,7 @@ async function processBulkInventoryInsertion(actionType) {
         }
         
         // Always reset the mode and UI, even on failure
-        useBulkReceiveMode(false);
+        resetBulkReceiveAndIssueProcessForms();
         refreshAllTables();
         return;
     }
@@ -4358,6 +4358,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
