@@ -838,8 +838,7 @@ async function processBulkInventoryInsertion(actionType) {
         const result = await insertBulkInventoryRecords(inventoryItems);
         if (result.success) {
             alert(`✅ Successfully received ${result.successCount} bulk items!`);
-            // Optionally refresh tables/UI
-            useBulkReceiveMode(false); 
+            useBulkReceiveMode(false);
             refreshAllTables();
         } else {
             alert(`❌ Error: ${result.errors.map(e => e.error).join(', ')}`);
@@ -849,7 +848,6 @@ async function processBulkInventoryInsertion(actionType) {
 
     // Only process if actionType is 'issue'
     if (actionType === 'issue') {
-
         // Get crew and DFN from the UI
         const assignedCrewId = $('#bulk_issue_assigned_crew_id').val();
         const dfnId = $('#bulk_issue_dfn_id').val();
@@ -939,16 +937,19 @@ async function processBulkInventoryInsertion(actionType) {
             }
         });
 
-    }
+        // Optionally refresh tables and UI
+        if (typeof window.refreshBulkItemTypesTable === 'function') {
+            await window.refreshBulkItemTypesTable();
+        }
+        if (typeof window.refreshAllTables === 'function') {
+            window.refreshAllTables();
+        }
 
-    // Optionally refresh tables and UI
-    if (typeof window.refreshBulkItemTypesTable === 'function') {
-        await window.refreshBulkItemTypesTable();
+        // Reset the bulk issue mode and button
+        useBulkIssueMode(false);
+
+        alert('Bulk issue process completed.');
     }
-    if (typeof window.refreshAllTables === 'function') {
-        window.refreshAllTables();
-    }
-    alert('Bulk issue process completed.');
 }
 
 /**
@@ -4354,6 +4355,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
