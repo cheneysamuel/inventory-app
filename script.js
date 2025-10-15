@@ -734,7 +734,7 @@ async function getBulkInventoryData(actionType) {
         dfnId = formData.get('dfn_id');
     }
 
-    const location = actionType === 'receive' ? formData.get('location_id') : getLocationId('With Crew');
+    const location = actionType === 'receive' ? getLocationId('SLOC') : getLocationId('With Crew');
     const status = actionType === 'receive' ? getStatusId('Available') : getStatusId('Issued');
     const quantityInputs = document.querySelectorAll('.bulk-quantity-input');
     
@@ -4354,6 +4354,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
