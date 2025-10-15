@@ -1866,8 +1866,18 @@ async function handleTableOperationSuccess(changedTableName) {
         // Fetch and update cache for just this table
         const { data, error } = await supabase.from(table).select('*');
         window.lookupCache[table] = error ? [] : (data || []);
-        if (typeof window.refreshAllDropdowns === 'function') window.refreshAllDropdowns();
+        if (typeof window.refreshDropdowns === 'function') window.refreshDropdowns();
         if (typeof window.populateBulkSerializedDropdowns === 'function') window.populateBulkSerializedDropdowns();
+        
+        // If item_types was changed, refresh the bulk item types table and reset the loaded flag
+        if (table === 'item_types') {
+            window.bulkItemTypesLoaded = false; // Force reload next time the section is opened
+            if (document.getElementById('bulkReceiveAccordion').classList.contains('active')) {
+                // Refresh immediately if the bulk receive section is currently open
+                await refreshBulkItemTypesTable(true);
+                window.bulkItemTypesLoaded = true;
+            }
+        }
     }
 }
 
@@ -2051,6 +2061,7 @@ window.testTableManager = function(tableName = 'ITEM_TYPES') {
         console.error('Error opening table manager:', error);
     }
 };
+
 
 
 
