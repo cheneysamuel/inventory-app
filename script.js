@@ -265,6 +265,7 @@ function getLocationId(locationName) {
  * @returns {Object} - {isValid: boolean, errors: string[]}
  */
 function validateInventoryData(inventoryData) {
+    console.log("validateInventoryData: inventoryData: ", inventoryData);
     const errors = [];
     
     // Check required fields
@@ -4339,6 +4340,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
