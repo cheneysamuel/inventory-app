@@ -5,6 +5,7 @@ let selectedSerializedForIssue = [];
 
 window.serializedIssueState = serializedIssueState;
 window.selectedSerializedForIssue = selectedSerializedForIssue;
+window.bulkItemTypesLoaded = false; // Flag to track if bulk item types table has been loaded for current SLOC/market
 
 // Move buttonRequirements outside and before any function definitions
 const buttonRequirements = {
@@ -2027,12 +2028,16 @@ async function showSections({serializedInventory=false, inventoryReceiving=false
     }
     const bulkReceiveAccordion = document.getElementById('bulkReceiveAccordion');
     if (bulkReceiveAccordion) {
+        const wasActive = bulkReceiveAccordion.classList.contains('active');
         bulkReceiveAccordion.classList.toggle('active', bulkReceive);
+        // Only load bulk item types table if newly activated and not already loaded
+        if (bulkReceive && !wasActive) {
+            if (!window.bulkItemTypesLoaded) {
+                await refreshBulkItemTypesTable(true);
+                window.bulkItemTypesLoaded = true;
+            }
+        }
     }
-
-    // Load inventory table when serialized inventory section is shown
-    loadInventoryList();
-
 }
 
 function setupBulkForms() {
@@ -4177,13 +4182,16 @@ slocSelect.addEventListener('change', function() {
     window.selectedSlocId = this.value ? parseInt(this.value, 10) : null;
     resetBulkReceiveAndIssueProcessForms();
 
+    // Reset bulk item types loaded flag for new SLOC
+    window.bulkItemTypesLoaded = false;
+
     // Remove and refresh bulk item types table
     const bulkTableContainer = document.getElementById('bulkItemTypesTable');
     const existingBulkTable = bulkTableContainer.querySelector('#bulkItemTypesMatrix');
     if (existingBulkTable) {
         existingBulkTable.remove();
     }
-    refreshBulkItemTypesTable();
+    // Note: We don't call refreshBulkItemTypesTable here anymore, as it will be called when the section is opened
 
     // Remove and refresh bulk inventory table
     const bulkInventorySection = document.getElementById('bulkInventorySection');
@@ -4204,7 +4212,6 @@ slocSelect.addEventListener('change', function() {
     // Update button states
     updateBulkButtonStates();
 });
-}
 
 
 async function setCurrentUserFromSupabase() {
@@ -4347,6 +4354,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
