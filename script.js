@@ -606,7 +606,7 @@ async function getBulkInventoryAggregates(itemTypeId) {
  * @returns {HTMLTableElement} - Generated table element
  */
 async function generateBulkItemTypesTable() {
-    console.log('generateBulkItemTypesTable called...');
+    //console.log('generateBulkItemTypesTable called...');
     const bulkItemTypes = await getBulkItemTypes();
 
     // Remove existing table
@@ -955,7 +955,7 @@ async function processBulkInventoryInsertion(actionType) {
  * Refresh the bulk item types table
  */
 async function refreshBulkItemTypesTable(createTable = true) {
-    console.log('refreshBulkItemTypesTable called...');
+    //console.log('refreshBulkItemTypesTable called...');
     const tableContainer = document.getElementById('bulkItemTypesTable');
     if (!tableContainer) {
         console.warn('bulkItemTypesTable container not found.');
@@ -1047,9 +1047,9 @@ function updateBulkButtonStates() {
  * Load and display both serialized and bulk inventory lists
  */
 async function loadInventoryList(loadIt = true) {
-    console.log('loadInventoryList called...');
+    //console.log('loadInventoryList called...');
     if (!loadIt) return;
-    console.log("Loading inventory lists...");
+    //console.log("Loading inventory lists...");
     await Promise.all([
         loadSerializedInventoryList(),
         loadBulkInventoryList()
@@ -1060,7 +1060,7 @@ async function loadInventoryList(loadIt = true) {
  * Load and display serialized inventory in hierarchical format (items with serialized inventory type)
  */
 async function loadSerializedInventoryList() {
-    console.log('loadSerializedInventoryList called...');
+    //console.log('loadSerializedInventoryList called...');
     if (!isUserLoggedIn()) {
         console.warn('User not logged in. Skipping Supabase call.');
         return;
@@ -1081,7 +1081,7 @@ async function loadSerializedInventoryList() {
 
         // Get current sort configuration
         const orderBy = getInventoryOrderBy();
-        console.log("orderBy: ", orderBy);
+        //console.log("orderBy: ", orderBy);
         
         // Supabase query with joins - Filter by inventory_type = 'Serialized'
         const { data, error } = await supabase
@@ -1150,7 +1150,7 @@ async function loadSerializedInventoryList() {
  * Load and display bulk inventory (items with bulk inventory type)
  */
 async function loadBulkInventoryList() {
-    console.log('loadBulkInventoryList called...');
+    //console.log('loadBulkInventoryList called...');
     if (!isUserLoggedIn()) {
         console.warn('User not logged in. Skipping Supabase call.');
         return;
@@ -1166,12 +1166,12 @@ async function loadBulkInventoryList() {
         // Clear the existing table
         const existingTable = inventorySection.querySelector('#bulkInventoryTable');
         if (existingTable) {
-            console.log('table already exists... removing before generating.');
+            //console.log('table already exists... removing before generating.');
             existingTable.remove();
         }
         // Get current sort configuration
         const orderBy = getInventoryOrderBy();
-        console.log("orderBy: ", orderBy);
+        //console.log("orderBy: ", orderBy);
         
         // Supabase query with joins - Filter by inventory_type = 'Bulk'
         const { data, error } = await supabase
@@ -1242,7 +1242,7 @@ async function loadBulkInventoryList() {
  * Create hierarchical display for serialized inventory
  */
 async function createSerializedInventoryHierarchy(data) {
-    console.log('createSerializedInventoryHierarchy called...');
+    //console.log('createSerializedInventoryHierarchy called...');
     const hierarchyContainer = document.getElementById('serializedInventoryHierarchy');
     if (!hierarchyContainer) return;
     
@@ -1406,7 +1406,7 @@ async function createSerializedInventoryHierarchy(data) {
  * Create an inventory table with specified ID and type
  */
 function createInventoryTable(tableId, inventoryType) {
-    console.log('createInventoryTable called...');
+    //console.log('createInventoryTable called...');
     // check to see if table exist already. If so, use it
     const existingTable = document.getElementById(tableId);
     if (existingTable) {
@@ -1526,7 +1526,7 @@ function createInventoryTable(tableId, inventoryType) {
  * Populate an inventory table with data
  */
 function populateInventoryTable(data, tbodyId, inventoryType) {
-    console.log('populateInventoryTable called...');
+    //console.log('populateInventoryTable called...');
     const tbody = document.getElementById(tbodyId);
     if (!tbody) return;
     
@@ -1651,7 +1651,7 @@ function setInventorySortconfig(column, direction) {
  * Refresh all tables on the page after database changes
  */
 function refreshAllTables() {
-    console.log("refreshAllTables called...");
+    //console.log("refreshAllTables called...");
     try {
         if (window.selectedSlocId && window.selectedMarketId) {
             loadInventoryList();
@@ -4354,6 +4354,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
