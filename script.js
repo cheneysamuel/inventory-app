@@ -264,7 +264,7 @@ function getLocationId(locationName) {
  * @param {Object} itemTypeInfo - Item type information
  * @returns {Object} - {isValid: boolean, errors: string[]}
  */
-function validateInventoryData(inventoryData, itemTypeInfo) {
+function validateInventoryData(inventoryData) {
     const errors = [];
     
     // Check required fields
@@ -279,7 +279,7 @@ function validateInventoryData(inventoryData, itemTypeInfo) {
     }
     
     // Check serialized item requirements
-    if (itemTypeInfo.isSerializedType) {
+    if (inventoryData.itemTypeInfo.isSerializedType) {
         if (!inventoryData.mfgrsn) {
             errors.push('Manufacturer Serial Number is required for serialized items');
         }
@@ -346,7 +346,8 @@ async function insertInventoryRecord(inventoryData) {
     console.log('insertInventoryRecord: Inserting inventory record:', inventoryData);
     try {
         // Validate data before insertion
-        const validation = validateInventoryData(inventoryData, inventoryData.itemTypeInfo);
+        const validation = validateInventoryData(inventoryData);
+        console.log("validateInventoryData: Validation result:", validation);
         if (!validation.isValid) {
             return {
                 success: false,
@@ -4338,6 +4339,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
