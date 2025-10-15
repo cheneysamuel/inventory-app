@@ -838,11 +838,13 @@ async function processBulkInventoryInsertion(actionType) {
         const result = await insertBulkInventoryRecords(inventoryItems);
         if (result.success) {
             alert(`✅ Successfully received ${result.successCount} bulk items!`);
-            useBulkReceiveMode(false);
-            refreshAllTables();
         } else {
             alert(`❌ Error: ${result.errors.map(e => e.error).join(', ')}`);
         }
+        
+        // Always reset the mode and UI, even on failure
+        useBulkReceiveMode(false);
+        refreshAllTables();
         return;
     }
 
@@ -3165,7 +3167,7 @@ function resetBulkReceiveAndIssueProcessForms() {
 
 
 function useBulkReceiveMode(setAsActive) {
-    //console.log('🔄 Entering bulk receive mode');
+    console.log('🔄 Entering bulk receive mode');
     if (setAsActive) {
         $('.bulk-manage-container').addClass('inBulkReceiveMode');
         $('.bulk-manage-container').removeClass('inBulkIssueMode');
@@ -3174,20 +3176,19 @@ function useBulkReceiveMode(setAsActive) {
         $('#bulkCancelReceiveProcessBtn').show();
     } else {
         $('.bulk-manage-container').removeClass('inBulkReceiveMode');
-        $('.bulk-manage-right-section').show();
-        $('.bulk-manage-left-section').show();
+        $('.bulk-manage-right-section').hide();  // Hide issue section when not in receive mode
+        $('.bulk-manage-left-section').hide();   // Hide receive section when not in receive mode
         $('#bulkBeginReceiveProcessBtn').text("Begin Receive Process");
         $('#bulkCancelReceiveProcessBtn').hide();
     }
 
-    // clear all inputs
+    // Clear all inputs (use empty string to prompt user entry)
     document.querySelectorAll('.bulk-quantity-input').forEach(input => {
-        input.value = setAsActive ? 0 : '';
+        input.value = setAsActive ? '' : '';
     });
 
-    // clear bulk-process-status
+    // Clear bulk-process-status
     $('.bulk-process-status').text('');
-
 }
 
 function useBulkIssueMode(setAsActive) {
@@ -3208,9 +3209,9 @@ function useBulkIssueMode(setAsActive) {
         $('#bulkCancelIssueProcessBtn').hide();
     }
 
-    // Clear all inputs
+    // Clear all inputs (use empty string to prompt user entry)
     document.querySelectorAll('.bulk-quantity-input').forEach(input => {
-        input.value = setAsActive ? 0 : '';
+        input.value = setAsActive ? '' : '';
     });
 
     // Clear bulk-process-status
@@ -4353,6 +4354,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
