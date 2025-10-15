@@ -346,13 +346,6 @@ async function getItemTypeInfo(itemTypeId) {
 async function insertInventoryRecord(inventoryData) {
     console.log('insertInventoryRecord: Inserting inventory record:', inventoryData);
     try {
-
-        // we're inserting a new record.  add the location and status
-        const locationId = getLocationId('SLOC');
-        const statusId = getStatusId('Available');
-
-        inventoryData.location_id = locationId;
-        inventoryData.status_id = statusId;
         // Validate data before insertion
         const validation = validateInventoryData(inventoryData);
         console.log("validateInventoryData: Validation result:", validation);
@@ -762,7 +755,8 @@ async function getBulkInventoryData(actionType) {
                 quantity: quantity,
                 batch_note: formData.get('batch_note') || null,
                 itemTypeInfo: itemTypeInfo,
-                status_id: status
+                status_id: status,
+                sloc_id: window.selectedSlocId
             });
         }
     }
@@ -4347,6 +4341,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
