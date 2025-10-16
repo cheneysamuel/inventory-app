@@ -3410,7 +3410,7 @@ async function showInstallModal(inventoryId) {
                     <h4>Installation Details</h4>
                     <div class="modal-form-group">
                         <label for="installQuantity"><strong>Quantity to Install:</strong></label>
-                        <input type="number" id="installQuantity" min="1" max="${inventoryData.quantity}" value="${inventoryData.quantity}">
+                        <input type="number" id="bulkInstallQuantity" min="1" max="${inventoryData.quantity}" value="${inventoryData.quantity}">
                         <div class="quantity-info">Available: ${inventoryData.quantity} | <span id="remainingInstall">Remaining: 0</span></div>
                     </div>
                     <div class="modal-form-group">
@@ -3755,7 +3755,7 @@ function validateSerializedInstallForm() {
  * @param {Object} inventoryData - Inventory item data
  */
 function setupInstallQuantityValidation(inventoryData) {
-    const quantityInput = document.getElementById('installQuantity');
+    const quantityInput = document.getElementById('bulkInstallQuantity');
     const remainingSpan = document.getElementById('remainingQuantity');
     const installButton = document.getElementById('executeInstallBtn');
 
@@ -5662,6 +5662,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
