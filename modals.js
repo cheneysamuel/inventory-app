@@ -3877,7 +3877,7 @@ async function executeInstallOperation(inventoryId, inventoryData, isSerializedT
             const dfnSelect = document.getElementById('dfnSelect');
             const dfnId = inventoryData.dfn_id;
             console.log('installQty: ', installQty);
-            if (!installQty || installQty < 1 || !dfnId) {
+            if (!installQty || installQty < 1 || installQty > inventoryData.quantity || !dfnId) {
                 ModalUtils.handleError('Please enter a valid quantity and select a DFN.');
                 return;
             }
@@ -5660,6 +5660,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
