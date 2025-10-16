@@ -414,6 +414,7 @@ async function insertBulkInventoryRecords(inventoryDataArray) {
     const errors = [];
     console.log("insertBulkInventoryRecords called with inventoryDataArray:", inventoryDataArray);
     console.log('Inserting bulk inventory records:', inventoryDataArray);
+    console.log('inventoryDataArray.length: ', inventoryDataArray.length);
     for (let index = 0; index < inventoryDataArray.length; index++) {
         console.log('index: ', index);
         const inventoryData = inventoryDataArray[index];
@@ -4361,6 +4362,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
