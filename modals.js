@@ -3411,7 +3411,7 @@ async function showInstallModal(inventoryId) {
                     <div class="modal-form-group">
                         <label for="installQuantity"><strong>Quantity to Install:</strong></label>
                         <input type="number" id="installQuantity" min="1" max="${inventoryData.quantity}" value="${inventoryData.quantity}">
-                        <div class="quantity-info">Available: ${inventoryData.quantity} | <span id="remainingInstall">Remaining: 0</span></div>
+                        <div class="quantity-info">Available: ${inventoryData.quantity} | <span id="remainingQuantity">Remaining: 0</span></div>
                     </div>
                     <div class="modal-form-group">
                         <label for="installNotes"><strong>Installation Notes:</strong></label>
@@ -3470,16 +3470,8 @@ async function showInstallModal(inventoryId) {
                 dfnSelect.addEventListener('change', validate);
                 validate();
             } else {
-                const qtyInput = document.getElementById('installQuantity');
-                const executeBtn = document.getElementById('executeInstallBtn');
-                const remainingSpan = document.getElementById('remainingInstall');
-                function validate() {
-                    const qty = parseInt(qtyInput.value) || 0;
-                    if (remainingSpan) remainingSpan.textContent = inventoryData.quantity - qty;
-                    executeBtn.disabled = qty < 1 || qty > inventoryData.quantity;
-                }
-                qtyInput.addEventListener('input', validate);
-                validate();
+                // Use the existing setupInstallQuantityValidation function for bulk items
+                setupInstallQuantityValidation(inventoryData);
             }
         }, 0);
 
@@ -5660,6 +5652,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
