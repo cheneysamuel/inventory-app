@@ -3873,11 +3873,11 @@ async function executeInstallOperation(inventoryId, inventoryData, isSerializedT
             }
         } else {
             // Bulk: install some or all units
-            const installQty = parseInt(document.getElementById('bulkInstallQuantity')?.value) || inventoryData.quantity;
+            const installQty = parseInt(document.getElementById('bulkInstallQuantity')?.value);
             const dfnSelect = document.getElementById('dfnSelect');
-            const dfnId = dfnSelect?.value || null;
+            const dfnId = inventoryData.dfn_id;
             console.log('installQty: ', installQty);
-            if (!installQty || installQty < 1 || installQty > inventoryData.quantity || !dfnId) {
+            if (!installQty || installQty < 1 || !dfnId) {
                 ModalUtils.handleError('Please enter a valid quantity and select a DFN.');
                 return;
             }
@@ -5660,6 +5660,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
