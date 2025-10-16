@@ -3786,6 +3786,7 @@ function setupInstallQuantityValidation(inventoryData) {
  * @param {boolean} isSerializedType - Whether this is a serialized item type
  */
 async function executeInstallOperation(inventoryId, inventoryData, isSerializedType) {
+    console.log('Executing install operation: ', { inventoryId, inventoryData, isSerializedType });
     try {
         const notes = document.getElementById('installNotes')?.value.trim() || '';
         const installedStatusId = await ModalUtils.getStatusId('Installed');
@@ -5661,6 +5662,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
