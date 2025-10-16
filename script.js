@@ -451,7 +451,7 @@ async function insertBulkInventoryRecords(inventoryDataArray) {
  */
 async function processInventoryInsertion(action) {
 
-    const inventoryData = getBulkInventoryData('receive');
+    const inventoryData = await getBulkInventoryData('receive');
     
     console.log("Processing inventory insertion:", inventoryData);
 
@@ -832,7 +832,7 @@ async function processBulkInventoryInsertion(actionType) {
 
     if (actionType === 'receive') {
         // Get bulk inventory data to receive
-        const inventoryItems = getBulkInventoryData('receive');
+        const inventoryItems = await getBulkInventoryData('receive');
         if (inventoryItems.length === 0) {
             alert('No quantities entered for receiving.');
             return;
@@ -4362,6 +4362,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
