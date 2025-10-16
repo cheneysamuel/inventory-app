@@ -3462,7 +3462,6 @@ async function showInstallModal(inventoryId) {
                 const qtyInput = document.getElementById('installSerializedQuantity');
                 const dfnSelect = document.getElementById('installDfnSelect');
                 const executeBtn = document.getElementById('executeInstallBtn');
-                console.log('qtyInput: ', qtyInput);
                 function validate() {
                     const qty = parseInt(qtyInput.value) || 0;
                     executeBtn.disabled = !dfnSelect.value || qty < 1 || qty > inventoryData.quantity;
@@ -3471,7 +3470,7 @@ async function showInstallModal(inventoryId) {
                 dfnSelect.addEventListener('change', validate);
                 validate();
             } else {
-                const qtyInput = document.getElementById('installQuantity');
+                const qtyInput = document.getElementById('bulkInstallQuantity');
                 const executeBtn = document.getElementById('executeInstallBtn');
                 const remainingSpan = document.getElementById('remainingInstall');
                 function validate() {
@@ -5663,6 +5662,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
