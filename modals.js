@@ -3409,8 +3409,8 @@ async function showInstallModal(inventoryId) {
                 <div class="install-form-section">
                     <h4>Bulk Item Installation Details</h4>
                     <div class="modal-form-group">
-                        <label for="bulkInstallQuantity"><strong>Quantity to Install:</strong></label>
-                        <input type="number" id="bulkInstallQuantity" min="1" max="${inventoryData.quantity}" value="${inventoryData.quantity}">
+                        <label for="installQuantity"><strong>Quantity to Install:</strong></label>
+                        <input type="number" id="installQuantity" min="1" max="${inventoryData.quantity}" value="${inventoryData.quantity}">
                         <div class="quantity-info">Available: ${inventoryData.quantity} | <span id="remainingInstall">Remaining: 0</span></div>
                     </div>
                     <div class="modal-form-group">
@@ -3470,7 +3470,7 @@ async function showInstallModal(inventoryId) {
                 dfnSelect.addEventListener('change', validate);
                 validate();
             } else {
-                const qtyInput = document.getElementById('bulkInstallQuantity');
+                const qtyInput = document.getElementById('installQuantity');
                 const executeBtn = document.getElementById('executeInstallBtn');
                 const remainingSpan = document.getElementById('remainingInstall');
                 function validate() {
@@ -3755,7 +3755,7 @@ function validateSerializedInstallForm() {
  * @param {Object} inventoryData - Inventory item data
  */
 function setupInstallQuantityValidation(inventoryData) {
-    const quantityInput = document.getElementById('bulkInstallQuantity');
+    const quantityInput = document.getElementById('installQuantity');
     const remainingSpan = document.getElementById('remainingQuantity');
     const installButton = document.getElementById('executeInstallBtn');
 
@@ -3873,7 +3873,7 @@ async function executeInstallOperation(inventoryId, inventoryData, isSerializedT
             }
         } else {
             // Bulk: install some or all units
-            const installQty = parseInt(document.getElementById('bulkInstallQuantity')?.value);
+            const installQty = parseInt(document.getElementById('installQuantity')?.value);
             const dfnSelect = document.getElementById('dfnSelect');
             const dfnId = inventoryData.dfn_id;
             console.log('installQty: ', installQty);
@@ -5660,6 +5660,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
