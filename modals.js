@@ -3801,9 +3801,8 @@ async function executeInstallOperation(inventoryId, inventoryData, isSerializedT
 
         if (isSerializedType) {
             // Serialized: install all units together
-            const qtyInput = document.getElementById('installSerializedQuantity');
+            const installQty = parseInt(document.getElementById('installSerializedQuantity')?.value) || inventoryData.quantity;
             const dfnSelect = document.getElementById('installDfnSelect') || document.getElementById('dfnSelect');
-            const installQty = parseInt(qtyInput?.value) || inventoryData.quantity;
             const dfnId = dfnSelect?.value || null;
 
             if (!installQty || installQty < 1 || installQty > inventoryData.quantity || !dfnId) {
@@ -3874,9 +3873,8 @@ async function executeInstallOperation(inventoryId, inventoryData, isSerializedT
             }
         } else {
             // Bulk: install some or all units
-            const qtyInput = document.getElementById('installQuantity');
+            const installQty = parseInt(document.getElementById('bulkInstallQuantity')?.value) || inventoryData.quantity;
             const dfnSelect = document.getElementById('dfnSelect');
-            const installQty = parseInt(qtyInput?.value) || 0;
             const dfnId = dfnSelect?.value || null;
             console.log('installQty: ', installQty);
             if (!installQty || installQty < 1 || installQty > inventoryData.quantity || !dfnId) {
@@ -5662,6 +5660,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
