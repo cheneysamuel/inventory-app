@@ -3386,7 +3386,7 @@ async function showInstallModal(inventoryId) {
         const formSection = isSerialized
             ? `
                 <div class="install-form-section">
-                    <h4>Installation Details</h4>
+                    <h4>Serialized Item Installation Details</h4>
                     <div class="modal-form-group">
                         <label for="installSerializedQuantity"><strong>Install Quantity:</strong></label>
                         <input type="number" id="installSerializedQuantity" min="1" max="${inventoryData.quantity}" value="${inventoryData.quantity}">
@@ -3407,9 +3407,9 @@ async function showInstallModal(inventoryId) {
             `
             : `
                 <div class="install-form-section">
-                    <h4>Installation Details</h4>
+                    <h4>Bulk Item Installation Details</h4>
                     <div class="modal-form-group">
-                        <label for="installQuantity"><strong>Quantity to Install:</strong></label>
+                        <label for="bulkInstallQuantity"><strong>Quantity to Install:</strong></label>
                         <input type="number" id="bulkInstallQuantity" min="1" max="${inventoryData.quantity}" value="${inventoryData.quantity}">
                         <div class="quantity-info">Available: ${inventoryData.quantity} | <span id="remainingInstall">Remaining: 0</span></div>
                     </div>
@@ -3462,6 +3462,7 @@ async function showInstallModal(inventoryId) {
                 const qtyInput = document.getElementById('installSerializedQuantity');
                 const dfnSelect = document.getElementById('installDfnSelect');
                 const executeBtn = document.getElementById('executeInstallBtn');
+                console.log('qtyInput: ', qtyInput);
                 function validate() {
                     const qty = parseInt(qtyInput.value) || 0;
                     executeBtn.disabled = !dfnSelect.value || qty < 1 || qty > inventoryData.quantity;
@@ -5662,6 +5663,7 @@ async function executeAssignDfnOperation(inventoryId, inventoryData, isSerialize
         ModalUtils.handleError(error, 'assign DFN operation');
     }
 }
+
 
 
 
