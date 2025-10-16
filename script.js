@@ -415,6 +415,7 @@ async function insertBulkInventoryRecords(inventoryDataArray) {
     console.log('Inserting bulk inventory records:', inventoryDataArray);
     for (let index = 0; index < inventoryDataArray.length; index++) {
         const inventoryData = inventoryDataArray[index];
+        console.log(`Inserting record ${index + 1}/${inventoryDataArray.length}:`, inventoryData);
         const result = await insertInventoryRecord(inventoryData);
         if (result.success) {
             results.push({
@@ -4358,6 +4359,7 @@ async function handleInventoryRowClick(row, event) {
 }
 
 window.handleInventoryRowClick = handleInventoryRowClick;
+
 
 
 
