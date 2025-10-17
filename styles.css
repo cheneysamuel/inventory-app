@@ -6937,6 +6937,10 @@ tr.hidden-by-search {
     padding: 0.5em 1em;
 }
 
+.modal-execute-btn:disabled {
+    background: gray !important;
+}
+
 @media (max-width: 600px) {
     .serialized-inventory-management-flex {
         flex-direction: column;
@@ -6978,3 +6982,4 @@ tr.hidden-by-search {
         align-items: stretch;
     }
 }
+
