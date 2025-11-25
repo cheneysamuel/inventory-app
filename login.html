@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Inventory Management System</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="app-components.css">
+    
+    <!-- Supabase Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-screen" style="display: flex;">
+        <div class="login-container">
+            <h1>Inventory Management System</h1>
+            <p class="text-muted">Please log in to continue</p>
+            
+            <form id="login-form" class="login-form">
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" class="form-control" required placeholder="your@email.com" autocomplete="email">
+                </div>
+                
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" class="form-control" required placeholder="••••••••" autocomplete="current-password">
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-block">Log In</button>
+                
+                <div style="text-align: center; margin-top: 1rem;">
+                    <a href="#" id="forgot-password-link" style="color: #4A90E2; text-decoration: none; font-size: 0.9rem;">Forgot Password?</a>
+                </div>
+                
+                <div id="login-error" class="alert alert-error" style="display: none; margin-top: 1rem;"></div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Forgot Password Modal -->
+    <div id="forgot-password-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 400px; width: 90%;">
+            <h2 style="margin-top: 0;">Reset Password</h2>
+            <p style="color: #666; margin-bottom: 1.5rem;">Enter your email address and we'll send you a link to reset your password.</p>
+            
+            <form id="forgot-password-form">
+                <div class="form-group">
+                    <label for="reset-email">Email</label>
+                    <input type="email" id="reset-email" class="form-control" required placeholder="your@email.com" autocomplete="email">
+                </div>
+                
+                <div id="forgot-password-message" style="display: none; margin-bottom: 1rem;"></div>
+                
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Send Reset Link</button>
+                    <button type="button" id="cancel-forgot-password" class="btn btn-secondary" style="flex: 1;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Reset Password Page (shown when user clicks email link) -->
+    <div id="reset-password-screen" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); align-items: center; justify-content: center;">
+        <div class="login-container">
+            <h1>Set New Password</h1>
+            <p class="text-muted">Enter your new password below</p>
+            
+            <form id="reset-password-form" class="login-form">
+                <div class="form-group">
+                    <label for="new-password">New Password</label>
+                    <input type="password" id="new-password" class="form-control" required placeholder="••••••••" minlength="6" autocomplete="new-password">
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm-password">Confirm Password</label>
+                    <input type="password" id="confirm-password" class="form-control" required placeholder="••••••••" minlength="6" autocomplete="new-password">
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-block">Update Password</button>
+                
+                <div id="reset-password-error" class="alert alert-error" style="display: none; margin-top: 1rem;"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config/supabase.config.js"></script>
+    <script src="js/utils/functional.js"></script>
+    
+    <script>
+        // Helper functions
+        function byId(id) {
+            return document.getElementById(id);
+        }
+
+        // Initialize Supabase client
+        let supabase = null;
+
+        (async function initLogin() {
+            try {
+                if (!window.supabase) {
+                    throw new Error('Supabase library not loaded');
+                }
+                
+                if (!SupabaseConfig || !SupabaseConfig.url || !SupabaseConfig.anonKey) {
+                    throw new Error('Supabase configuration not found');
+                }
+                
+                supabase = window.supabase.createClient(SupabaseConfig.url, SupabaseConfig.anonKey);
+                
+                // Check if already authenticated
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                    // Already logged in, redirect to main app
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                // Check for password reset token in URL
+                const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                const type = hashParams.get('type');
+                
+                if (type === 'recovery') {
+                    // Show reset password screen
+                    byId('login-screen').style.display = 'none';
+                    byId('reset-password-screen').style.display = 'flex';
+                }
+                
+                console.log('Login page ready');
+            } catch (error) {
+                console.error('Login page initialization failed:', error);
+                const errorDiv = byId('login-error');
+                if (errorDiv) {
+                    errorDiv.textContent = 'Configuration error. Please contact administrator.';
+                    errorDiv.style.display = 'block';
+                }
+            }
+        })();
+
+        // Setup login form
+        const loginForm = byId('login-form');
+        if (loginForm) {
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const email = byId('login-email').value;
+                const password = byId('login-password').value;
+                const errorDiv = byId('login-error');
+                const submitBtn = loginForm.querySelector('button[type="submit"]');
+                
+                errorDiv.style.display = 'none';
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Logging in...';
+                
+                try {
+                    const { data, error } = await supabase.auth.signInWithPassword({
+                        email,
+                        password
+                    });
+                    
+                    if (error) {
+                        errorDiv.textContent = error.message;
+                        errorDiv.style.display = 'block';
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Log In';
+                    } else if (data.session) {
+                        // Success - redirect to main app
+                        window.location.href = 'index.html';
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    errorDiv.textContent = 'An unexpected error occurred';
+                    errorDiv.style.display = 'block';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Log In';
+                }
+            });
+        }
+
+        // Setup forgot password link
+        const forgotPasswordLink = byId('forgot-password-link');
+        const forgotPasswordModal = byId('forgot-password-modal');
+        const cancelForgotPassword = byId('cancel-forgot-password');
+        
+        if (forgotPasswordLink) {
+            forgotPasswordLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                forgotPasswordModal.style.display = 'flex';
+            });
+        }
+        
+        if (cancelForgotPassword) {
+            cancelForgotPassword.addEventListener('click', () => {
+                forgotPasswordModal.style.display = 'none';
+                byId('forgot-password-message').style.display = 'none';
+            });
+        }
+
+        // Setup forgot password form
+        const forgotPasswordForm = byId('forgot-password-form');
+        if (forgotPasswordForm) {
+            forgotPasswordForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const email = byId('reset-email').value;
+                const messageDiv = byId('forgot-password-message');
+                const submitBtn = forgotPasswordForm.querySelector('button[type="submit"]');
+                
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Sending...';
+                
+                try {
+                    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                        redirectTo: window.location.origin + '/login.html'
+                    });
+                    
+                    if (error) {
+                        messageDiv.textContent = error.message;
+                        messageDiv.className = 'alert alert-error';
+                        messageDiv.style.display = 'block';
+                    } else {
+                        messageDiv.textContent = 'Password reset email sent! Check your inbox.';
+                        messageDiv.className = 'alert alert-success';
+                        messageDiv.style.display = 'block';
+                        byId('reset-email').value = '';
+                    }
+                } catch (error) {
+                    console.error('Password reset error:', error);
+                    messageDiv.textContent = 'An unexpected error occurred';
+                    messageDiv.className = 'alert alert-error';
+                    messageDiv.style.display = 'block';
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Send Reset Link';
+                }
+            });
+        }
+
+        // Setup reset password form
+        const resetPasswordForm = byId('reset-password-form');
+        if (resetPasswordForm) {
+            resetPasswordForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const newPassword = byId('new-password').value;
+                const confirmPassword = byId('confirm-password').value;
+                const errorDiv = byId('reset-password-error');
+                const submitBtn = resetPasswordForm.querySelector('button[type="submit"]');
+                
+                errorDiv.style.display = 'none';
+                
+                if (newPassword !== confirmPassword) {
+                    errorDiv.textContent = 'Passwords do not match';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+                
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Updating...';
+                
+                try {
+                    const { error } = await supabase.auth.updateUser({
+                        password: newPassword
+                    });
+                    
+                    if (error) {
+                        errorDiv.textContent = error.message;
+                        errorDiv.style.display = 'block';
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Update Password';
+                    } else {
+                        // Success - redirect to main app
+                        alert('Password updated successfully!');
+                        window.location.href = 'index.html';
+                    }
+                } catch (error) {
+                    console.error('Password update error:', error);
+                    errorDiv.textContent = 'An unexpected error occurred';
+                    errorDiv.style.display = 'block';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Update Password';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
