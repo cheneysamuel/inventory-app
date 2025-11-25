@@ -16,9 +16,6 @@
  */
 
 (async function initializeApp() {
-    // Setup login form handler (must be done before checking auth)
-    setupLoginForm();
-    
     try {
         // Step 1: Initialize Supabase Database Connection
         const dbResult = await Database.init();
@@ -27,21 +24,28 @@
             throw new Error('Failed to initialize Supabase connection: ' + dbResult.error);
         }
         
-        // Step 2: Check authentication status
+        // Step 2: Validate authentication session
         const state = Store.getState();
         
         if (!state.user) {
-            // Clear any persisted user data since there's no valid Supabase session
-            Store.persistence.clear();
-            // Login screen is already visible by default in HTML
-        } else {
-            console.log('✅ Logged in as:', state.user.email);
-            // Hide login screen and show app
-            byId('login-screen').style.display = 'none';
-            byId('app').style.display = 'flex';
-            await loadApplication();
-            Components.showToast('Connected to Supabase successfully', 'success');
+            // No valid session - redirect to login page
+            console.log('❌ No active session found. Redirecting to login...');
+            window.location.href = 'login.html';
+            return;
         }
+        
+        console.log('✅ Logged in as:', state.user.email);
+        
+        // Step 3: Hide loading screen and show app
+        const loadingScreen = byId('loading-screen');
+        const app = byId('app');
+        
+        if (loadingScreen) loadingScreen.style.display = 'none';
+        if (app) app.style.display = 'flex';
+        
+        // Step 4: Load application
+        await loadApplication();
+        Components.showToast('Connected to Supabase successfully', 'success');
         
         console.log('✅ Application initialization complete!');
         
@@ -54,10 +58,13 @@
         } else {
             alert('Failed to initialize application: ' + error.message);
         }
+        
+        // Redirect to login on error
+        window.location.href = 'login.html';
     }
 })();
 
-// Setup login form handler
+// Setup login form handler (REMOVED - login handled in login.html)
 function setupLoginForm() {
     const loginForm = byId('login-form');
     
@@ -384,7 +391,8 @@ async function loadApplication() {
         userDropdownMenu.style.display = 'none';
         const result = await AuthService.logout();
         if (result.isOk) {
-            location.reload(); // Reload to show login screen
+            // Redirect to login page
+            window.location.href = 'login.html';
         }
     };
     
