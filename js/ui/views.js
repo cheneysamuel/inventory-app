@@ -6631,6 +6631,7 @@ async function executeIssueAction(items, assignments, action) {
                     inventory_id: insertResult.isOk ? insertResult.value[0].id : null,
                     transaction_type: 'Issue',
                     action: action.name,
+                    item_type_name: itemType?.name || 'Unknown',
                     quantity: issueQty,
                     status_name: 'Issued',
                     old_status_name: state.statuses.find(s => s.id === item.status_id)?.name || 'Unknown',
@@ -12433,4 +12434,5 @@ return {
 };
 
 })();
+
 
