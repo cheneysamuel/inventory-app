@@ -555,7 +555,8 @@ const Queries = (() => {
     const createSequential = async (data) => insert('sequentials', {
         ...data,
         recorded_at: data.recorded_at || getLocalTimestamp(),
-        created_at: getLocalTimestamp()
+        created_at: getLocalTimestamp(),
+        created_timezone: getUserTimezone()
     });
     
     return {
