@@ -247,22 +247,40 @@ const getUserTimezone = () => {
 const formatTimestampWithTimezone = (timestamp, originalTimezone) => {
     if (!timestamp) return '-';
     
+    console.log('🕐 formatTimestampWithTimezone called:', {
+        originalTimestamp: timestamp,
+        originalTimezone: originalTimezone,
+        timestampType: typeof timestamp
+    });
+    
     // Parse the UTC timestamp from database
     // Ensure the timestamp is treated as UTC by appending 'Z' if not present
     let isoTimestamp = timestamp;
     if (!timestamp.endsWith('Z') && !timestamp.includes('+') && !timestamp.includes('T')) {
         // If it's just a date string without timezone info, assume UTC
         isoTimestamp = timestamp.replace(' ', 'T') + 'Z';
+        console.log('🔄 Converted format 1 (no T):', isoTimestamp);
     } else if (timestamp.includes(' ') && !timestamp.endsWith('Z') && !timestamp.includes('+')) {
         // PostgreSQL format: "2024-11-26 15:30:00" -> convert to ISO with Z
         isoTimestamp = timestamp.replace(' ', 'T') + 'Z';
+        console.log('🔄 Converted format 2 (space to T):', isoTimestamp);
+    } else {
+        console.log('✅ Timestamp already in correct format:', isoTimestamp);
     }
     
     const date = new Date(isoTimestamp);
     const userTimezone = getUserTimezone();
     
+    console.log('📅 Date parsing:', {
+        isoTimestamp: isoTimestamp,
+        parsedDate: date.toISOString(),
+        userTimezone: userTimezone,
+        originalTimezone: originalTimezone
+    });
+    
     // If we have the original timezone, show time in that timezone
     if (originalTimezone) {
+        console.log('🌍 Using original timezone:', originalTimezone);
         // toLocaleString automatically converts from UTC to the specified timezone
         const originalFormatted = date.toLocaleString('en-US', {
             year: 'numeric',
@@ -274,6 +292,8 @@ const formatTimestampWithTimezone = (timestamp, originalTimezone) => {
             timeZone: originalTimezone,
             timeZoneName: 'short'
         });
+        
+        console.log('✨ Formatted in original timezone:', originalFormatted);
         
         // If user's current timezone is different from original, show both
         if (originalTimezone !== userTimezone) {
@@ -287,14 +307,16 @@ const formatTimestampWithTimezone = (timestamp, originalTimezone) => {
                 timeZone: userTimezone,
                 timeZoneName: 'short'
             });
+            console.log('✨ Formatted in user timezone:', userFormatted);
             return `${originalFormatted} (your time: ${userFormatted})`;
         }
         
         return originalFormatted;
     }
     
+    console.log('⚠️ No original timezone - using user timezone:', userTimezone);
     // No original timezone stored - show in user's current timezone
-    return date.toLocaleString('en-US', {
+    const formatted = date.toLocaleString('en-US', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -304,6 +326,9 @@ const formatTimestampWithTimezone = (timestamp, originalTimezone) => {
         timeZone: userTimezone,
         timeZoneName: 'short'
     });
+    
+    console.log('✨ Formatted result:', formatted);
+    return formatted;
 };
 
 /**
