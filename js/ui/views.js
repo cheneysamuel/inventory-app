@@ -3035,14 +3035,7 @@ const Views = (() => {
                         { 
                             field: 'date_time', 
                             label: 'Date/Time', 
-                            render: (val, row) => {
-                                console.log('🔍 Transaction row rendering:', {
-                                    date_time: val,
-                                    created_timezone: row.created_timezone,
-                                    row: row
-                                });
-                                return formatTimestampWithTimezone(val, row.created_timezone);
-                            }
+                            render: (val, row) => formatTimestampWithTimezone(val, row.created_timezone)
                         },
                         { field: 'changes', label: 'Changes', render: (val, row) => getChangesText(row) }
                     ],
@@ -7614,14 +7607,7 @@ async function showFieldInstallModal(items, action) {
                                 }, [String(seq.sequential_number)]),
                                 createElement('td', { 
                                     style: { padding: '6px' } 
-                                }, [(() => {
-                                    console.log('🔍 Sequential row rendering:', {
-                                        recorded_at: seq.recorded_at,
-                                        created_timezone: seq.created_timezone,
-                                        seq: seq
-                                    });
-                                    return formatTimestampWithTimezone(seq.recorded_at, seq.created_timezone);
-                                })()])
+                                }, [formatTimestampWithTimezone(seq.recorded_at, seq.created_timezone)])
                             ])
                         )
                     )
@@ -7634,14 +7620,7 @@ async function showFieldInstallModal(items, action) {
                     color: '#0369a1',
                     fontStyle: 'italic'
                 } 
-            }, [(() => {
-                console.log('🔍 Last sequential rendering:', {
-                    recorded_at: history[0].recorded_at,
-                    created_timezone: history[0].created_timezone,
-                    history: history[0]
-                });
-                return `Last recorded: ${history[0].sequential_number} on ${formatTimestampWithTimezone(history[0].recorded_at, history[0].created_timezone)}`;
-            })()])
+            }, [`Last recorded: ${history[0].sequential_number} on ${formatTimestampWithTimezone(history[0].recorded_at, history[0].created_timezone)}`])
         ]);
     }
     
