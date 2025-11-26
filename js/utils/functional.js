@@ -247,12 +247,6 @@ const getUserTimezone = () => {
 const formatTimestampWithTimezone = (timestamp, originalTimezone) => {
     if (!timestamp) return '-';
     
-    console.log('🕐 formatTimestampWithTimezone called:', {
-        originalTimestamp: timestamp,
-        originalTimezone: originalTimezone,
-        timestampType: typeof timestamp
-    });
-    
     // Parse the UTC timestamp from database
     // CRITICAL: Supabase/PostgreSQL stores timestamps in UTC but returns them WITHOUT the 'Z' suffix
     // Format from DB: "2025-11-26T16:25:34.382" (this is UTC time, but no 'Z')
@@ -265,33 +259,20 @@ const formatTimestampWithTimezone = (timestamp, originalTimezone) => {
         if (timestamp.includes(' ')) {
             // PostgreSQL format: "2024-11-26 15:30:00" -> "2024-11-26T15:30:00Z"
             isoTimestamp = timestamp.replace(' ', 'T') + 'Z';
-            console.log('🔄 Converted PostgreSQL format to UTC:', isoTimestamp);
         } else if (timestamp.includes('T')) {
             // ISO format without Z: "2024-11-26T15:30:00.123" -> "2024-11-26T15:30:00.123Z"
             isoTimestamp = timestamp + 'Z';
-            console.log('🔄 Added Z suffix (Supabase UTC format):', isoTimestamp);
         } else {
             // Just date string: "2024-11-26" -> "2024-11-26T00:00:00Z"
             isoTimestamp = timestamp + 'T00:00:00Z';
-            console.log('🔄 Converted date string to UTC:', isoTimestamp);
         }
-    } else {
-        console.log('✅ Timestamp already has timezone indicator:', isoTimestamp);
     }
     
     const date = new Date(isoTimestamp);
     const userTimezone = getUserTimezone();
     
-    console.log('📅 Date parsing:', {
-        isoTimestamp: isoTimestamp,
-        parsedDate: date.toISOString(),
-        userTimezone: userTimezone,
-        originalTimezone: originalTimezone
-    });
-    
     // If we have the original timezone, show time in that timezone
     if (originalTimezone) {
-        console.log('🌍 Using original timezone:', originalTimezone);
         // toLocaleString automatically converts from UTC to the specified timezone
         const originalFormatted = date.toLocaleString('en-US', {
             year: 'numeric',
@@ -303,8 +284,6 @@ const formatTimestampWithTimezone = (timestamp, originalTimezone) => {
             timeZone: originalTimezone,
             timeZoneName: 'short'
         });
-        
-        console.log('✨ Formatted in original timezone:', originalFormatted);
         
         // If user's current timezone is different from original, show both
         if (originalTimezone !== userTimezone) {
@@ -318,16 +297,14 @@ const formatTimestampWithTimezone = (timestamp, originalTimezone) => {
                 timeZone: userTimezone,
                 timeZoneName: 'short'
             });
-            console.log('✨ Formatted in user timezone:', userFormatted);
             return `${originalFormatted} (your time: ${userFormatted})`;
         }
         
         return originalFormatted;
     }
     
-    console.log('⚠️ No original timezone - using user timezone:', userTimezone);
     // No original timezone stored - show in user's current timezone
-    const formatted = date.toLocaleString('en-US', {
+    return date.toLocaleString('en-US', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -337,9 +314,6 @@ const formatTimestampWithTimezone = (timestamp, originalTimezone) => {
         timeZone: userTimezone,
         timeZoneName: 'short'
     });
-    
-    console.log('✨ Formatted result:', formatted);
-    return formatted;
 };
 
 /**
