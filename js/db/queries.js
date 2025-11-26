@@ -443,6 +443,7 @@ const Queries = (() => {
         const transactionData = {
             ...data,
             date_time: getLocalTimestamp(),
+            created_timezone: getUserTimezone(),
             user_name: data.user_name || userInfo,
             client: data.client || state.selectedClient?.name,
             market: data.market || state.selectedMarket?.name,
