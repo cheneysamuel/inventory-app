@@ -425,8 +425,6 @@ const Queries = (() => {
     const createTransaction = async (data) => {
         const state = Store.getState();
         
-        console.log('createTransaction - State user:', state.user);
-        
         // Create user info JSON string
         let userInfo = 'system';
         if (state.user) {
@@ -435,26 +433,17 @@ const Queries = (() => {
                 email: state.user.email || null,
                 name: state.user.name || state.user.email || null
             });
-            console.log('createTransaction - Using user JSON:', userInfo);
-        } else {
-            console.warn('createTransaction - No user in state, using "system"');
         }
-        
-        const userTz = getUserTimezone();
-        console.log('🌍 getUserTimezone() returned:', userTz);
         
         const transactionData = {
             ...data,
             date_time: getLocalTimestamp(),
-            created_timezone: userTz,
+            created_timezone: getUserTimezone(),
             user_name: data.user_name || userInfo,
             client: data.client || state.selectedClient?.name,
             market: data.market || state.selectedMarket?.name,
             sloc: data.sloc || state.selectedSloc?.name
         };
-        
-        console.log('Creating transaction with user_name:', transactionData.user_name);
-        console.log('📦 Full transaction data:', transactionData);
         
         return insert('transactions', transactionData);
     };
