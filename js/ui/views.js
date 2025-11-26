@@ -3069,12 +3069,12 @@ const Views = (() => {
                                 field: 'quantity', 
                                 label: 'Qty', 
                                 render: (val, row) => {
-                                    console.log('Transaction row data:', { 
-                                        action: row.action, 
-                                        quantity: row.quantity, 
-                                        old_quantity: row.old_quantity,
-                                        item: row.item_type_name 
-                                    });
+                                    // console.log('Transaction row data:', { 
+                                    //     action: row.action, 
+                                    //     quantity: row.quantity, 
+                                    //     old_quantity: row.old_quantity,
+                                    //     item: row.item_type_name 
+                                    // });
                                     const oldQty = row.old_quantity;
                                     const newQty = row.quantity;
                                     if (oldQty != null && newQty != null) {
@@ -12433,3 +12433,4 @@ return {
 };
 
 })();
+
