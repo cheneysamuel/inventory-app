@@ -440,10 +440,13 @@ const Queries = (() => {
             console.warn('createTransaction - No user in state, using "system"');
         }
         
+        const userTz = getUserTimezone();
+        console.log('🌍 getUserTimezone() returned:', userTz);
+        
         const transactionData = {
             ...data,
             date_time: getLocalTimestamp(),
-            created_timezone: getUserTimezone(),
+            created_timezone: userTz,
             user_name: data.user_name || userInfo,
             client: data.client || state.selectedClient?.name,
             market: data.market || state.selectedMarket?.name,
@@ -451,6 +454,7 @@ const Queries = (() => {
         };
         
         console.log('Creating transaction with user_name:', transactionData.user_name);
+        console.log('📦 Full transaction data:', transactionData);
         
         return insert('transactions', transactionData);
     };
