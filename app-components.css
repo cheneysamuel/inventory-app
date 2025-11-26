@@ -288,6 +288,21 @@
         width: 100%;
     }
     
+    /* Ensure accordions are visible on mobile */
+    .accordion-item {
+        margin-bottom: 1rem;
+    }
+    
+    .accordion-header {
+        background-color: #f3f4f6;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .accordion-content {
+        /* Content shows/hides based on JavaScript toggle */
+        max-height: none;
+    }
+    
     .inventory-table {
         font-size: 0.75rem;
     }
