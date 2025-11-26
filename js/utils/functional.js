@@ -254,27 +254,29 @@ const formatTimestampWithTimezone = (timestamp, originalTimezone) => {
     });
     
     // Parse the UTC timestamp from database
-    // CRITICAL: Ensure the timestamp is treated as UTC by appending 'Z' if not present
-    // Supabase returns timestamps in format "2025-11-26T16:25:34.382" without the 'Z'
-    // Without 'Z', JavaScript interprets it as LOCAL time, not UTC!
+    // CRITICAL: Supabase/PostgreSQL stores timestamps in UTC but returns them WITHOUT the 'Z' suffix
+    // Format from DB: "2025-11-26T16:25:34.382" (this is UTC time, but no 'Z')
+    // JavaScript interprets timestamps without 'Z' as LOCAL time, which is WRONG
+    // We must add 'Z' to force JavaScript to treat them as UTC
     let isoTimestamp = timestamp;
-    if (!timestamp.endsWith('Z') && !timestamp.includes('+')) {
-        // Add 'Z' to ensure it's interpreted as UTC
+    
+    // Check if timestamp is missing timezone indicator
+    if (!timestamp.endsWith('Z') && !timestamp.includes('+') && !timestamp.includes('-', 10)) {
         if (timestamp.includes(' ')) {
-            // PostgreSQL format: "2024-11-26 15:30:00" -> convert to ISO with Z
+            // PostgreSQL format: "2024-11-26 15:30:00" -> "2024-11-26T15:30:00Z"
             isoTimestamp = timestamp.replace(' ', 'T') + 'Z';
-            console.log('🔄 Converted PostgreSQL format:', isoTimestamp);
+            console.log('🔄 Converted PostgreSQL format to UTC:', isoTimestamp);
         } else if (timestamp.includes('T')) {
-            // ISO format without Z: "2024-11-26T15:30:00" -> add Z
+            // ISO format without Z: "2024-11-26T15:30:00.123" -> "2024-11-26T15:30:00.123Z"
             isoTimestamp = timestamp + 'Z';
-            console.log('🔄 Added Z to ISO format:', isoTimestamp);
+            console.log('🔄 Added Z suffix (Supabase UTC format):', isoTimestamp);
         } else {
-            // Just date string: "2024-11-26" -> convert to ISO with Z
-            isoTimestamp = timestamp.replace(' ', 'T') + 'Z';
-            console.log('🔄 Converted date string:', isoTimestamp);
+            // Just date string: "2024-11-26" -> "2024-11-26T00:00:00Z"
+            isoTimestamp = timestamp + 'T00:00:00Z';
+            console.log('🔄 Converted date string to UTC:', isoTimestamp);
         }
     } else {
-        console.log('✅ Timestamp already has timezone:', isoTimestamp);
+        console.log('✅ Timestamp already has timezone indicator:', isoTimestamp);
     }
     
     const date = new Date(isoTimestamp);
