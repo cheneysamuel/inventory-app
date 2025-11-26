@@ -15,6 +15,119 @@
  * - Use DB.delete(table, id) instead of Database.deleteRecord() for auto-refresh
  */
 
+// ===== Mobile Menu Functionality =====
+const MobileMenu = (() => {
+    let isMobile = false;
+    let menuOpen = false;
+    let overlay = null;
+    
+    const detectMobile = () => {
+        isMobile = window.innerWidth <= 768;
+        return isMobile;
+    };
+    
+    const createOverlay = () => {
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.className = 'mobile-menu-overlay';
+            overlay.addEventListener('click', closeMobileMenu);
+            document.body.appendChild(overlay);
+        }
+        return overlay;
+    };
+    
+    const openMobileMenu = () => {
+        if (!isMobile) return;
+        
+        const sidebar = document.getElementById('sidebar');
+        const overlay = createOverlay();
+        
+        sidebar.classList.add('open');
+        overlay.classList.add('show');
+        menuOpen = true;
+        
+        // Prevent body scroll when menu is open
+        document.body.style.overflow = 'hidden';
+    };
+    
+    const closeMobileMenu = () => {
+        if (!isMobile) return;
+        
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.querySelector('.mobile-menu-overlay');
+        
+        sidebar.classList.remove('open');
+        if (overlay) {
+            overlay.classList.remove('show');
+        }
+        menuOpen = false;
+        
+        // Restore body scroll
+        document.body.style.overflow = '';
+    };
+    
+    const toggleMobileMenu = () => {
+        if (menuOpen) {
+            closeMobileMenu();
+        } else {
+            openMobileMenu();
+        }
+    };
+    
+    const init = () => {
+        detectMobile();
+        
+        // Create overlay element
+        createOverlay();
+        
+        // Mobile menu toggle button
+        const mobileToggle = document.getElementById('mobile-menu-toggle');
+        if (mobileToggle) {
+            mobileToggle.addEventListener('click', toggleMobileMenu);
+        }
+        
+        // Close menu when navigation item is clicked on mobile
+        const navButtons = document.querySelectorAll('.nav-btn');
+        navButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (isMobile) {
+                    closeMobileMenu();
+                }
+            });
+        });
+        
+        // Re-detect on window resize
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                const wasMobile = isMobile;
+                detectMobile();
+                
+                // If switching from mobile to desktop, ensure menu is visible
+                if (wasMobile && !isMobile) {
+                    const sidebar = document.getElementById('sidebar');
+                    sidebar.classList.remove('open');
+                    const overlay = document.querySelector('.mobile-menu-overlay');
+                    if (overlay) {
+                        overlay.classList.remove('show');
+                    }
+                    document.body.style.overflow = '';
+                    menuOpen = false;
+                }
+            }, 250);
+        });
+    };
+    
+    return {
+        init,
+        open: openMobileMenu,
+        close: closeMobileMenu,
+        toggle: toggleMobileMenu,
+        isMobile: () => isMobile
+    };
+})();
+
 (async function initializeApp() {
     try {
         // Step 1: Initialize Supabase Database Connection
@@ -359,6 +472,9 @@ function showLoginScreen() {
 
 // Load the main application after authentication
 async function loadApplication() {
+    // Initialize mobile menu
+    MobileMenu.init();
+    
     // Show user info at top of sidebar
     const state = Store.getState();
     const userEmail = byId('user-email');
