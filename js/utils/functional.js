@@ -229,6 +229,75 @@ const getUTCTimestamp = () => {
     return new Date().toISOString();
 };
 
+/**
+ * Get user's timezone identifier
+ * Returns IANA timezone string (e.g., "America/New_York", "America/Los_Angeles")
+ */
+const getUserTimezone = () => {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+};
+
+/**
+ * Format timestamp with timezone information
+ * Shows date/time with timezone and optionally user's local time if different
+ * @param {string} timestamp - ISO timestamp string
+ * @param {string} originalTimezone - IANA timezone where timestamp was created
+ * @returns {string} Formatted timestamp string with timezone info
+ */
+const formatTimestampWithTimezone = (timestamp, originalTimezone) => {
+    if (!timestamp) return '-';
+    
+    const date = new Date(timestamp);
+    const userTimezone = getUserTimezone();
+    
+    // Format with original timezone
+    const originalFormatted = date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZone: originalTimezone || userTimezone,
+        timeZoneName: 'short'
+    });
+    
+    // If original timezone is different from user's current timezone, show both
+    if (originalTimezone && originalTimezone !== userTimezone) {
+        const userFormatted = date.toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            timeZone: userTimezone,
+            timeZoneName: 'short'
+        });
+        return `${originalFormatted} (your time: ${userFormatted})`;
+    }
+    
+    return originalFormatted;
+};
+
+/**
+ * Format date only with timezone
+ * @param {string} timestamp - ISO timestamp string
+ * @param {string} originalTimezone - IANA timezone where timestamp was created
+ * @returns {string} Formatted date string
+ */
+const formatDateWithTimezone = (timestamp, originalTimezone) => {
+    if (!timestamp) return '-';
+    
+    const date = new Date(timestamp);
+    const userTimezone = getUserTimezone();
+    
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        timeZone: originalTimezone || userTimezone
+    });
+};
+
 // ===== Maybe Monad (for null safety) =====
 const Maybe = {
     of: value => ({ 
@@ -279,6 +348,7 @@ if (typeof module !== 'undefined' && module.exports) {
         tap, log, trace,
         isValidEmail, isValidPhone, isPositive, isNegative,
         getLocalTimestamp, getUTCTimestamp, getLocalDateString,
+        getUserTimezone, formatTimestampWithTimezone, formatDateWithTimezone,
         Maybe, Result
     };
 } else if (typeof window !== 'undefined') {
@@ -299,6 +369,7 @@ if (typeof module !== 'undefined' && module.exports) {
         tap, log, trace,
         isValidEmail, isValidPhone, isPositive, isNegative,
         getLocalTimestamp, getUTCTimestamp, getLocalDateString,
+        getUserTimezone, formatTimestampWithTimezone, formatDateWithTimezone,
         Maybe, Result
     });
 }
