@@ -3022,7 +3022,11 @@ const Views = (() => {
                                 }
                             }
                         },
-                        { field: 'date_time', label: 'Date/Time', render: (val) => new Date(val).toLocaleString() },
+                        { 
+                            field: 'date_time', 
+                            label: 'Date/Time', 
+                            render: (val, row) => formatTimestampWithTimezone(val, row.created_timezone)
+                        },
                         { field: 'changes', label: 'Changes', render: (val, row) => getChangesText(row) }
                     ],
                     data: searchFiltered
@@ -3085,7 +3089,11 @@ const Views = (() => {
                                     }
                                 }
                             },
-                            { field: 'date_time', label: 'Date/Time', render: (val) => new Date(val).toLocaleString() },
+                            { 
+                                field: 'date_time', 
+                                label: 'Date/Time', 
+                                render: (val, row) => formatTimestampWithTimezone(val, row.created_timezone)
+                            },
                             { field: 'changes', label: 'Changes', render: (val, row) => getChangesText(row) }
                         ],
                         data: filteredTransactions
@@ -7579,7 +7587,7 @@ async function showFieldInstallModal(items, action) {
                                 }, [String(seq.sequential_number)]),
                                 createElement('td', { 
                                     style: { padding: '6px' } 
-                                }, [new Date(seq.recorded_at).toLocaleString()])
+                                }, [formatTimestampWithTimezone(seq.recorded_at, seq.created_timezone)])
                             ])
                         )
                     )
@@ -7592,7 +7600,7 @@ async function showFieldInstallModal(items, action) {
                     color: '#0369a1',
                     fontStyle: 'italic'
                 } 
-            }, [`Last recorded: ${history[0].sequential_number} on ${new Date(history[0].recorded_at).toLocaleString()}`])
+            }, [`Last recorded: ${history[0].sequential_number} on ${formatTimestampWithTimezone(history[0].recorded_at, history[0].created_timezone)}`])
         ]);
     }
     
