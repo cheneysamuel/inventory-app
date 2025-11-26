@@ -240,56 +240,86 @@ const getUserTimezone = () => {
 /**
  * Format timestamp with timezone information
  * Shows date/time with timezone and optionally user's local time if different
- * @param {string} timestamp - ISO timestamp string
+ * @param {string} timestamp - ISO timestamp string (stored as UTC in database)
  * @param {string} originalTimezone - IANA timezone where timestamp was created
  * @returns {string} Formatted timestamp string with timezone info
  */
 const formatTimestampWithTimezone = (timestamp, originalTimezone) => {
     if (!timestamp) return '-';
     
-    const date = new Date(timestamp);
+    // Parse the UTC timestamp from database
+    // Ensure the timestamp is treated as UTC by appending 'Z' if not present
+    let isoTimestamp = timestamp;
+    if (!timestamp.endsWith('Z') && !timestamp.includes('+') && !timestamp.includes('T')) {
+        // If it's just a date string without timezone info, assume UTC
+        isoTimestamp = timestamp.replace(' ', 'T') + 'Z';
+    } else if (timestamp.includes(' ') && !timestamp.endsWith('Z') && !timestamp.includes('+')) {
+        // PostgreSQL format: "2024-11-26 15:30:00" -> convert to ISO with Z
+        isoTimestamp = timestamp.replace(' ', 'T') + 'Z';
+    }
+    
+    const date = new Date(isoTimestamp);
     const userTimezone = getUserTimezone();
     
-    // Format with original timezone
-    const originalFormatted = date.toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        timeZone: originalTimezone || userTimezone,
-        timeZoneName: 'short'
-    });
-    
-    // If original timezone is different from user's current timezone, show both
-    if (originalTimezone && originalTimezone !== userTimezone) {
-        const userFormatted = date.toLocaleString('en-US', {
+    // If we have the original timezone, show time in that timezone
+    if (originalTimezone) {
+        // toLocaleString automatically converts from UTC to the specified timezone
+        const originalFormatted = date.toLocaleString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
             hour: 'numeric',
             minute: '2-digit',
-            timeZone: userTimezone,
+            second: '2-digit',
+            timeZone: originalTimezone,
             timeZoneName: 'short'
         });
-        return `${originalFormatted} (your time: ${userFormatted})`;
+        
+        // If user's current timezone is different from original, show both
+        if (originalTimezone !== userTimezone) {
+            const userFormatted = date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZone: userTimezone,
+                timeZoneName: 'short'
+            });
+            return `${originalFormatted} (your time: ${userFormatted})`;
+        }
+        
+        return originalFormatted;
     }
     
-    return originalFormatted;
+    // No original timezone stored - show in user's current timezone
+    return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZone: userTimezone,
+        timeZoneName: 'short'
+    });
 };
 
 /**
  * Format date only with timezone
- * @param {string} timestamp - ISO timestamp string
+ * @param {string} timestamp - ISO timestamp string (stored as UTC in database)
  * @param {string} originalTimezone - IANA timezone where timestamp was created
  * @returns {string} Formatted date string
  */
 const formatDateWithTimezone = (timestamp, originalTimezone) => {
     if (!timestamp) return '-';
     
+    // Parse the UTC timestamp from database
     const date = new Date(timestamp);
     const userTimezone = getUserTimezone();
     
+    // Show date in the original timezone if available, otherwise user's timezone
     return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
