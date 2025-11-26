@@ -70,6 +70,7 @@ const TransactionService = (() => {
             old_quantity: oldQuantity,
             user_name: state.user?.name || 'system',
             date_time: getLocalTimestamp(),
+            created_timezone: getUserTimezone(),
             session_id: state.sessionId,
             notes: notes,
             ip_address: null, // Could be populated if needed
