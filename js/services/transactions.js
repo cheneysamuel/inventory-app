@@ -1,12 +1,13 @@
 /**
  * Transaction Logging Service
  * Handles creation and management of inventory transactions
+ * Uses Edge Functions for server-side processing with automatic fallback
  */
 
 const TransactionService = (() => {
     
     // Create a transaction log entry
-    const logTransaction = ({
+    const logTransaction = async ({
         inventoryId = null,
         transactionType,
         action,
@@ -69,16 +70,18 @@ const TransactionService = (() => {
             quantity: quantity,
             old_quantity: oldQuantity,
             user_name: state.user?.name || 'system',
-            date_time: getLocalTimestamp(),
             session_id: state.sessionId,
             notes: notes,
-            ip_address: null, // Could be populated if needed
             user_agent: navigator.userAgent,
             before_state: beforeState ? JSON.stringify(beforeState) : null,
-            after_state: afterState ? JSON.stringify(afterState) : null
+            after_state: afterState ? JSON.stringify(afterState) : null,
+            created_timezone: getUserTimezone()
         };
         
-        const result = Queries.createTransaction(transactionData);
+        // Use EdgeFunctions service if available, otherwise fall back to Queries
+        const result = window.EdgeFunctions 
+            ? await EdgeFunctions.logTransaction(transactionData)
+            : await Queries.createTransaction(transactionData);
         
         if (result.isOk) {
             Store.actions.addTransaction({ ...transactionData, id: result.value.id });
@@ -242,13 +245,26 @@ const TransactionService = (() => {
     };
     
     // Get transaction history for an inventory item
-    const getHistory = (inventoryId, limit = 50) => {
-        return Queries.getTransactionsByInventory(inventoryId, limit);
+    const getHistory = async (inventoryId, limit = 50) => {
+        // Use EdgeFunctions service if available, otherwise fall back to Queries
+        if (window.EdgeFunctions) {
+            return await EdgeFunctions.getTransactions({
+                inventoryId: inventoryId,
+                limit: limit
+            });
+        }
+        return await Queries.getTransactionsByInventory(inventoryId, limit);
     };
     
     // Get recent transactions
-    const getRecent = (limit = 100) => {
-        return Queries.getAllTransactions(limit);
+    const getRecent = async (limit = 100) => {
+        // Use EdgeFunctions service if available, otherwise fall back to Queries
+        if (window.EdgeFunctions) {
+            return await EdgeFunctions.getTransactions({
+                limit: limit
+            });
+        }
+        return await Queries.getAllTransactions(limit);
     };
     
     return {
