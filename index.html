@@ -18,6 +18,139 @@
     <script src="ext_lib/signature_pad.umd.min.js"></script>
 </head>
 <body>
+    <!-- HTML Templates for reducing programmatic DOM creation -->
+    <!-- Templates are hidden and will be cloned when needed -->
+    <div id="templates-container" style="display: none;">
+        
+        <!-- Generic Data Table Template -->
+        <template id="data-table-template">
+            <table class="inventory-table">
+                <thead>
+                    <tr data-bind="header-row">
+                        <!-- Header cells populated dynamically -->
+                    </tr>
+                </thead>
+                <tbody data-bind="table-body">
+                    <!-- Rows populated dynamically -->
+                </tbody>
+            </table>
+        </template>
+
+        <!-- Issue Action Modal Template -->
+        <template id="issue-action-modal-template">
+            <div class="modal-content-wrapper">
+                <!-- Crew/Area Selection Section (conditionally shown) -->
+                <div data-bind="selection-section" style="margin-bottom: 1.5rem; padding: 1rem; background-color: #f9fafb; border-radius: 0.375rem; display: none;">
+                    <h4 style="margin: 0 0 1rem 0">Assign To:</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem">
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500">Crew:</label>
+                            <select id="issue-crew-select" class="form-control" style="font-size: 18px; padding: 8px; width: 100%">
+                                <option value="">-- Select Crew --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500">Area:</label>
+                            <select id="issue-area-select" class="form-control" style="font-size: 18px; padding: 8px; width: 100%">
+                                <option value="">-- Select Area --</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Items Table -->
+                <table class="inventory-table" style="margin-bottom: 1rem">
+                    <thead>
+                        <tr>
+                            <th>Item Type</th>
+                            <th>Serial/ID</th>
+                            <th>Quantity</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="items-list">
+                        <!-- Items populated dynamically -->
+                    </tbody>
+                </table>
+
+                <!-- Summary Section -->
+                <div data-bind="summary-section" style="margin-top: 1.5rem; padding: 1rem; background-color: #eff6ff; border-radius: 0.375rem">
+                    <h4 style="margin: 0 0 0.5rem 0">Issue Summary:</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.875rem">
+                        <div><strong>Total Items:</strong> <span data-bind="total-items"></span></div>
+                        <div><strong>Total Quantity:</strong> <span data-bind="total-quantity"></span></div>
+                        <div data-bind="crew-display" style="display: none"><strong>Crew:</strong> <span data-bind="crew-name"></span></div>
+                        <div data-bind="area-display" style="display: none"><strong>Area:</strong> <span data-bind="area-name"></span></div>
+                    </div>
+                </div>
+
+                <!-- Signature Section (conditionally shown) -->
+                <div data-bind="signature-section" style="margin-top: 1.5rem; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.375rem; display: none">
+                    <h4 style="margin: 0 0 0.5rem 0">Signature (Optional):</h4>
+                    <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 1rem">Sign below to include signature on receipt</p>
+                    <div style="border: 2px solid #d1d5db; border-radius: 0.375rem; background-color: #fff">
+                        <canvas id="signature-canvas" style="display: block; width: 100%; height: 150px; touch-action: none"></canvas>
+                    </div>
+                    <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem">
+                        <button data-action="clear-signature" class="btn btn-secondary" style="font-size: 0.875rem">Clear Signature</button>
+                    </div>
+                </div>
+            </div>
+        </template>
+        
+        <!-- Item Types Table Template -->
+        <template id="item-types-table-template">
+            <table id="item-types-table" class="inventory-table item-types-sticky-header">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Manufacturer</th>
+                        <th>Part #</th>
+                        <th>Description</th>
+                        <th class="text-center">Units/Pkg</th>
+                        <th>UOM</th>
+                        <th>Category</th>
+                        <th>Provider</th>
+                        <th class="text-center">Low Qty Alert</th>
+                        <th class="markets-column">Markets</th>
+                        <th class="text-center">Use Count</th>
+                    </tr>
+                </thead>
+                <tbody data-bind="table-body">
+                    <!-- Rows populated dynamically -->
+                </tbody>
+            </table>
+        </template>
+        
+        <!-- Hierarchy Item Type Group Template -->
+        <template id="hierarchy-item-type-group-template">
+            <div class="item-type-group">
+                <div class="item-type-header">
+                    <span data-bind="item-type-name"></span>
+                    <span class="item-count-badge" data-bind="item-count"></span>
+                </div>
+                <table class="inventory-table">
+                    <thead>
+                        <tr>
+                            <th>Location</th>
+                            <th>Crew</th>
+                            <th>Area</th>
+                            <th>Mfgr. SN</th>
+                            <th>Tilson SN</th>
+                            <th>Quantity</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="items-body">
+                        <!-- Items populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </template>
+        
+    </div>
+    
     <!-- Loading Screen (shown while checking authentication) -->
     <div id="loading-screen" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); align-items: center; justify-content: center; z-index: 9999;">
         <div style="text-align: center; color: white;">
@@ -166,17 +299,38 @@
     <script src="js/db/queries.js"></script>
     <script src="js/db/consolidation.js"></script>
     <script src="js/state/store.js"></script>
-    <script src="js/ui/components.js"></script>
-    <script src="js/ui/modals.js"></script>
-    <script src="js/ui/views.js"></script>
+    <script src="js/services/edge-functions.js"></script>
     <script src="js/services/auth.js"></script>
     <script src="js/services/transactions.js"></script>
     <script src="js/services/validation.js"></script>
     <script src="js/services/import-item-types.js"></script>
     <script src="js/services/import-inventory.js"></script>
     <script src="js/services/import-new-inventory.js"></script>
+    <script src="js/services/export-helpers.js"></script>
     <script src="js/services/import-export.js"></script>
     <script src="js/services/inventory-actions.js"></script>
+    <script src="js/services/inventory-processing.js"></script>
+    <script src="js/ui/components.js"></script>
+    <script src="js/ui/modals.js"></script>
+    <script src="js/ui/inventory-modals.js"></script>
+    <!-- View Helper Modules (loaded before views.js) -->
+    <script src="js/ui/bulk-receive-helpers.js"></script>
+    <script src="js/ui/bulk-receive-process.js"></script>
+    <script src="js/ui/bulk-issue-ui.js"></script>
+    <script src="js/ui/preferences-helpers.js"></script>
+    <script src="js/ui/manage-items-helpers.js"></script>
+    <script src="js/ui/export-data-helpers.js"></script>
+    <script src="js/ui/receive-serialized-helpers.js"></script>
+    <script src="js/ui/transactions-helpers.js"></script>
+    <script src="js/ui/serialized-modal-helpers.js"></script>
+    <script src="js/ui/serialized-modals-actions.js"></script>
+    <script src="js/ui/ui-helpers.js"></script>
+    <script src="js/ui/item-type-management.js"></script>
+    <script src="js/ui/form-utilities.js"></script>
+    <script src="js/ui/hierarchy-crud.js"></script>
+    <script src="js/ui/serialized-workflows.js"></script>
+    <script src="js/ui/import-preview.js"></script>
+    <script src="js/ui/views.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
