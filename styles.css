@@ -390,6 +390,17 @@ tbody tr:hover {
     filter: brightness(0.9);
 }
 
+/* Selected row styling for issue selection mode */
+tbody tr.selected-row {
+    background-color: #dbeafe !important;
+    border: 2px solid #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+tbody tr.selected-row:hover {
+    background-color: #bfdbfe !important;
+}
+
 tbody tr:last-child td {
     border-bottom: none;
 }
