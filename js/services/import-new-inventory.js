@@ -55,20 +55,18 @@ const ImportNewInventoryService = (() => {
             };
         }
 
-        // Expected column names for NEW_INVENTORY
+        // Expected column names for NEW_INVENTORY (starting at row 9)
         const expectedColumns = [
             'Name',
-            'Location',
-            'Area',
-            'Crew',
-            'mfgrSN',
-            'tilsonSN',
-            'Quantity',
-            'Status'
+            'Part Number',
+            'Description',
+            'Unit of Measure',
+            'Category',
+            'Quantity'
         ];
 
-        // Verify NEW_INVENTORY columns
-        const headerRow = newInventorySheet.getRow(1);
+        // Verify NEW_INVENTORY columns (header is at row 9)
+        const headerRow = newInventorySheet.getRow(9);
         const actualColumns = [];
         headerRow.eachCell((cell, colNumber) => {
             actualColumns.push(cell.value);
@@ -97,7 +95,7 @@ const ImportNewInventoryService = (() => {
         
         if (!newInventorySheet) return rows;
 
-        let rowNumber = 2; // Skip header
+        let rowNumber = 10; // Skip header at row 9, start data at row 10
         while (true) {
             const row = newInventorySheet.getRow(rowNumber);
             const name = row.getCell(1).value; // Name column
@@ -105,16 +103,23 @@ const ImportNewInventoryService = (() => {
             // Stop if we reach an empty Name
             if (!name) break;
 
+            // Include rows with any quantity value (including invalid ones like negative)
+            const quantity = row.getCell(6).value;
+            const hasQuantityEntry = quantity !== null && quantity !== undefined && quantity !== '';
+            
+            if (!hasQuantityEntry) {
+                rowNumber++;
+                continue;
+            }
+
             rows.push({
                 rowNumber: rowNumber,
                 name: String(name).trim(),
-                location: row.getCell(2).value ? String(row.getCell(2).value).trim() : '',
-                area: row.getCell(3).value ? String(row.getCell(3).value).trim() : '',
-                crew: row.getCell(4).value ? String(row.getCell(4).value).trim() : '',
-                mfgrSN: row.getCell(5).value ? String(row.getCell(5).value).trim() : '',
-                tilsonSN: row.getCell(6).value ? String(row.getCell(6).value).trim() : '',
-                quantity: row.getCell(7).value,
-                status: row.getCell(8).value ? String(row.getCell(8).value).trim() : ''
+                partNumber: row.getCell(2).value ? String(row.getCell(2).value).trim() : '',
+                description: row.getCell(3).value ? String(row.getCell(3).value).trim() : '',
+                unitOfMeasure: row.getCell(4).value ? String(row.getCell(4).value).trim() : '',
+                category: row.getCell(5).value ? String(row.getCell(5).value).trim() : '',
+                quantity: quantity
             });
 
             rowNumber++;
@@ -132,81 +137,56 @@ const ImportNewInventoryService = (() => {
     const validateNewInventoryRows = (rows, state) => {
         const validationResults = [];
         const itemTypes = state.itemTypes || [];
-        const locations = state.locations || [];
-        const statuses = state.statuses || [];
-        const areas = state.areas || [];
-        const allCrews = state.crews || [];
         
-        // Get the selected SLOC's market for crew filtering
+        // Get the selected SLOC's market for item type filtering
         const selectedSloc = state.selectedSloc;
         const selectedMarketId = selectedSloc ? 
             (state.slocs?.find(s => s.id === selectedSloc.id)?.market_id || 
              state.markets?.find(m => m.id === selectedSloc.market_id)?.id) 
             : null;
-        
-        // Filter crews to only those in the selected market
-        const crews = selectedMarketId ? 
-            allCrews.filter(c => c.market_id === selectedMarketId) : 
-            allCrews;
 
         rows.forEach(row => {
             const errors = [];
             let isValid = true;
             let itemType = null;
-            let location = null;
-            let area = null;
-            let crew = null;
-            let status = null;
 
-            // Validate Name (required) - must match an item type
+            // Validate Name (required) - must match an item type in the selected market
             if (!row.name) {
                 errors.push('Name is required');
                 isValid = false;
             } else {
-                itemType = itemTypes.find(it => 
+                // First find item type by name
+                const matchingItemTypes = itemTypes.filter(it => 
                     it.name.toLowerCase() === row.name.toLowerCase()
                 );
-                if (!itemType) {
+                
+                if (matchingItemTypes.length === 0) {
                     errors.push(`Item Type "${row.name}" not found`);
                     isValid = false;
+                } else if (selectedMarketId && state.itemTypeMarkets) {
+                    // Check if any matching item type is in the selected market
+                    const marketItemTypeIds = state.itemTypeMarkets
+                        .filter(itm => itm.market_id === selectedMarketId)
+                        .map(itm => itm.item_type_id);
+                    
+                    itemType = matchingItemTypes.find(it => marketItemTypeIds.includes(it.id));
+                    
+                    if (!itemType) {
+                        const marketName = state.markets?.find(m => m.id === selectedMarketId)?.name || 'selected market';
+                        errors.push(`Item Type "${row.name}" not found in ${marketName}`);
+                        isValid = false;
+                    }
+                } else {
+                    itemType = matchingItemTypes[0];
                 }
-            }
-
-            // Validate Location (required)
-            if (!row.location) {
-                errors.push('Location is required');
-                isValid = false;
-            } else {
-                location = locations.find(l => 
-                    l.name.toLowerCase() === row.location.toLowerCase()
-                );
-                if (!location) {
-                    errors.push(`Location "${row.location}" not found`);
-                    isValid = false;
-                }
-            }
-
-            // Validate Area (optional)
-            if (row.area) {
-                area = areas.find(a => 
-                    a.name.toLowerCase() === row.area.toLowerCase()
-                );
-                if (!area) {
-                    errors.push(`Area "${row.area}" not found`);
-                    isValid = false;
-                }
-            }
-
-            // Validate Crew (optional) - must be in selected market
-            if (row.crew) {
-                crew = crews.find(c => 
-                    c.name.toLowerCase() === row.crew.toLowerCase()
-                );
-                if (!crew) {
-                    const selectedMarket = state.markets?.find(m => m.id === selectedMarketId);
-                    const marketName = selectedMarket?.name || 'selected market';
-                    errors.push(`Crew "${row.crew}" not found in ${marketName}`);
-                    isValid = false;
+                
+                // Validate it's a bulk item type
+                if (itemType) {
+                    const inventoryType = state.inventoryTypes?.find(it => it.id === itemType.inventory_type_id);
+                    if (inventoryType?.name?.toLowerCase() !== 'bulk') {
+                        errors.push(`Item Type "${row.name}" is not a bulk item`);
+                        isValid = false;
+                    }
                 }
             }
 
@@ -216,49 +196,23 @@ const ImportNewInventoryService = (() => {
                 isValid = false;
             } else {
                 const qty = parseFloat(row.quantity);
-                if (isNaN(qty) || qty < 0) {
+                if (isNaN(qty) || qty <= 0) {
                     errors.push('Quantity must be a positive number');
                     isValid = false;
                 }
             }
 
-            // Validate Status (required)
-            if (!row.status) {
-                errors.push('Status is required');
-                isValid = false;
-            } else {
-                status = statuses.find(s => 
-                    s.name.toLowerCase() === row.status.toLowerCase()
-                );
-                if (!status) {
-                    errors.push(`Status "${row.status}" not found`);
-                    isValid = false;
-                }
-            }
-
-            // Check if item type is serialized and serial numbers are provided
-            let isSerialized = false;
-            if (itemType) {
-                const inventoryType = state.inventoryTypes?.find(it => it.id === itemType.inventory_type_id);
-                isSerialized = inventoryType?.name?.toLowerCase() === 'serialized';
-            }
-
             validationResults.push({
                 rowNumber: row.rowNumber,
                 name: row.name,
-                area: row.area,
-                crew: row.crew,
-                mfgrSN: row.mfgrSN,
-                tilsonSN: row.tilsonSN,
+                partNumber: row.partNumber,
+                description: row.description,
+                unitOfMeasure: row.unitOfMeasure,
+                category: row.category,
                 quantity: row.quantity,
                 isValid: isValid,
                 errors: errors,
-                itemType: itemType,
-                location: location,  // Validated location object
-                areaObj: area,       // Validated area object
-                crewObj: crew,       // Validated crew object
-                status: status,      // Validated status object
-                isSerialized: isSerialized
+                itemType: itemType
             });
         });
 
@@ -302,13 +256,11 @@ const ImportNewInventoryService = (() => {
                         createElement('th', { style: { padding: '0.75rem', textAlign: 'left', backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' } }, ['Row']),
                         createElement('th', { style: { padding: '0.75rem', textAlign: 'left', backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' } }, ['Status']),
                         createElement('th', { style: { padding: '0.75rem', textAlign: 'left', backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' } }, ['Name']),
-                        createElement('th', { style: { padding: '0.75rem', textAlign: 'left', backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' } }, ['Location']),
-                        createElement('th', { style: { padding: '0.75rem', textAlign: 'left', backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' } }, ['Area']),
-                        createElement('th', { style: { padding: '0.75rem', textAlign: 'left', backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' } }, ['Crew']),
-                        createElement('th', { style: { padding: '0.75rem', textAlign: 'left', backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' } }, ['mfgrSN']),
-                        createElement('th', { style: { padding: '0.75rem', textAlign: 'left', backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' } }, ['tilsonSN']),
+                        createElement('th', { style: { padding: '0.75rem', textAlign: 'left', backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' } }, ['Part Number']),
+                        createElement('th', { style: { padding: '0.75rem', textAlign: 'left', backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' } }, ['Description']),
+                        createElement('th', { style: { padding: '0.75rem', textAlign: 'left', backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' } }, ['UOM']),
+                        createElement('th', { style: { padding: '0.75rem', textAlign: 'left', backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' } }, ['Category']),
                         createElement('th', { style: { padding: '0.75rem', textAlign: 'center', backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' } }, ['Quantity']),
-                        createElement('th', { style: { padding: '0.75rem', textAlign: 'left', backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' } }, ['Status']),
                         createElement('th', { style: { padding: '0.75rem', textAlign: 'left', backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' } }, ['Validation'])
                     ])
                 ]),
@@ -335,13 +287,11 @@ const ImportNewInventoryService = (() => {
                                 }, [result.isValid ? '✓ VALID' : '✗ INVALID'])
                             ]),
                             createElement('td', { style: rowStyle }, [result.name]),
-                            createElement('td', { style: rowStyle }, [result.location?.name || result.location || '-']),
-                            createElement('td', { style: rowStyle }, [result.areaObj?.name || result.area || '-']),
-                            createElement('td', { style: rowStyle }, [result.crewObj?.name || result.crew || '-']),
-                            createElement('td', { style: rowStyle }, [result.mfgrSN || '-']),
-                            createElement('td', { style: rowStyle }, [result.tilsonSN || '-']),
+                            createElement('td', { style: rowStyle }, [result.partNumber || '-']),
+                            createElement('td', { style: rowStyle }, [result.description || '-']),
+                            createElement('td', { style: rowStyle }, [result.unitOfMeasure || '-']),
+                            createElement('td', { style: rowStyle }, [result.category || '-']),
                             createElement('td', { style: { ...rowStyle, textAlign: 'center' } }, [String(result.quantity || '')]),
-                            createElement('td', { style: rowStyle }, [result.status?.name || result.status || '-']),
                             createElement('td', { style: rowStyle }, [
                                 result.isValid 
                                     ? createElement('span', { style: { color: '#16a34a', fontWeight: '500' } }, ['Ready to import'])
@@ -379,6 +329,25 @@ const ImportNewInventoryService = (() => {
             return results;
         }
 
+        // Get default receiving location from preferences
+        const receivingLocationId = (state.config || []).find(c => c.key === 'receivingLocation')?.value;
+        const defaultLocation = receivingLocationId ? 
+            state.locations?.find(l => l.id === parseInt(receivingLocationId)) : 
+            null;
+        
+        if (!defaultLocation) {
+            results.errors.push('Default receiving location not set in preferences');
+            return results;
+        }
+        
+        // Get Available status
+        const availableStatus = state.statuses?.find(s => s.name === 'Available');
+        
+        if (!availableStatus) {
+            results.errors.push('Available status not found in system');
+            return results;
+        }
+
         for (let i = 0; i < validResults.length; i++) {
             const result = validResults[i];
             
@@ -387,30 +356,16 @@ const ImportNewInventoryService = (() => {
             }
             
             try {
-                // Prepare inventory data
+                // Prepare inventory data - bulk items go to Available status at default location
                 const inventoryData = {
                     item_type_id: result.itemType.id,
-                    location_id: result.location.id,
-                    status_id: result.status.id,
+                    location_id: defaultLocation.id,
+                    status_id: availableStatus.id,
                     sloc_id: selectedSloc.id,
                     quantity: parseFloat(result.quantity),
                     created_at: getLocalTimestamp(),
                     updated_at: getLocalTimestamp()
                 };
-
-                // Add optional fields if provided
-                if (result.areaObj) {
-                    inventoryData.area_id = result.areaObj.id;
-                }
-                if (result.crewObj) {
-                    inventoryData.assigned_crew_id = result.crewObj.id;
-                }
-                if (result.mfgrSN) {
-                    inventoryData.mfgrsn = result.mfgrSN;
-                }
-                if (result.tilsonSN) {
-                    inventoryData.tilsonsn = result.tilsonSN;
-                }
 
                 // Insert into database
                 const insertResult = await Database.insert('inventory', inventoryData);
@@ -428,16 +383,17 @@ const ImportNewInventoryService = (() => {
                         manufacturer: result.itemType.manufacturer,
                         part_number: result.itemType.part_number,
                         category_name: state.categories?.find(c => c.id === result.itemType.category_id)?.name,
-                        status_name: result.status.name,
+                        status_name: availableStatus.name,
                         quantity: inventoryData.quantity,
-                        from_location_name: result.location.name,
-                        area_name: result.areaObj?.name || null,
-                        assigned_crew_name: result.crewObj?.name || null,
+                        from_location_name: defaultLocation.name,
+                        area_name: null,
+                        assigned_crew_name: null,
                         sloc: state.slocs?.find(s => s.id === inventoryData.sloc_id)?.name,
                         market: state.markets?.find(m => m.id === state.slocs?.find(s => s.id === inventoryData.sloc_id)?.market_id)?.name,
                         client: state.clients?.find(c => c.id === state.markets?.find(m => m.id === state.slocs?.find(s => s.id === inventoryData.sloc_id)?.market_id)?.client_id)?.name,
-                        mfgrsn: inventoryData.mfgrsn || null,
-                        tilsonsn: inventoryData.tilsonsn || null,
+                        mfgrsn: null,
+                        tilsonsn: null,
+                        user: state.user?.email || 'Unknown',
                         notes: `Imported from Excel template (Row ${result.rowNumber})`,
                         date_time: getLocalTimestamp()
                     };
