@@ -648,6 +648,7 @@ async function loadInitialData() {
             providers: providers.isOk ? providers.value : []
         });
         
+        
         // Ensure receivingStatus preference exists with default of 'Available'
         const receivingStatusPref = (config.isOk ? config.value : []).find(c => c.key === 'receivingStatus');
         if (!receivingStatusPref) {
@@ -766,28 +767,47 @@ async function refreshHierarchyDropdowns() {
         });
     };
     
-    // Refresh clients
-    const clients = await Queries.getAllClients();
-    if (clients.isOk) {
-        populateDropdown(clientSelect, clients.value, '-- Select Client --');
+    // Refresh clients from state (or query if not in state)
+    let clientsData = state.clients;
+    if (!clientsData || clientsData.length === 0) {
+        const clients = await Queries.getAllClients();
+        if (clients.isOk) {
+            clientsData = clients.value;
+            Store.setState({ clients: clientsData });
+        }
+    }
+    if (clientsData) {
+        populateDropdown(clientSelect, clientsData, '-- Select Client --');
         clientSelect.value = currentClientId || '';
     }
     
     // Refresh markets if client is selected
     if (currentClientId) {
-        const markets = await Queries.getMarketsByClient(parseInt(currentClientId));
-        if (markets.isOk) {
-            populateDropdown(marketSelect, markets.value, '-- Select Market --');
+        let marketsData = state.markets ? state.markets.filter(m => m.client_id === parseInt(currentClientId)) : null;
+        if (!marketsData || marketsData.length === 0) {
+            const markets = await Queries.getMarketsByClient(parseInt(currentClientId));
+            if (markets.isOk) {
+                marketsData = markets.value;
+            }
+        }
+        if (marketsData) {
+            populateDropdown(marketSelect, marketsData, '-- Select Market --');
             marketSelect.disabled = false;
             marketSelect.value = currentMarketId || '';
         }
     }
     
-    // Refresh SLOCs if market is selected
+    // Refresh SLOCs if market is selected - USE STATE FIRST
     if (currentMarketId) {
-        const slocs = await Queries.getSlocsByMarket(parseInt(currentMarketId));
-        if (slocs.isOk) {
-            populateDropdown(slocSelect, slocs.value, '-- Select SLOC --');
+        let slocsData = state.slocs ? state.slocs.filter(s => s.market_id === parseInt(currentMarketId)) : null;
+        if (!slocsData || slocsData.length === 0) {
+            const slocs = await Queries.getSlocsByMarket(parseInt(currentMarketId));
+            if (slocs.isOk) {
+                slocsData = slocs.value;
+            }
+        }
+        if (slocsData) {
+            populateDropdown(slocSelect, slocsData, '-- Select SLOC --');
             slocSelect.disabled = false;
             slocSelect.value = currentSlocId || '';
         }
