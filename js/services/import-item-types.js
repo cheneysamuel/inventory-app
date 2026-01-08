@@ -54,7 +54,7 @@ const ImportItemTypesService = (() => {
             };
         }
 
-        // Expected column names
+        // Expected column names (first 10 standard columns)
         const expectedColumns = [
             'Name',
             'Manufacturer',
@@ -68,12 +68,14 @@ const ImportItemTypesService = (() => {
             'Category'
         ];
 
-        // Get actual column names from first row
-        const headerRow = newItemsSheet.getRow(1);
+        // Get actual column names from row 5 (header is now at row 5)
+        const headerRow = newItemsSheet.getRow(5);
         const actualColumns = [];
-        headerRow.eachCell((cell, colNumber) => {
-            actualColumns.push(cell.value);
-        });
+        
+        // Read first 10 columns
+        for (let i = 1; i <= expectedColumns.length; i++) {
+            actualColumns.push(headerRow.getCell(i).value);
+        }
 
         // Verify columns match
         for (let i = 0; i < expectedColumns.length; i++) {
@@ -91,14 +93,36 @@ const ImportItemTypesService = (() => {
     /**
      * Get new item type row values from the sheet
      * @param {Object} workbook - ExcelJS workbook
+     * @param {Object} state - Application state with markets data
      * @returns {Array} Array of item type objects
      */
-    const getNewItemTypeRowValues = (workbook) => {
+    const getNewItemTypeRowValues = (workbook, state) => {
         const newItemsSheet = workbook.getWorksheet('NEW_ITEM_TYPES');
         const items = [];
 
-        // Start from row 2 (skip header)
-        let rowNumber = 2;
+        // Header is now at row 5 (rows 1-4 are instructions)
+        const headerRow = newItemsSheet.getRow(5);
+        
+        // Identify market columns by reading headers starting from column 11
+        const marketColumns = [];
+        let colNum = 11;
+        while (true) {
+            const headerValue = headerRow.getCell(colNum).value;
+            if (!headerValue || headerValue === '') {
+                break; // No more columns
+            }
+            // Find matching market in state
+            const market = state.markets.find(m => 
+                m.name.replace(/[^\w\s-]/g, '').substring(0, 50) === String(headerValue).trim()
+            );
+            if (market) {
+                marketColumns.push({ colNum, marketId: market.id, marketName: market.name });
+            }
+            colNum++;
+        }
+
+        // Start from row 6 (first data row after header at row 5)
+        let rowNumber = 6;
         while (true) {
             const row = newItemsSheet.getRow(rowNumber);
             
@@ -107,6 +131,19 @@ const ImportItemTypesService = (() => {
             if (!name || name === '') {
                 break; // No more data
             }
+
+            // Read market assignments
+            const markets = [];
+            marketColumns.forEach(({ colNum, marketId, marketName }) => {
+                const cellValue = row.getCell(colNum).value;
+                const isAssigned = cellValue && (
+                    String(cellValue).toUpperCase() === 'X' || 
+                    String(cellValue).toUpperCase() === 'YES'
+                );
+                if (isAssigned) {
+                    markets.push({ id: marketId, name: marketName });
+                }
+            });
 
             items.push({
                 name: row.getCell(1).value || '',
@@ -118,7 +155,8 @@ const ImportItemTypesService = (() => {
                 inventoryType: row.getCell(7).value || '',
                 unitOfMeasure: row.getCell(8).value || '',
                 provider: row.getCell(9).value || '',
-                category: row.getCell(10).value || ''
+                category: row.getCell(10).value || '',
+                markets: markets // Array of market objects { id, name }
             });
 
             rowNumber++;
@@ -140,6 +178,11 @@ const ImportItemTypesService = (() => {
         // Check required fields
         if (!item.name || item.name.trim() === '') {
             errors.push('Name is required');
+        }
+        
+        // Check that at least one market is selected
+        if (!item.markets || item.markets.length === 0) {
+            errors.push('At least one market must be selected');
         }
 
         // Check for duplicate item types (name + part number match)
@@ -246,6 +289,7 @@ const ImportItemTypesService = (() => {
         const headers = [
             'Include',
             'Name',
+            'Markets',
             'Manufacturer',
             'Part Number',
             'Description',
@@ -295,6 +339,13 @@ const ImportItemTypesService = (() => {
             
             // Data cells
             tr.appendChild(createElement('td', {}, [item.name]));
+            
+            // Markets cell - show comma-separated list
+            const marketsText = item.markets && item.markets.length > 0 
+                ? item.markets.map(m => m.name).join(', ') 
+                : '(none)';
+            tr.appendChild(createElement('td', {}, [marketsText]));
+            
             tr.appendChild(createElement('td', {}, [item.manufacturer]));
             tr.appendChild(createElement('td', {}, [item.partNumber]));
             tr.appendChild(createElement('td', {}, [item.description]));
@@ -360,12 +411,11 @@ const ImportItemTypesService = (() => {
 
     /**
      * Generate new item types in the database
-     * @param {Array} items - Array of item type objects to create
-     * @param {Array} selectedMarkets - Array of market names to apply items to
+     * @param {Array} items - Array of item type objects to create (each with markets array)
      * @param {Function} progressCallback - Optional callback for progress updates (current, total, message, name, success)
      * @returns {Promise<Object>} Result object
      */
-    const generateNewItemTypes = async (items, selectedMarkets, progressCallback = null) => {
+    const generateNewItemTypes = async (items, progressCallback = null) => {
         const state = Store.getState();
         const results = {
             success: 0,
@@ -425,15 +475,11 @@ const ImportItemTypesService = (() => {
                     continue;
                 }
                 
-                // Associate with each selected market
+                // Associate with each market from the item's markets array
                 let marketSuccessCount = 0;
-                for (const marketName of selectedMarkets) {
-                    const market = state.markets.find(m => m.name === marketName);
-                    if (!market) {
-                        results.errors.push(`Market "${marketName}" not found for item "${item.name}"`);
-                        continue;
-                    }
-
+                const itemMarkets = item.markets || [];
+                
+                for (const market of itemMarkets) {
                     const marketAssociation = await Database.insert('item_type_markets', {
                         item_type_id: newItemId,
                         market_id: market.id,
@@ -444,7 +490,7 @@ const ImportItemTypesService = (() => {
                     if (marketAssociation.isOk) {
                         marketSuccessCount++;
                     } else {
-                        results.errors.push(`Failed to associate "${item.name}" with market "${marketName}": ${marketAssociation.error}`);
+                        results.errors.push(`Failed to associate "${item.name}" with market "${market.name}": ${marketAssociation.error}`);
                     }
                 }
                 
