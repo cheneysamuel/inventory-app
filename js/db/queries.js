@@ -165,13 +165,24 @@ const Queries = (() => {
     };
     
     const getInventoryBySloc = async (slocId) => {
+        // Try edge function first
+        if (window.EdgeFunctions) {
+            const edgeResult = await EdgeFunctions.getInventory(slocId);
+            if (edgeResult.isOk) {
+                return edgeResult;
+            }
+            console.warn('⚠️ Edge function failed, using fallback:', edgeResult.error);
+        }
+        
+        // Fallback to direct database query
         return await Database.select('inventory', {
             select: `
                 *,
-                item_types(name, description),
+                item_types(name, description, inventory_type_id, units_of_measure(name)),
                 locations(name),
                 crews(name),
-                statuses(name)
+                statuses(name),
+                slocs(name)
             `,
             filter: { sloc_id: slocId },
             order: { column: 'id', ascending: false }
@@ -192,6 +203,16 @@ const Queries = (() => {
      * @returns {Object} Result with inventory record and whether it was created or updated
      */
     const upsertBulkInventory = async (data, operation = 'add') => {
+        // Try edge function first
+        const edgeResult = await EdgeFunctions.receiveBulkInventory(data, operation);
+        
+        if (edgeResult.isOk) {
+            return edgeResult;
+        }
+        
+        // Fallback to direct database operations
+        console.warn('⚠️ Edge function failed, using fallback for upsertBulkInventory');
+        
         try {
             // Find equivalent record (matching the key fields including SLOC)
             const filter = {
