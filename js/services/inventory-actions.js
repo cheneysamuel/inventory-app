@@ -31,6 +31,20 @@ const InventoryActions = (() => {
      * @returns {Promise<Result>}
      */
     const adjust = async (inventoryId, newQuantity, reason = '') => {
+        console.log('📊 [InventoryActions.adjust] Starting adjustment:', { inventoryId, newQuantity, reason });
+        
+        // Try edge function first
+        console.log('📡 [InventoryActions.adjust] Attempting edge function...');
+        const edgeResult = await EdgeFunctions.adjustInventory(inventoryId, newQuantity, reason);
+        
+        if (edgeResult.isOk) {
+            console.log('✅ [InventoryActions.adjust] Edge function succeeded');
+            await refreshInventory();
+            return edgeResult;
+        }
+        
+        // Fallback to direct database operations
+        console.warn('⚠️ [InventoryActions.adjust] Edge function failed, using fallback:', edgeResult.error);
         const state = Store.getState();
         
         // Get current inventory record
@@ -247,9 +261,22 @@ const InventoryActions = (() => {
      * Issue - Changes location from SLOC to With Crew, optionally assigns crew
      * @param {number} inventoryId - Inventory record ID
      * @param {number} crewId - Crew ID to issue to (optional if already assigned)
+     * @param {number} areaId - Area ID (optional)
+     * @param {number} locationId - Location ID (optional)
+     * @param {string} notes - Issue notes (optional)
      * @returns {Promise<Result>}
      */
-    const issue = async (inventoryId, crewId = null) => {
+    const issue = async (inventoryId, crewId = null, areaId = null, locationId = null, notes = '') => {
+        // Try edge function first
+        const edgeResult = await EdgeFunctions.issueInventory(inventoryId, crewId, areaId, locationId, notes);
+        
+        if (edgeResult.isOk) {
+            await refreshInventory();
+            return edgeResult;
+        }
+        
+        // Fallback to direct database operations
+        console.warn('⚠️ Edge function failed, using fallback for issue');
         const state = Store.getState();
         
         // Get current inventory
@@ -291,7 +318,7 @@ const InventoryActions = (() => {
             from_location_name: 'SLOC',
             to_location_name: 'With Crew',
             assigned_crew_name: crew?.name,
-            notes: `Issued to crew: ${crew?.name || finalCrewId}`
+            notes: notes || `Issued to crew: ${crew?.name || finalCrewId}`
         });
         
         // Refresh inventory
