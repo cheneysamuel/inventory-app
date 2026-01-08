@@ -1,0 +1,286 @@
+<!-- HTML Templates for Inventory Management System -->
+<!-- These templates reduce programmatic DOM creation in views.js -->
+
+<!-- ============================================ -->
+<!-- TABLE TEMPLATES -->
+<!-- ============================================ -->
+
+<!-- Generic Data Table Template -->
+<template id="data-table-template">
+    <table class="inventory-table">
+        <thead>
+            <tr data-bind="header-row">
+                <!-- Header cells populated dynamically -->
+            </tr>
+        </thead>
+        <tbody data-bind="table-body">
+            <!-- Rows populated dynamically -->
+        </tbody>
+    </table>
+</template>
+
+<!-- Inventory Table Row Template -->
+<template id="inventory-table-row-template">
+    <tr class="clickable-row">
+        <td data-bind="location"></td>
+        <td data-bind="crew"></td>
+        <td data-bind="area"></td>
+        <td data-bind="item"></td>
+        <td data-bind="category"></td>
+        <td data-bind="quantity"></td>
+        <td data-bind="status">
+            <span class="status-badge"></span>
+        </td>
+    </tr>
+</template>
+
+<!-- Item Type Table Row Template -->
+<template id="item-type-row-template">
+    <tr class="item-type-row">
+        <td data-bind="name"></td>
+        <td data-bind="inventory_type_name"></td>
+        <td data-bind="manufacturer"></td>
+        <td data-bind="part_number"></td>
+        <td class="description-cell" data-bind="description"></td>
+        <td class="text-center" data-bind="units_per_package"></td>
+        <td data-bind="unit_of_measure"></td>
+        <td data-bind="category_name"></td>
+        <td data-bind="provider_name"></td>
+        <td class="text-center" data-bind="low_units_quantity"></td>
+        <td class="market-cell" data-bind="markets"></td>
+        <td class="text-center use-count-cell" data-bind="useCount"></td>
+    </tr>
+</template>
+
+<!-- Transaction Table Template -->
+<template id="transaction-table-template">
+    <table class="inventory-table">
+        <thead>
+            <tr>
+                <th>Action</th>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>User</th>
+                <th>Date/Time</th>
+                <th>Changes</th>
+            </tr>
+        </thead>
+        <tbody data-bind="transactions">
+            <!-- Transaction rows populated dynamically -->
+        </tbody>
+    </table>
+</template>
+
+<!-- ============================================ -->
+<!-- MODAL TEMPLATES -->
+<!-- ============================================ -->
+
+<!-- Issue Action Modal Template -->
+<template id="issue-action-modal-template">
+    <div class="modal-content-wrapper">
+        <!-- Crew/Area Selection Section (conditionally shown) -->
+        <div data-bind="selection-section" style="margin-bottom: 1.5rem; padding: 1rem; background-color: #f9fafb; border-radius: 0.375rem; display: none;">
+            <h4 style="margin: 0 0 1rem 0">Assign To:</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem">
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500">Crew:</label>
+                    <select id="issue-crew-select" class="form-control" style="font-size: 18px; padding: 8px; width: 100%">
+                        <option value="">-- Select Crew --</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500">Area:</label>
+                    <select id="issue-area-select" class="form-control" style="font-size: 18px; padding: 8px; width: 100%">
+                        <option value="">-- Select Area --</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items Table -->
+        <table class="inventory-table" style="margin-bottom: 1rem">
+            <thead>
+                <tr>
+                    <th>Item Type</th>
+                    <th>Serial/ID</th>
+                    <th>Quantity</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody data-bind="items-list">
+                <!-- Items populated dynamically -->
+            </tbody>
+        </table>
+
+        <!-- Summary Section -->
+        <div data-bind="summary-section" style="margin-top: 1.5rem; padding: 1rem; background-color: #eff6ff; border-radius: 0.375rem">
+            <h4 style="margin: 0 0 0.5rem 0">Issue Summary:</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.875rem">
+                <div><strong>Total Items:</strong> <span data-bind="total-items"></span></div>
+                <div><strong>Total Quantity:</strong> <span data-bind="total-quantity"></span></div>
+                <div data-bind="crew-display" style="display: none"><strong>Crew:</strong> <span data-bind="crew-name"></span></div>
+                <div data-bind="area-display" style="display: none"><strong>Area:</strong> <span data-bind="area-name"></span></div>
+            </div>
+        </div>
+
+        <!-- Signature Section (conditionally shown) -->
+        <div data-bind="signature-section" style="margin-top: 1.5rem; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.375rem; display: none">
+            <h4 style="margin: 0 0 0.5rem 0">Signature (Optional):</h4>
+            <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 1rem">Sign below to include signature on receipt</p>
+            <div style="border: 2px solid #d1d5db; border-radius: 0.375rem; background-color: #fff">
+                <canvas id="signature-canvas" style="display: block; width: 100%; height: 150px; touch-action: none"></canvas>
+            </div>
+            <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem">
+                <button data-action="clear-signature" class="btn btn-secondary" style="font-size: 0.875rem">Clear Signature</button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Receive Action Modal Template -->
+<template id="receive-action-modal-template">
+    <div class="modal-content-wrapper">
+        <!-- Items Table -->
+        <table class="inventory-table" style="margin-bottom: 1rem">
+            <thead>
+                <tr>
+                    <th>Item Type</th>
+                    <th>Quantity</th>
+                </tr>
+            </thead>
+            <tbody data-bind="items-list">
+                <!-- Items populated dynamically -->
+            </tbody>
+        </table>
+
+        <!-- Summary Section -->
+        <div style="margin-top: 1.5rem; padding: 1rem; background-color: #eff6ff; border-radius: 0.375rem">
+            <h4 style="margin: 0 0 0.5rem 0">Receive Summary:</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.875rem">
+                <div><strong>Total Items:</strong> <span data-bind="total-items"></span></div>
+                <div><strong>Total Quantity:</strong> <span data-bind="total-quantity"></span></div>
+                <div><strong>Receiving Location:</strong> <span data-bind="location-name"></span></div>
+                <div><strong>Status:</strong> <span data-bind="status-name"></span></div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Generic Modal Item Row -->
+<template id="modal-item-row-template">
+    <tr>
+        <td data-bind="item-type"></td>
+        <td data-bind="serial-id"></td>
+        <td data-bind="quantity"></td>
+        <td data-bind="status"></td>
+    </tr>
+</template>
+
+<!-- ============================================ -->
+<!-- FORM TEMPLATES -->
+<!-- ============================================ -->
+
+<!-- Form Field Template -->
+<template id="form-field-template">
+    <div class="form-group" style="margin-bottom: 1rem">
+        <label data-bind="label"></label>
+        <input type="text" class="form-control" data-bind="input">
+    </div>
+</template>
+
+<!-- Select Field Template -->
+<template id="select-field-template">
+    <div class="form-group" style="margin-bottom: 1rem">
+        <label data-bind="label"></label>
+        <select class="form-control" data-bind="select">
+            <!-- Options populated dynamically -->
+        </select>
+    </div>
+</template>
+
+<!-- ============================================ -->
+<!-- HIERARCHY/ACCORDION TEMPLATES -->
+<!-- ============================================ -->
+
+<!-- Category Group Template -->
+<template id="category-group-template">
+    <div class="category-group">
+        <div class="category-header">
+            <span data-bind="category-name"></span>
+            <span class="collapse-icon">▼</span>
+        </div>
+        <div class="category-content" data-bind="category-content">
+            <!-- Item type groups populated dynamically -->
+        </div>
+    </div>
+</template>
+
+<!-- Item Type Group Template -->
+<template id="item-type-group-template">
+    <div class="item-type-group">
+        <div class="item-type-header">
+            <span data-bind="item-type-name"></span>
+            <span class="item-count-badge" data-bind="item-count"></span>
+        </div>
+        <table class="inventory-table">
+            <thead>
+                <tr>
+                    <th>Location</th>
+                    <th>Crew</th>
+                    <th>Area</th>
+                    <th>Mfgr. SN</th>
+                    <th>Tilson SN</th>
+                    <th>Quantity</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody data-bind="items">
+                <!-- Items populated dynamically -->
+            </tbody>
+        </table>
+    </div>
+</template>
+
+<!-- ============================================ -->
+<!-- UTILITY TEMPLATES -->
+<!-- ============================================ -->
+
+<!-- Empty State Template -->
+<template id="empty-state-template">
+    <div class="empty-state">
+        <div class="empty-state-icon" data-bind="icon">📦</div>
+        <p class="empty-state-message" data-bind="message">No items found</p>
+    </div>
+</template>
+
+<!-- Stats Card Template -->
+<template id="stats-card-template">
+    <div class="stats-card">
+        <div class="stats-card-icon" data-bind="icon"></div>
+        <div class="stats-card-content">
+            <div class="stats-card-label" data-bind="label"></div>
+            <div class="stats-card-value" data-bind="value"></div>
+        </div>
+    </div>
+</template>
+
+<!-- Page Header Template -->
+<template id="page-header-template">
+    <div class="page-header">
+        <div class="page-header-content">
+            <h1 class="page-title" data-bind="title"></h1>
+            <p class="page-subtitle" data-bind="subtitle"></p>
+        </div>
+        <div class="page-header-actions" data-bind="actions">
+            <!-- Action buttons populated dynamically -->
+        </div>
+    </div>
+</template>
+
+<!-- Search Bar Template -->
+<template id="search-bar-template">
+    <div style="margin-bottom: 1rem">
+        <label data-bind="label" style="display: block; margin-bottom: 0.5rem; font-weight: 500"></label>
+        <input type="text" class="form-control" data-bind="input" placeholder="Search...">
+    </div>
+</template>

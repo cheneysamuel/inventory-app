@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refactoring Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .test-title { font-weight: bold; color: #333; margin-bottom: 10px; }
+        .test-result { padding: 10px; margin: 5px 0; }
+        .pass { background-color: #d4edda; border-left: 4px solid #28a745; }
+        .fail { background-color: #f8d7da; border-left: 4px solid #dc3545; }
+        pre { background-color: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Inventory Processing Service Tests</h1>
+    <div id="test-results"></div>
+
+    <script src="js/services/inventory-processing.js"></script>
+    <script>
+        // Test data
+        const mockState = {
+            itemTypes: [
+                { id: 1, name: 'Cable', inventory_type_id: 2, category_id: 1, unit_of_measure_id: 1, provider_id: 1 },
+                { id: 2, name: 'Router', inventory_type_id: 1, category_id: 2, unit_of_measure_id: 2, provider_id: 1 },
+                { id: 3, name: 'Wire', inventory_type_id: 2, category_id: 1, unit_of_measure_id: 1, provider_id: 2 }
+            ],
+            inventory: [
+                { id: 1, item_type_id: 1, location_id: 1, assigned_crew_id: 1, area_id: 1, status_id: 1, quantity: 100 },
+                { id: 2, item_type_id: 1, location_id: 1, assigned_crew_id: 1, area_id: 1, status_id: 1, quantity: 50 },
+                { id: 3, item_type_id: 2, location_id: 2, assigned_crew_id: 2, area_id: 2, status_id: 2, serial_number: 'SN001' },
+                { id: 4, item_type_id: 3, location_id: 1, assigned_crew_id: 1, area_id: 1, status_id: 3, quantity: 200 }
+            ],
+            categories: [
+                { id: 1, name: 'Cables' },
+                { id: 2, name: 'Electronics' }
+            ],
+            statuses: [
+                { id: 1, name: 'Available' },
+                { id: 2, name: 'Issued' },
+                { id: 3, name: 'Rejected' }
+            ],
+            locations: [
+                { id: 1, name: 'Warehouse A' },
+                { id: 2, name: 'Warehouse B' }
+            ],
+            crews: [
+                { id: 1, name: 'Crew Alpha' },
+                { id: 2, name: 'Crew Beta' }
+            ],
+            areas: [
+                { id: 1, name: 'Area 1' },
+                { id: 2, name: 'Area 2' }
+            ],
+            inventoryTypes: [
+                { id: 1, name: 'Serialized' },
+                { id: 2, name: 'Bulk' }
+            ],
+            unitsOfMeasure: [
+                { id: 1, name: 'Feet' },
+                { id: 2, name: 'Each' }
+            ],
+            providers: [
+                { id: 1, name: 'Provider A' },
+                { id: 2, name: 'Provider B' }
+            ],
+            itemTypeMarkets: [],
+            markets: []
+        };
+
+        const results = [];
+
+        function runTest(name, testFn) {
+            try {
+                const result = testFn();
+                results.push({ name, pass: true, message: result });
+            } catch (error) {
+                results.push({ name, pass: false, message: error.message, stack: error.stack });
+            }
+        }
+
+        // Test 1: Check if InventoryProcessing is available
+        runTest('InventoryProcessing service is available', () => {
+            if (typeof InventoryProcessing === 'undefined') {
+                throw new Error('InventoryProcessing is not defined');
+            }
+            return 'InventoryProcessing object is available';
+        });
+
+        // Test 2: getBulkInventory
+        runTest('getBulkInventory filters correctly', () => {
+            const bulk = InventoryProcessing.getBulkInventory(mockState.inventory, mockState.itemTypes);
+            if (bulk.length !== 3) {
+                throw new Error(`Expected 3 bulk items, got ${bulk.length}`);
+            }
+            return `Found ${bulk.length} bulk items (expected 3)`;
+        });
+
+        // Test 3: getSerializedInventory
+        runTest('getSerializedInventory filters correctly', () => {
+            const serialized = InventoryProcessing.getSerializedInventory(mockState.inventory, mockState.itemTypes);
+            if (serialized.length !== 1) {
+                throw new Error(`Expected 1 serialized item, got ${serialized.length}`);
+            }
+            return `Found ${serialized.length} serialized items (expected 1)`;
+        });
+
+        // Test 4: consolidateBulkRows
+        runTest('consolidateBulkRows aggregates correctly', () => {
+            const bulk = InventoryProcessing.getBulkInventory(mockState.inventory, mockState.itemTypes);
+            const consolidated = InventoryProcessing.consolidateBulkRows(bulk, mockState);
+            
+            // Should consolidate the two Cable items into one row
+            if (consolidated.length !== 2) {
+                throw new Error(`Expected 2 consolidated rows, got ${consolidated.length}`);
+            }
+            
+            const cableRow = consolidated.find(r => r.item_type_id === 1);
+            if (!cableRow) {
+                throw new Error('Cable row not found');
+            }
+            
+            if (cableRow.quantity !== 150) {
+                throw new Error(`Expected consolidated quantity of 150, got ${cableRow.quantity}`);
+            }
+            
+            if (cableRow.items.length !== 2) {
+                throw new Error(`Expected 2 original items in consolidated row, got ${cableRow.items.length}`);
+            }
+            
+            return `Consolidated ${bulk.length} items into ${consolidated.length} rows. Cable quantity: ${cableRow.quantity}`;
+        });
+
+        // Test 5: isStatusVisible
+        runTest('isStatusVisible returns correct defaults', () => {
+            const availableVisible = InventoryProcessing.isStatusVisible('Available');
+            const issuedVisible = InventoryProcessing.isStatusVisible('Issued');
+            const rejectedVisible = InventoryProcessing.isStatusVisible('Rejected');
+            const customVisible = InventoryProcessing.isStatusVisible('Custom Status');
+            
+            if (!availableVisible || !issuedVisible || !rejectedVisible) {
+                throw new Error('Default statuses should be visible');
+            }
+            
+            if (customVisible) {
+                throw new Error('Custom status should not be visible by default');
+            }
+            
+            return 'Default status visibility working correctly';
+        });
+
+        // Test 6: getStatusColors
+        runTest('getStatusColors returns correct colors', () => {
+            const availableColors = InventoryProcessing.getStatusColors('Available');
+            if (availableColors.background !== '#75c283') {
+                throw new Error(`Expected Available background #75c283, got ${availableColors.background}`);
+            }
+            
+            const issuedColors = InventoryProcessing.getStatusColors('Issued');
+            if (issuedColors.background !== '#4099dd') {
+                throw new Error(`Expected Issued background #4099dd, got ${issuedColors.background}`);
+            }
+            
+            return 'Status colors retrieved correctly';
+        });
+
+        // Test 7: buildHierarchicalInventory
+        runTest('buildHierarchicalInventory creates correct structure', () => {
+            const serialized = InventoryProcessing.getSerializedInventory(mockState.inventory, mockState.itemTypes);
+            const hierarchy = InventoryProcessing.buildHierarchicalInventory(serialized, mockState.itemTypes, mockState.categories);
+            
+            const categoryCount = Object.keys(hierarchy).length;
+            if (categoryCount !== 1) {
+                throw new Error(`Expected 1 category, got ${categoryCount}`);
+            }
+            
+            if (!hierarchy['Electronics']) {
+                throw new Error('Electronics category not found');
+            }
+            
+            if (!hierarchy['Electronics']['Router']) {
+                throw new Error('Router item type not found');
+            }
+            
+            return `Built hierarchy with ${categoryCount} category and ${Object.keys(hierarchy['Electronics']).length} item type(s)`;
+        });
+
+        // Test 8: buildEnhancedItemTypes
+        runTest('buildEnhancedItemTypes adds market and usage data', () => {
+            const enhanced = InventoryProcessing.buildEnhancedItemTypes(mockState.itemTypes, mockState);
+            
+            if (enhanced.length !== 3) {
+                throw new Error(`Expected 3 enhanced items, got ${enhanced.length}`);
+            }
+            
+            const cableItem = enhanced.find(e => e.id === 1);
+            if (!cableItem) {
+                throw new Error('Cable item not found in enhanced data');
+            }
+            
+            // Cable has 2 inventory records
+            if (cableItem.useCount !== 2) {
+                throw new Error(`Expected Cable useCount of 2, got ${cableItem.useCount}`);
+            }
+            
+            if (cableItem.markets !== 'None') {
+                throw new Error(`Expected markets 'None', got ${cableItem.markets}`);
+            }
+            
+            return `Enhanced ${enhanced.length} items with usage counts and market data`;
+        });
+
+        // Display results
+        const container = document.getElementById('test-results');
+        let passCount = 0;
+        let failCount = 0;
+
+        results.forEach(result => {
+            const div = document.createElement('div');
+            div.className = 'test-section';
+            
+            const title = document.createElement('div');
+            title.className = 'test-title';
+            title.textContent = result.name;
+            
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${result.pass ? 'pass' : 'fail'}`;
+            resultDiv.textContent = result.pass ? `✓ PASS: ${result.message}` : `✗ FAIL: ${result.message}`;
+            
+            div.appendChild(title);
+            div.appendChild(resultDiv);
+            
+            if (!result.pass && result.stack) {
+                const stack = document.createElement('pre');
+                stack.textContent = result.stack;
+                div.appendChild(stack);
+            }
+            
+            container.appendChild(div);
+            
+            if (result.pass) passCount++;
+            else failCount++;
+        });
+
+        // Summary
+        const summary = document.createElement('div');
+        summary.className = 'test-section';
+        summary.style.fontWeight = 'bold';
+        summary.style.fontSize = '1.2em';
+        summary.innerHTML = `
+            <div class="test-title">Test Summary</div>
+            <div style="margin-top: 10px;">
+                Total: ${results.length} tests<br>
+                Passed: <span style="color: #28a745;">${passCount}</span><br>
+                Failed: <span style="color: #dc3545;">${failCount}</span>
+            </div>
+        `;
+        container.insertBefore(summary, container.firstChild);
+    </script>
+</body>
+</html>

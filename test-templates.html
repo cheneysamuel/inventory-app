@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Template Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .test-title { font-weight: bold; color: #333; margin-bottom: 10px; }
+        .test-result { padding: 10px; margin: 5px 0; }
+        .pass { background-color: #d4edda; border-left: 4px solid #28a745; }
+        .fail { background-color: #f8d7da; border-left: 4px solid #dc3545; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Template Utility Tests</h1>
+    <div id="test-results"></div>
+
+    <!-- Test Templates -->
+    <div id="templates-container" style="display: none;">
+        <template id="test-table-template">
+            <table>
+                <thead>
+                    <tr data-bind="header-row"></tr>
+                </thead>
+                <tbody data-bind="table-body"></tbody>
+            </table>
+        </template>
+
+        <template id="test-row-template">
+            <tr>
+                <td data-bind="name"></td>
+                <td data-bind="value"></td>
+                <td data-bind="status"></td>
+            </tr>
+        </template>
+
+        <template id="test-card-template">
+            <div class="card">
+                <h3 data-bind="title"></h3>
+                <p data-bind="description"></p>
+                <span data-bind="badge"></span>
+            </div>
+        </template>
+    </div>
+
+    <script src="js/utils/dom.js"></script>
+    <script>
+        const results = [];
+
+        function runTest(name, testFn) {
+            try {
+                const result = testFn();
+                results.push({ name, pass: true, message: result });
+            } catch (error) {
+                results.push({ name, pass: false, message: error.message, stack: error.stack });
+            }
+        }
+
+        // Test 1: Check if template utilities are available
+        runTest('Template utilities are available', () => {
+            if (typeof getTemplate === 'undefined') {
+                throw new Error('getTemplate is not defined');
+            }
+            if (typeof cloneTemplate === 'undefined') {
+                throw new Error('cloneTemplate is not defined');
+            }
+            if (typeof bindData === 'undefined') {
+                throw new Error('bindData is not defined');
+            }
+            if (typeof renderTemplate === 'undefined') {
+                throw new Error('renderTemplate is not defined');
+            }
+            return 'All template utilities are available';
+        });
+
+        // Test 2: getTemplate retrieves template
+        runTest('getTemplate retrieves template correctly', () => {
+            const template = getTemplate('test-table-template');
+            if (!template) {
+                throw new Error('Template not found');
+            }
+            if (template.tagName !== 'TEMPLATE') {
+                throw new Error(`Expected TEMPLATE tag, got ${template.tagName}`);
+            }
+            return 'Template retrieved successfully';
+        });
+
+        // Test 3: getTemplate throws error for missing template
+        runTest('getTemplate throws error for missing template', () => {
+            try {
+                getTemplate('non-existent-template');
+                throw new Error('Should have thrown an error');
+            } catch (error) {
+                if (error.message.includes('non-existent-template')) {
+                    return 'Correctly throws error for missing template';
+                }
+                throw error;
+            }
+        });
+
+        // Test 4: cloneTemplate creates DocumentFragment
+        runTest('cloneTemplate creates DocumentFragment', () => {
+            const clone = cloneTemplate('test-table-template');
+            if (!clone) {
+                throw new Error('Clone is null');
+            }
+            if (!(clone instanceof DocumentFragment)) {
+                throw new Error(`Expected DocumentFragment, got ${clone.constructor.name}`);
+            }
+            const table = clone.querySelector('table');
+            if (!table) {
+                throw new Error('Table not found in cloned template');
+            }
+            return 'Template cloned successfully';
+        });
+
+        // Test 5: bindData binds simple values
+        runTest('bindData binds simple text values', () => {
+            const clone = cloneTemplate('test-card-template');
+            const card = clone.querySelector('.card');
+            
+            bindData(card, {
+                title: 'Test Title',
+                description: 'Test Description',
+                badge: 'Active'
+            });
+            
+            const titleEl = card.querySelector('[data-bind="title"]');
+            const descEl = card.querySelector('[data-bind="description"]');
+            const badgeEl = card.querySelector('[data-bind="badge"]');
+            
+            if (titleEl.textContent !== 'Test Title') {
+                throw new Error(`Expected 'Test Title', got '${titleEl.textContent}'`);
+            }
+            if (descEl.textContent !== 'Test Description') {
+                throw new Error(`Expected 'Test Description', got '${descEl.textContent}'`);
+            }
+            if (badgeEl.textContent !== 'Active') {
+                throw new Error(`Expected 'Active', got '${badgeEl.textContent}'`);
+            }
+            
+            return 'Data binding works correctly';
+        });
+
+        // Test 6: cloneTemplate with data parameter
+        runTest('cloneTemplate with data binds immediately', () => {
+            const clone = cloneTemplate('test-card-template', {
+                title: 'Immediate Title',
+                description: 'Immediate Description',
+                badge: 'Pending'
+            });
+            
+            const card = clone.querySelector('.card');
+            const titleEl = card.querySelector('[data-bind="title"]');
+            
+            if (titleEl.textContent !== 'Immediate Title') {
+                throw new Error(`Expected 'Immediate Title', got '${titleEl.textContent}'`);
+            }
+            
+            return 'Clone with immediate data binding works';
+        });
+
+        // Test 7: renderTemplate creates and appends element
+        runTest('renderTemplate creates and appends element', () => {
+            const container = document.createElement('div');
+            
+            renderTemplate(container, 'test-card-template', {
+                title: 'Rendered Title',
+                description: 'Rendered Description',
+                badge: 'Complete'
+            });
+            
+            if (container.children.length !== 1) {
+                throw new Error(`Expected 1 child, got ${container.children.length}`);
+            }
+            
+            const card = container.querySelector('.card');
+            if (!card) {
+                throw new Error('Card not found in container');
+            }
+            
+            const titleEl = card.querySelector('[data-bind="title"]');
+            if (titleEl.textContent !== 'Rendered Title') {
+                throw new Error(`Expected 'Rendered Title', got '${titleEl.textContent}'`);
+            }
+            
+            return 'renderTemplate works correctly';
+        });
+
+        // Test 8: Template caching
+        runTest('Templates are cached for performance', () => {
+            // Clear cache if it exists
+            if (typeof templateCache !== 'undefined') {
+                templateCache.clear();
+            }
+            
+            const template1 = getTemplate('test-table-template');
+            const template2 = getTemplate('test-table-template');
+            
+            if (template1 !== template2) {
+                throw new Error('Templates should be the same object (cached)');
+            }
+            
+            return 'Template caching is working';
+        });
+
+        // Test 9: Nested data-bind attributes
+        runTest('Handles nested data-bind correctly', () => {
+            const clone = cloneTemplate('test-table-template');
+            const table = clone.querySelector('table');
+            
+            const headerRow = table.querySelector('[data-bind="header-row"]');
+            const tbody = table.querySelector('[data-bind="table-body"]');
+            
+            if (!headerRow) {
+                throw new Error('Header row not found');
+            }
+            if (!tbody) {
+                throw new Error('Table body not found');
+            }
+            
+            return 'Nested data-bind attributes accessible';
+        });
+
+        // Display results
+        const container = document.getElementById('test-results');
+        let passCount = 0;
+        let failCount = 0;
+
+        results.forEach(result => {
+            const div = document.createElement('div');
+            div.className = 'test-section';
+            
+            const title = document.createElement('div');
+            title.className = 'test-title';
+            title.textContent = result.name;
+            
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${result.pass ? 'pass' : 'fail'}`;
+            resultDiv.textContent = result.pass ? `✓ PASS: ${result.message}` : `✗ FAIL: ${result.message}`;
+            
+            div.appendChild(title);
+            div.appendChild(resultDiv);
+            
+            if (!result.pass && result.stack) {
+                const stack = document.createElement('pre');
+                stack.textContent = result.stack;
+                div.appendChild(stack);
+            }
+            
+            container.appendChild(div);
+            
+            if (result.pass) passCount++;
+            else failCount++;
+        });
+
+        // Summary
+        const summary = document.createElement('div');
+        summary.className = 'test-section';
+        summary.style.fontWeight = 'bold';
+        summary.style.fontSize = '1.2em';
+        summary.innerHTML = `
+            <div class="test-title">Test Summary</div>
+            <div style="margin-top: 10px;">
+                Total: ${results.length} tests<br>
+                Passed: <span style="color: #28a745;">${passCount}</span><br>
+                Failed: <span style="color: #dc3545;">${failCount}</span>
+            </div>
+        `;
+        container.insertBefore(summary, container.firstChild);
+    </script>
+</body>
+</html>
