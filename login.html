@@ -109,7 +109,7 @@
         }
 
         // Initialize Supabase client
-        let supabase = null;
+        let supabaseClient = null;
 
         (async function initLogin() {
             try {
@@ -121,10 +121,10 @@
                     throw new Error('Supabase configuration not found');
                 }
                 
-                supabase = window.supabase.createClient(SupabaseConfig.url, SupabaseConfig.anonKey);
+                supabaseClient = window.supabase.createClient(SupabaseConfig.url, SupabaseConfig.anonKey);
                 
                 // Check if already authenticated
-                const { data: { session } } = await supabase.auth.getSession();
+                const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session) {
                     // Already logged in, redirect to main app
                     window.location.href = 'index.html';
@@ -162,7 +162,7 @@
                 microsoftLoginBtn.textContent = 'Redirecting to Microsoft...';
                 
                 try {
-                    const { data, error } = await supabase.auth.signInWithOAuth({
+                    const { data, error } = await supabaseClient.auth.signInWithOAuth({
                         provider: 'azure',
                         options: {
                             redirectTo: window.location.origin + '/index.html',
@@ -203,7 +203,7 @@
                 submitBtn.textContent = 'Logging in...';
                 
                 try {
-                    const { data, error } = await supabase.auth.signInWithPassword({
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({
                         email,
                         password
                     });
@@ -260,7 +260,7 @@
                 submitBtn.textContent = 'Sending...';
                 
                 try {
-                    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
                         redirectTo: window.location.origin + '/login.html'
                     });
                     
@@ -309,7 +309,7 @@
                 submitBtn.textContent = 'Updating...';
                 
                 try {
-                    const { error } = await supabase.auth.updateUser({
+                    const { error } = await supabaseClient.auth.updateUser({
                         password: newPassword
                     });
                     
