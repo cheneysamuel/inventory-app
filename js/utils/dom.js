@@ -319,6 +319,166 @@ const isVisible = element => {
     return element.offsetWidth > 0 && element.offsetHeight > 0;
 };
 
+// ===== Template Rendering =====
+
+/**
+ * Template cache for improved performance
+ */
+const templateCache = new Map();
+
+/**
+ * Get a template element by ID
+ * @param {string} templateId - The ID of the template element
+ * @returns {HTMLTemplateElement|null}
+ */
+/**
+ * Get a template element by ID
+ * @param {string} templateId - The ID of the template element
+ * @returns {HTMLTemplateElement|null}
+ */
+const getTemplate = (templateId) => {
+    if (templateCache.has(templateId)) {
+        return templateCache.get(templateId);
+    }
+    
+    // Find template in document
+    const template = document.getElementById(templateId);
+    
+    if (!template) {
+        console.error(`❌ Template not found: ${templateId}`);
+        return null;
+    }
+    
+    if (template.tagName !== 'TEMPLATE') {
+        console.error(`❌ Element #${templateId} is not a <template> element`);
+        return null;
+    }
+    
+    // Cache the template for future use
+    templateCache.set(templateId, template);
+    
+    return template;
+};
+
+/**
+ * Clone a template and optionally bind data to it
+ * @param {string} templateId - The ID of the template element
+ * @param {Object} data - Optional data to bind to the template
+ * @returns {DocumentFragment|null}
+ */
+const cloneTemplate = (templateId, data = null) => {
+    const template = getTemplate(templateId);
+    if (!template) {
+        console.warn(`Template not found: ${templateId}`);
+        return null;
+    }
+    
+    const clone = template.content.cloneNode(true);
+    
+    if (data) {
+        bindData(clone, data);
+    }
+    
+    return clone;
+};
+
+/**
+ * Bind data to a cloned template
+ * @param {DocumentFragment|HTMLElement} element - The element to bind data to
+ * @param {Object} data - Data object with keys matching data-bind attributes
+ */
+const bindData = (element, data) => {
+    // Handle both DocumentFragment and HTMLElement
+    const root = element instanceof DocumentFragment ? element : element;
+    
+    // Get all elements with data-bind attribute
+    const boundElements = element.querySelectorAll ? 
+        element.querySelectorAll('[data-bind]') : 
+        [];
+    
+    boundElements.forEach(el => {
+        const bindKey = el.getAttribute('data-bind');
+        const value = data[bindKey];
+        
+        if (value !== undefined && value !== null) {
+            // Handle different element types
+            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                el.value = value;
+            } else if (el.tagName === 'SELECT') {
+                // For selects, we might need to populate options
+                if (Array.isArray(value)) {
+                    el.innerHTML = '';
+                    value.forEach(opt => {
+                        const option = createElement('option', { value: opt.value }, [opt.text || opt.label || opt.value]);
+                        el.appendChild(option);
+                    });
+                } else {
+                    el.value = value;
+                }
+            } else if (el.tagName === 'IMG') {
+                el.src = value;
+            } else {
+                // For other elements, set text content
+                el.textContent = value;
+            }
+        }
+    });
+};
+
+/**
+ * Render a template to a container
+ * @param {string} templateId - The ID of the template
+ * @param {HTMLElement} container - The container to render into
+ * @param {Object} data - Data to bind to the template
+ * @param {boolean} append - If true, append to container; if false, replace contents
+ */
+const renderTemplate = (templateId, container, data = null, append = false) => {
+    const clone = cloneTemplate(templateId, data);
+    if (!clone) return;
+    
+    if (append) {
+        container.appendChild(clone);
+    } else {
+        container.innerHTML = '';
+        container.appendChild(clone);
+    }
+};
+
+/**
+ * Create a table row from template and data
+ * @param {string} templateId - The template ID for the row
+ * @param {Object} rowData - Data for the row
+ * @returns {HTMLElement|null}
+ */
+const createRowFromTemplate = (templateId, rowData) => {
+    const clone = cloneTemplate(templateId, rowData);
+    if (!clone) return null;
+    
+    // Extract the tr element from the fragment
+    return clone.querySelector('tr');
+};
+
+/**
+ * Populate a table from template
+ * @param {HTMLElement} table - The table element
+ * @param {Array} data - Array of row data objects
+ * @param {string} rowTemplateId - Template ID for each row
+ */
+const populateTable = (table, data, rowTemplateId) => {
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    data.forEach(rowData => {
+        const row = createRowFromTemplate(rowTemplateId, rowData);
+        if (row) {
+            tbody.appendChild(row);
+        }
+    });
+};
+
+
 // ===== Component Builders =====
 const button = (text, attrs = {}) => 
     createElement('button', { ...attrs, type: attrs.type || 'button' }, [text]);
@@ -390,7 +550,9 @@ if (typeof module !== 'undefined' && module.exports) {
         createTableRow, createTable,
         fadeIn, fadeOut,
         focus, blur, scrollIntoView, getPosition, isVisible,
-        button, input, select, label, div, span, p, h1, h2, h3
+        button, input, select, label, div, span, p, h1, h2, h3,
+        // Template functions
+        getTemplate, cloneTemplate, bindData, renderTemplate, createRowFromTemplate, populateTable
     };
     
     // Also make commonly used functions globally available for convenience
@@ -402,4 +564,10 @@ if (typeof module !== 'undefined' && module.exports) {
     window.on = on;
     window.off = off;
     window.createElement = createElement;
+    // Template functions
+    window.cloneTemplate = cloneTemplate;
+    window.renderTemplate = renderTemplate;
+    window.bindData = bindData;
+    window.createRowFromTemplate = createRowFromTemplate;
+    window.populateTable = populateTable;
 }
