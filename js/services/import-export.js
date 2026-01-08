@@ -282,439 +282,596 @@ const ImportExportService = (() => {
         });
     };
     
+    // Sheet builder helpers
+    const addControlSheet = (workbook, state, filterNames, inventoryCount, transactionCount) => {
+        const ws = workbook.addWorksheet('CONTROL');
+        ws.columns = [{ width: 25 }, { width: 40 }];
+        
+        const userName = state.user ? (state.user.email || state.user.name || state.user.id || 'Unknown') : 'Unknown';
+        
+        ws.addRows([
+            ['Export Information'],
+            [''],
+            ['Export Date/Time', new Date().toLocaleString()],
+            ['User', userName],
+            [''],
+            ['Filter Settings'],
+            ['Client', filterNames.client],
+            ['Market', filterNames.market],
+            ['SLOC', filterNames.sloc],
+            ['Area', filterNames.area],
+            ['Crew', filterNames.crew],
+            [''],
+            ['Export Summary'],
+            ['Total Inventory Records', inventoryCount],
+            ['Total Transaction Records', transactionCount],
+            ['Total Item Types', state.itemTypes.length],
+            [''],
+            ['Sheet Descriptions'],
+            ['CONTROL', 'Export metadata and filter information'],
+            ['INVENTORY', 'Filtered inventory records based on selected criteria'],
+            ['ITEM_TYPES', 'Complete list of all item types in the system'],
+            ['TRANSACTIONS', 'Filtered transaction history matching inventory filters']
+        ]);
+    };
+    
+    const addInventorySheet = (workbook, rows) => {
+        const ws = workbook.addWorksheet('INVENTORY');
+        const helpers = window.ExportHelpers;
+        
+        if (!helpers) {
+            console.error('ExportHelpers not available on window object');
+            throw new Error('Export helpers not properly initialized');
+        }
+        
+        if (!helpers.INVENTORY_COLUMNS) {
+            console.error('INVENTORY_COLUMNS not available in ExportHelpers');
+            console.log('Available ExportHelpers keys:', Object.keys(helpers));
+            throw new Error('INVENTORY_COLUMNS not found in export helpers');
+        }
+        
+        ws.addTable({
+            name: 'InventoryTable',
+            ref: `A1:AC${rows.length + 1}`,
+            headerRow: true,
+            totalsRow: false,
+            style: { theme: 'TableStyleMedium9', showRowStripes: true },
+            columns: helpers.INVENTORY_COLUMNS,
+            rows: rows
+        });
+        
+        // Set key column widths
+        ws.getColumn(1).width = 8;   // ID
+        ws.getColumn(2).width = 15;  // Client
+        ws.getColumn(3).width = 15;  // Market
+        ws.getColumn(4).width = 15;  // SLOC
+        ws.getColumn(10).width = 25; // Item Type
+        ws.getColumn(13).width = 20; // Manufacturer
+        ws.getColumn(14).width = 20; // Part Number
+        ws.getColumn(15).width = 30; // Description
+    };
+    
+    const addItemTypesSheet = (workbook, state) => {
+        const ws = workbook.addWorksheet('ITEM_TYPES');
+        const helpers = window.ExportHelpers;
+        
+        const rows = state.itemTypes.map(it => {
+            const market = state.markets.find(m => m.id === it.market_id);
+            const client = market ? state.clients.find(c => c.id === market.client_id) : null;
+            const inventoryType = state.inventoryTypes.find(invt => invt.id === it.inventory_type_id);
+            const uom = state.unitsOfMeasure.find(u => u.id === it.unit_of_measure_id);
+            const provider = state.providers.find(p => p.id === it.provider_id);
+            const category = state.categories.find(c => c.id === it.category_id);
+            
+            return [
+                it.id,
+                it.name,
+                inventoryType?.name || '',
+                it.inventory_type_id,
+                it.manufacturer || '',
+                it.part_number || '',
+                it.description || '',
+                uom?.name || '',
+                it.unit_of_measure_id,
+                it.units_per_package || '',
+                provider?.name || '',
+                it.provider_id,
+                category?.name || '',
+                it.category_id || '',
+                it.low_units_quantity || '',
+                it.image_path || '',
+                it.meta || '',
+                market?.name || '',
+                it.market_id,
+                client?.name || '',
+                new Date(it.created_at).toLocaleString(),
+                new Date(it.updated_at).toLocaleString()
+            ];
+        });
+        
+        ws.addTable({
+            name: 'ItemTypesTable',
+            ref: `A1:V${rows.length + 1}`,
+            headerRow: true,
+            totalsRow: false,
+            style: { theme: 'TableStyleMedium9', showRowStripes: true },
+            columns: helpers.ITEM_TYPES_COLUMNS,
+            rows: rows
+        });
+        
+        ws.getColumn(1).width = 8;   // ID
+        ws.getColumn(2).width = 25;  // Name
+        ws.getColumn(5).width = 20;  // Manufacturer
+        ws.getColumn(6).width = 20;  // Part Number
+        ws.getColumn(7).width = 30;  // Description
+    };
+    
+    const addTransactionsSheet = (workbook, rows) => {
+        const ws = workbook.addWorksheet('TRANSACTIONS');
+        const helpers = window.ExportHelpers;
+        
+        ws.addTable({
+            name: 'TransactionsTable',
+            ref: `A1:AK${rows.length + 1}`,
+            headerRow: true,
+            totalsRow: false,
+            style: { theme: 'TableStyleMedium9', showRowStripes: true },
+            columns: helpers.TRANSACTION_COLUMNS,
+            rows: rows
+        });
+        
+        ws.getColumn(1).width = 8;   // ID
+        ws.getColumn(2).width = 20;  // Date/Time
+        ws.getColumn(10).width = 25; // Item Type
+        ws.getColumn(32).width = 40; // Notes
+    };
+    
+    const addEmptySheet = (workbook, sheetName, message) => {
+        const ws = workbook.addWorksheet(sheetName);
+        ws.addRow([message]);
+    };
+    
+    const saveWorkbook = async (workbook, filename) => {
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    };
+    
+    // Template sheet builders
+    const addTemplateControlSheet = (workbook, instructions) => {
+        const ws = workbook.addWorksheet('CONTROL', {
+            views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
+        });
+        
+        ws.columns = [{ width: 25 }, { width: 12 }, { width: 50 }, { width: 40 }];
+        
+        instructions.forEach((row, idx) => {
+            ws.addRow(row);
+            if (idx === 0) {
+                ws.getRow(idx + 1).font = { bold: true, size: 14 };
+            } else if (row[0] && row[0].includes(':') && row[0].length < 30) {
+                ws.getRow(idx + 1).font = { bold: true };
+            }
+        });
+    };
+    
+    const addExistingItemTypesSheet = (workbook, rows) => {
+        const ws = workbook.addWorksheet('EXISTING_ITEM_TYPES', {
+            views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
+        });
+        
+        const dataRows = rows.length > 0 ? rows : [['', '', '', '', '', '', '', '', '', '', '']];
+        
+        ws.addTable({
+            name: 'ExistingItemTypes',
+            ref: `A1:K${dataRows.length + 1}`,
+            headerRow: true,
+            style: { theme: 'TableStyleMedium2', showRowStripes: true },
+            columns: [
+                { name: 'Item Type ID' },
+                { name: 'Name' },
+                { name: 'Manufacturer' },
+                { name: 'Part Number' },
+                { name: 'Description' },
+                { name: 'Units per Package' },
+                { name: 'Low Units Quantity' },
+                { name: 'Inventory Type' },
+                { name: 'Unit of Measure' },
+                { name: 'Category' },
+                { name: 'Current Markets' }
+            ],
+            rows: dataRows
+        });
+        
+        ws.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+        
+        [12, 30, 20, 20, 40, 18, 18, 18, 18, 20, 40].forEach((width, idx) => {
+            ws.getColumn(idx + 1).width = width;
+        });
+    };
+    
+    const addNewItemTypesSheet = (workbook, dropdowns) => {
+        const ws = workbook.addWorksheet('NEW_ITEM_TYPES', {
+            views: [{ state: 'frozen', xSplit: 0, ySplit: 5 }]
+        });
+        
+        // Add instructions at the top
+        ws.mergeCells('A1:J1');
+        ws.getCell('A1').value = 'INSTRUCTIONS FOR MARKET ASSIGNMENT';
+        ws.getCell('A1').font = { bold: true, size: 14, color: { argb: 'FF000000' } };
+        ws.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEB9C' } };
+        ws.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
+        
+        ws.mergeCells('A2:J2');
+        ws.getCell('A2').value = 'For each new item type, enter "X" or "Yes" in the market columns (green headers) to assign that item type to those markets.';
+        ws.getCell('A2').font = { size: 11 };
+        ws.getCell('A2').alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+        ws.getRow(2).height = 30;
+        
+        ws.mergeCells('A3:J3');
+        ws.getCell('A3').value = 'You can assign each item type to multiple markets at once. Leave market cells blank if the item type does not apply to that market.';
+        ws.getCell('A3').font = { size: 11 };
+        ws.getCell('A3').alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+        ws.getRow(3).height = 30;
+        
+        // Empty row for spacing
+        ws.getRow(4).height = 10;
+        
+        // Build columns: standard fields + market columns
+        const standardColumns = [
+            { name: 'Name' }, { name: 'Manufacturer' }, { name: 'Part Number' },
+            { name: 'Description' }, { name: 'Units per Package' }, { name: 'Low Units Quantity' },
+            { name: 'Inventory Type' }, { name: 'Unit of Measure' }, { name: 'Provider' }, { name: 'Category' }
+        ];
+        
+        // Sanitize market names for Excel column headers
+        const marketColumns = dropdowns.markets.map(market => ({ 
+            name: String(market).replace(/[^\w\s-]/g, '').substring(0, 50) 
+        }));
+        const allColumns = [...standardColumns, ...marketColumns];
+        
+        // Create empty rows with correct number of columns
+        const emptyRows = Array(20).fill().map(() => Array(allColumns.length).fill(''));
+        
+        // Calculate ref range (A5 to last column, row 25) - starting at row 5 now
+        const lastColLetter = getExcelColumnLetter(allColumns.length);
+        const tableRef = `A5:${lastColLetter}25`;
+        
+        ws.addTable({
+            name: 'NewItemTypes',
+            ref: tableRef,
+            headerRow: true,
+            style: { theme: 'TableStyleMedium9', showRowStripes: true },
+            columns: allColumns,
+            rows: emptyRows
+        });
+        
+        // Style required (red) columns: Name, Units per Package, Inventory Type, UOM, Provider, Category
+        [1, 5, 7, 8, 9, 10].forEach(col => {
+            ws.getCell(5, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF0000' } };
+            ws.getCell(5, col).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        });
+        
+        // Style optional (blue) columns: Manufacturer, Part Number, Description, Low Units Quantity
+        [2, 3, 4, 6].forEach(col => {
+            ws.getCell(5, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+            ws.getCell(5, col).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        });
+        
+        // Style market columns (green)
+        for (let col = 11; col <= allColumns.length; col++) {
+            ws.getCell(5, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF70AD47' } };
+            ws.getCell(5, col).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        }
+        
+        // Set column widths
+        const widths = [30, 20, 20, 40, 18, 18, 18, 18, 20, 20, ...Array(marketColumns.length).fill(12)];
+        widths.forEach((width, idx) => {
+            ws.getColumn(idx + 1).width = width;
+        });
+        
+        // Add data validation dropdowns for standard fields (starting at row 6 now)
+        const validations = [
+            { col: 'B', list: dropdowns.providers, title: 'Manufacturer' },
+            { col: 'G', list: dropdowns.inventoryTypes, title: 'Inventory Type' },
+            { col: 'H', list: dropdowns.uoms, title: 'Unit of Measure' },
+            { col: 'I', list: dropdowns.providers, title: 'Provider' },
+            { col: 'J', list: dropdowns.categories, title: 'Category' }
+        ];
+        
+        for (let i = 6; i <= 25; i++) {
+            validations.forEach(({ col, list, title }) => {
+                if (list && list.length > 0) {
+                    ws.getCell(`${col}${i}`).dataValidation = {
+                        type: 'list',
+                        allowBlank: false,
+                        formulae: [`"${list.join(',')}"`],
+                        showErrorMessage: true,
+                        errorTitle: `Invalid ${title}`,
+                        error: `Please select a valid ${title.toLowerCase()} from the list`
+                    };
+                }
+            });
+            
+            // Add data validation for market columns (X, Yes, or blank)
+            for (let col = 11; col <= allColumns.length; col++) {
+                const colLetter = getExcelColumnLetter(col);
+                ws.getCell(`${colLetter}${i}`).dataValidation = {
+                    type: 'list',
+                    allowBlank: true,
+                    formulae: ['"X,Yes"'],
+                    showErrorMessage: true,
+                    errorTitle: 'Invalid Value',
+                    error: 'Enter X or Yes to assign to this market, or leave blank'
+                };
+            }
+        }
+    };
+    
+    // Helper function to convert column number to Excel letter (1=A, 27=AA, etc)
+    const getExcelColumnLetter = (colNum) => {
+        let letter = '';
+        while (colNum > 0) {
+            const mod = (colNum - 1) % 26;
+            letter = String.fromCharCode(65 + mod) + letter;
+            colNum = Math.floor((colNum - mod) / 26);
+        }
+        return letter;
+    };
+    
+    const addLookupValuesSheet = (workbook, dropdowns) => {
+        const ws = workbook.addWorksheet('LOOKUP_VALUES');
+        
+        const maxLen = Math.max(
+            dropdowns.categories.length,
+            dropdowns.uoms.length,
+            dropdowns.providers.length,
+            dropdowns.inventoryTypes.length,
+            dropdowns.markets.length,
+            dropdowns.clients.length,
+            1
+        );
+        
+        const rows = [];
+        for (let i = 0; i < maxLen; i++) {
+            rows.push([
+                dropdowns.categories[i] || '',
+                dropdowns.uoms[i] || '',
+                dropdowns.providers[i] || '',
+                dropdowns.inventoryTypes[i] || '',
+                dropdowns.markets[i] || '',
+                dropdowns.clients[i] || '',
+                i < 2 ? ['TRUE', 'FALSE'][i] : ''
+            ]);
+        }
+        
+        ws.addTable({
+            name: 'LookupValues',
+            ref: `A1:G${rows.length + 1}`,
+            headerRow: true,
+            style: { theme: 'TableStyleLight1', showRowStripes: true },
+            columns: [
+                { name: 'Categories' }, { name: 'Units of Measure' }, { name: 'Providers' },
+                { name: 'Inventory Types' }, { name: 'Markets' }, { name: 'Clients' }, { name: 'Allow PDF Options' }
+            ],
+            rows: rows
+        });
+        
+        [20, 20, 20, 20, 25, 25, 12].forEach((width, idx) => {
+            ws.getColumn(idx + 1).width = width;
+        });
+    };
+    
+    const addSerializedInventorySheet = (workbook, rows) => {
+        const ws = workbook.addWorksheet('SERIALIZED_INVENTORY', {
+            views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
+        });
+        
+        const dataRows = rows.length > 0 ? rows : [['', '', '', '', '', '', '', '', '', '', '']];
+        
+        ws.addTable({
+            name: 'SerializedInventory',
+            ref: `A1:K${dataRows.length + 1}`,
+            headerRow: true,
+            style: { theme: 'TableStyleMedium2', showRowStripes: true },
+            columns: [
+                { name: 'ID' }, { name: 'Item Type' }, { name: 'Category' }, { name: 'Manufacturer SN' },
+                { name: 'Tilson SN' }, { name: 'Quantity' }, { name: 'Status' }, { name: 'Location' },
+                { name: 'Location Type' }, { name: 'Crew' }, { name: 'Area' }
+            ],
+            rows: dataRows
+        });
+        
+        [10, 30, 15, 20, 20, 12, 15, 20, 15, 20, 20].forEach((width, idx) => {
+            ws.getColumn(idx + 1).width = width;
+        });
+        
+        // Yellow highlight for Quantity column
+        ws.getColumn(6).eachCell({ includeEmpty: false }, (cell, rowNumber) => {
+            if (rowNumber > 1) {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+            }
+        });
+        
+        // Blue header
+        ws.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+    };
+    
+    const addBulkInventorySheet = (workbook, rows) => {
+        const ws = workbook.addWorksheet('BULK_INVENTORY', {
+            views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
+        });
+        
+        const dataRows = rows.length > 0 ? rows : [['', '', '', '', '', '', '', '', '', '', '']];
+        
+        ws.addTable({
+            name: 'BulkInventory',
+            ref: `A1:K${dataRows.length + 1}`,
+            headerRow: true,
+            style: { theme: 'TableStyleMedium2', showRowStripes: true },
+            columns: [
+                { name: 'ID' }, { name: 'Item Type' }, { name: 'Category' }, { name: 'Part Number' },
+                { name: 'Quantity' }, { name: 'Unit of Measure' }, { name: 'Status' }, { name: 'Location' },
+                { name: 'Location Type' }, { name: 'Crew' }, { name: 'Area' }
+            ],
+            rows: dataRows
+        });
+        
+        [10, 30, 15, 20, 12, 15, 15, 20, 15, 20, 20].forEach((width, idx) => {
+            ws.getColumn(idx + 1).width = width;
+        });
+        
+        // Yellow highlight for Quantity column
+        ws.getColumn(5).eachCell({ includeEmpty: false }, (cell, rowNumber) => {
+            if (rowNumber > 1) {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+            }
+        });
+        
+        // Blue header
+        ws.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+    };
+    
+    const addNewInventorySheet = (workbook, state, sloc) => {
+        const ws = workbook.addWorksheet('NEW_INVENTORY', {
+            views: [{ state: 'frozen', xSplit: 0, ySplit: 9 }]
+        });
+        
+        // Get bulk item types for selected SLOC's market
+        const helpers = window.ExportHelpers;
+        const marketId = sloc?.market_id;
+        let bulkItemTypes = state.itemTypes.filter(it => it.inventory_type_id === 2);
+        
+        // Filter by market
+        if (marketId && state.itemTypeMarkets) {
+            const marketItemTypeIds = state.itemTypeMarkets
+                .filter(itm => itm.market_id === marketId)
+                .map(itm => itm.item_type_id);
+            bulkItemTypes = bulkItemTypes.filter(it => marketItemTypeIds.includes(it.id));
+        }
+        
+        // Add Client/Market/SLOC info section (rows 1-8)
+        const client = state.clients.find(c => c.id === sloc?.client_id);
+        const market = state.markets.find(m => m.id === sloc?.market_id);
+        
+        ws.getCell('A1').value = 'Template Information';
+        ws.getCell('A1').font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+        ws.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+        ws.mergeCells('A1:F1');
+        
+        ws.getCell('A2').value = 'Client:';
+        ws.getCell('A2').font = { bold: true };
+        ws.getCell('B2').value = client?.name || '';
+        
+        ws.getCell('A3').value = 'Market:';
+        ws.getCell('A3').font = { bold: true };
+        ws.getCell('B3').value = market?.name || '';
+        
+        ws.getCell('A4').value = 'SLOC:';
+        ws.getCell('A4').font = { bold: true };
+        ws.getCell('B4').value = sloc?.name || '';
+        
+        ws.getCell('A6').value = 'Instructions:';
+        ws.getCell('A6').font = { bold: true };
+        ws.getCell('A7').value = 'Enter quantities to receive for each item type below. This sheet can be printed for manual physical inventory.';
+        ws.getCell('A7').alignment = { wrapText: true };
+        ws.mergeCells('A7:F7');
+        
+        // Generate rows from bulk item types
+        const itemTypeRows = bulkItemTypes.map(it => helpers.bulkItemTypeToNewInventoryRow(it, state));
+        
+        // Add table starting at row 9
+        const lastRow = 9 + itemTypeRows.length;
+        ws.addTable({
+            name: 'NewInventory',
+            ref: `A9:F${lastRow}`,
+            headerRow: true,
+            style: { theme: 'TableStyleMedium2', showRowStripes: true },
+            columns: [
+                { name: 'Name', key: 'name', header: 'Name' },
+                { name: 'Part Number', key: 'part_number', header: 'Part Number' },
+                { name: 'Description', key: 'description', header: 'Description' },
+                { name: 'Unit of Measure', key: 'unit_of_measure', header: 'Unit of Measure' },
+                { name: 'Category', key: 'category', header: 'Category' },
+                { name: 'Quantity', key: 'quantity', header: 'Quantity' }
+            ],
+            rows: itemTypeRows
+        });
+        
+        // Set column widths
+        [35, 20, 50, 15, 20, 12].forEach((width, idx) => {
+            ws.getColumn(idx + 1).width = width;
+        });
+        
+        // Light blue for informational columns (Name, Part Number, Description, UOM, Category)
+        [1, 2, 3, 4, 5].forEach(col => {
+            ws.getColumn(col).eachCell({ includeEmpty: false }, (cell, rowNumber) => {
+                if (rowNumber > 9) {
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEEEFF' } };
+                }
+            });
+        });
+        
+        // Light red for Quantity column (required)
+        ws.getColumn(6).eachCell({ includeEmpty: false }, (cell, rowNumber) => {
+            if (rowNumber > 9) {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEEEE' } };
+            }
+        });
+        
+        // Blue header row
+        ws.getRow(9).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        ws.getRow(9).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+    };
+    
     // Export filtered data to Excel with multiple sheets
     const exportFilteredDataToExcel = async (filters, filterNames) => {
         try {
             const state = Store.getState();
+            const helpers = window.ExportHelpers;
             
-            // Filter inventory
-            let filteredInventory = state.inventory;
+            // Filter data using hierarchy
+            const validSlocIds = helpers.buildValidSlocIds(state, filters);
+            const filteredInventory = helpers.filterInventory(state, filters, validSlocIds);
+            const filteredTransactions = helpers.filterTransactions(state, filters, validSlocIds);
             
-            if (filters.clientId) {
-                const clientSlocs = state.slocs.filter(s => {
-                    const market = state.markets.find(m => m.id === s.market_id);
-                    return market && market.client_id === filters.clientId;
-                }).map(s => s.id);
-                filteredInventory = filteredInventory.filter(i => clientSlocs.includes(i.sloc_id));
-            }
-            
-            if (filters.marketId) {
-                const marketSlocs = state.slocs.filter(s => s.market_id === filters.marketId).map(s => s.id);
-                filteredInventory = filteredInventory.filter(i => marketSlocs.includes(i.sloc_id));
-            }
-            
-            if (filters.slocId) {
-                filteredInventory = filteredInventory.filter(i => i.sloc_id === filters.slocId);
-            }
-            
-            if (filters.areaId) {
-                filteredInventory = filteredInventory.filter(i => i.area_id === filters.areaId);
-            }
-            
-            if (filters.crewId) {
-                filteredInventory = filteredInventory.filter(i => i.assigned_crew_id === filters.crewId);
-            }
-            
-            // Filter transactions with same logic
-            let filteredTransactions = state.transactions;
-            
-            if (filters.clientId || filters.marketId || filters.slocId) {
-                const slocNames = [];
-                if (filters.slocId) {
-                    const sloc = state.slocs.find(s => s.id === filters.slocId);
-                    if (sloc) slocNames.push(sloc.name);
-                } else if (filters.marketId) {
-                    state.slocs.filter(s => s.market_id === filters.marketId).forEach(s => slocNames.push(s.name));
-                } else if (filters.clientId) {
-                    const clientMarkets = state.markets.filter(m => m.client_id === filters.clientId).map(m => m.id);
-                    state.slocs.filter(s => clientMarkets.includes(s.market_id)).forEach(s => slocNames.push(s.name));
-                }
-                filteredTransactions = filteredTransactions.filter(tx => slocNames.includes(tx.sloc));
-            }
-            
-            if (filters.areaId) {
-                const areaName = state.areas.find(a => a.id === filters.areaId)?.name;
-                if (areaName) {
-                    filteredTransactions = filteredTransactions.filter(tx => tx.area_name === areaName);
-                }
-            }
-            
-            if (filters.crewId) {
-                const crewName = state.crews.find(c => c.id === filters.crewId)?.name;
-                if (crewName) {
-                    filteredTransactions = filteredTransactions.filter(tx => tx.assigned_crew_name === crewName);
-                }
-            }
-            
-            // Create workbook using ExcelJS
+            // Create workbook
             const workbook = new ExcelJS.Workbook();
             
-            // Get user info
-            let userName = 'Unknown';
-            if (state.user) {
-                userName = state.user.email || state.user.name || state.user.id || 'Unknown';
-            }
+            // Add CONTROL sheet
+            addControlSheet(workbook, state, filterNames, filteredInventory.length, filteredTransactions.length);
             
-            // CONTROL sheet
-            const wsControl = workbook.addWorksheet('CONTROL');
-            wsControl.columns = [
-                { width: 25 },
-                { width: 40 }
-            ];
-            
-            wsControl.addRows([
-                ['Export Information'],
-                [''],
-                ['Export Date/Time', new Date().toLocaleString()],
-                ['User', userName],
-                [''],
-                ['Filter Settings'],
-                ['Client', filterNames.client],
-                ['Market', filterNames.market],
-                ['SLOC', filterNames.sloc],
-                ['Area', filterNames.area],
-                ['Crew', filterNames.crew],
-                [''],
-                ['Export Summary'],
-                ['Total Inventory Records', filteredInventory.length],
-                ['Total Transaction Records', filteredTransactions.length],
-                ['Total Item Types', state.itemTypes.length],
-                [''],
-                ['Sheet Descriptions'],
-                ['CONTROL', 'Export metadata and filter information'],
-                ['INVENTORY', 'Filtered inventory records based on selected criteria'],
-                ['ITEM_TYPES', 'Complete list of all item types in the system'],
-                ['TRANSACTIONS', 'Filtered transaction history matching inventory filters']
-            ]);
-            
-            // INVENTORY sheet
+            // Add INVENTORY sheet
             if (filteredInventory.length > 0) {
-                const wsInventory = workbook.addWorksheet('INVENTORY');
-                
-                // Build inventory data rows
-                const inventoryRows = filteredInventory.map(item => {
-                    const itemType = state.itemTypes.find(it => it.id === item.item_type_id);
-                    const sloc = state.slocs.find(s => s.id === item.sloc_id);
-                    const market = sloc ? state.markets.find(m => m.id === sloc.market_id) : null;
-                    const client = market ? state.clients.find(c => c.id === market.client_id) : null;
-                    const area = state.areas.find(a => a.id === item.area_id);
-                    const crew = state.crews.find(c => c.id === item.assigned_crew_id);
-                    const status = state.statuses.find(s => s.id === item.status_id);
-                    const location = state.locations.find(l => l.id === item.location_id);
-                    const locationType = location ? state.locationTypes.find(lt => lt.id === location.loc_type_id) : null;
-                    const inventoryType = itemType ? state.inventoryTypes.find(it => it.id === itemType.inventory_type_id) : null;
-                    const uom = itemType ? state.unitsOfMeasure.find(u => u.id === itemType.unit_of_measure_id) : null;
-                    const provider = itemType ? state.providers.find(p => p.id === itemType.provider_id) : null;
-                    const category = itemType ? state.categories.find(c => c.id === itemType.category_id) : null;
-                    
-                    return [
-                        item.id,
-                        client?.name || '',
-                        market?.name || '',
-                        sloc?.name || '',
-                        item.sloc_id || '',
-                        area?.name || '',
-                        item.area_id || '',
-                        crew?.name || '',
-                        item.assigned_crew_id || '',
-                        itemType?.name || '',
-                        item.item_type_id,
-                        inventoryType?.name || '',
-                        itemType?.manufacturer || '',
-                        itemType?.part_number || '',
-                        itemType?.description || '',
-                        uom?.name || '',
-                        itemType?.units_per_package || '',
-                        provider?.name || '',
-                        category?.name || '',
-                        item.mfgrsn || '',
-                        item.tilsonsn || '',
-                        item.quantity || 1,
-                        status?.name || '',
-                        item.status_id,
-                        location?.name || '',
-                        item.location_id,
-                        locationType?.name || '',
-                        new Date(item.created_at).toLocaleString(),
-                        new Date(item.updated_at).toLocaleString()
-                    ];
-                });
-                
-                // Add table with data
-                wsInventory.addTable({
-                    name: 'InventoryTable',
-                    ref: `A1:AC${inventoryRows.length + 1}`,
-                    headerRow: true,
-                    totalsRow: false,
-                    style: {
-                        theme: 'TableStyleMedium9',
-                        showRowStripes: true
-                    },
-                    columns: [
-                        { name: 'ID', filterButton: true },
-                        { name: 'Client', filterButton: true },
-                        { name: 'Market', filterButton: true },
-                        { name: 'SLOC', filterButton: true },
-                        { name: 'SLOC ID', filterButton: true },
-                        { name: 'Area', filterButton: true },
-                        { name: 'Area ID', filterButton: true },
-                        { name: 'Crew', filterButton: true },
-                        { name: 'Crew ID', filterButton: true },
-                        { name: 'Item Type', filterButton: true },
-                        { name: 'Item Type ID', filterButton: true },
-                        { name: 'Inventory Type', filterButton: true },
-                        { name: 'Manufacturer', filterButton: true },
-                        { name: 'Part Number', filterButton: true },
-                        { name: 'Description', filterButton: true },
-                        { name: 'Unit of Measure', filterButton: true },
-                        { name: 'Units Per Package', filterButton: true },
-                        { name: 'Provider', filterButton: true },
-                        { name: 'Category', filterButton: true },
-                        { name: 'Manufacturer SN', filterButton: true },
-                        { name: 'Tilson SN', filterButton: true },
-                        { name: 'Quantity', filterButton: true },
-                        { name: 'Status', filterButton: true },
-                        { name: 'Status ID', filterButton: true },
-                        { name: 'Location', filterButton: true },
-                        { name: 'Location ID', filterButton: true },
-                        { name: 'Location Type', filterButton: true },
-                        { name: 'Created At', filterButton: true },
-                        { name: 'Updated At', filterButton: true }
-                    ],
-                    rows: inventoryRows
-                });
-                
-                // Set column widths
-                wsInventory.getColumn(1).width = 8;   // ID
-                wsInventory.getColumn(2).width = 15;  // Client
-                wsInventory.getColumn(3).width = 15;  // Market
-                wsInventory.getColumn(4).width = 15;  // SLOC
-                wsInventory.getColumn(10).width = 25; // Item Type
-                wsInventory.getColumn(13).width = 20; // Manufacturer
-                wsInventory.getColumn(14).width = 20; // Part Number
-                wsInventory.getColumn(15).width = 30; // Description
+                const enriched = filteredInventory.map(item => helpers.enrichInventoryItem(item, state));
+                const rows = enriched.map(item => helpers.inventoryItemToExportRow(item));
+                addInventorySheet(workbook, rows);
             } else {
-                const wsInventory = workbook.addWorksheet('INVENTORY');
-                wsInventory.addRow(['No inventory records match the selected filters']);
+                addEmptySheet(workbook, 'INVENTORY', 'No inventory records match the selected filters');
             }
             
-            // ITEM_TYPES sheet
-            const wsItemTypes = workbook.addWorksheet('ITEM_TYPES');
+            // Add ITEM_TYPES sheet
+            addItemTypesSheet(workbook, state);
             
-            // Build item types data rows
-            const itemTypesRows = state.itemTypes.map(it => {
-                const market = state.markets.find(m => m.id === it.market_id);
-                const client = market ? state.clients.find(c => c.id === market.client_id) : null;
-                const inventoryType = state.inventoryTypes.find(invt => invt.id === it.inventory_type_id);
-                const uom = state.unitsOfMeasure.find(u => u.id === it.unit_of_measure_id);
-                const provider = state.providers.find(p => p.id === it.provider_id);
-                const category = state.categories.find(c => c.id === it.category_id);
-                
-                return [
-                    it.id,
-                    it.name,
-                    inventoryType?.name || '',
-                    it.inventory_type_id,
-                    it.manufacturer || '',
-                    it.part_number || '',
-                    it.description || '',
-                    uom?.name || '',
-                    it.unit_of_measure_id,
-                    it.units_per_package || '',
-                    provider?.name || '',
-                    it.provider_id,
-                    category?.name || '',
-                    it.category_id || '',
-                    it.low_units_quantity || '',
-                    it.image_path || '',
-                    it.meta || '',
-                    market?.name || '',
-                    it.market_id,
-                    client?.name || '',
-                    new Date(it.created_at).toLocaleString(),
-                    new Date(it.updated_at).toLocaleString()
-                ];
-            });
-            
-            // Add table with data
-            wsItemTypes.addTable({
-                name: 'ItemTypesTable',
-                ref: `A1:V${itemTypesRows.length + 1}`,
-                headerRow: true,
-                totalsRow: false,
-                style: {
-                    theme: 'TableStyleMedium9',
-                    showRowStripes: true
-                },
-                columns: [
-                    { name: 'ID', filterButton: true },
-                    { name: 'Name', filterButton: true },
-                    { name: 'Inventory Type', filterButton: true },
-                    { name: 'Inventory Type ID', filterButton: true },
-                    { name: 'Manufacturer', filterButton: true },
-                    { name: 'Part Number', filterButton: true },
-                    { name: 'Description', filterButton: true },
-                    { name: 'Unit of Measure', filterButton: true },
-                    { name: 'Unit of Measure ID', filterButton: true },
-                    { name: 'Units Per Package', filterButton: true },
-                    { name: 'Provider', filterButton: true },
-                    { name: 'Provider ID', filterButton: true },
-                    { name: 'Category', filterButton: true },
-                    { name: 'Category ID', filterButton: true },
-                    { name: 'Low Units Quantity', filterButton: true },
-                    { name: 'Image Path', filterButton: true },
-                    { name: 'Meta', filterButton: true },
-                    { name: 'Market', filterButton: true },
-                    { name: 'Market ID', filterButton: true },
-                    { name: 'Client', filterButton: true },
-                    { name: 'Created At', filterButton: true },
-                    { name: 'Updated At', filterButton: true }
-                ],
-                rows: itemTypesRows
-            });
-            
-            // Set column widths
-            wsItemTypes.getColumn(1).width = 8;   // ID
-            wsItemTypes.getColumn(2).width = 25;  // Name
-            wsItemTypes.getColumn(5).width = 20;  // Manufacturer
-            wsItemTypes.getColumn(6).width = 20;  // Part Number
-            wsItemTypes.getColumn(7).width = 30;  // Description
-            
-            // TRANSACTIONS sheet
+            // Add TRANSACTIONS sheet
             if (filteredTransactions.length > 0) {
-                const wsTransactions = workbook.addWorksheet('TRANSACTIONS');
-                
-                // Build transactions data rows
-                const transactionsRows = filteredTransactions.map(tx => {
-                    // Parse user_name JSON if it's a JSON string
-                    let userDisplay = tx.user_name || 'Unknown';
-                    try {
-                        const userInfo = JSON.parse(tx.user_name);
-                        userDisplay = userInfo.email || userInfo.name || 'Unknown';
-                    } catch {
-                        // Not JSON, use as-is
-                        userDisplay = tx.user_name || 'Unknown';
-                    }
-                    
-                    return [
-                        tx.id,
-                        new Date(tx.date_time).toLocaleString(),
-                        tx.transaction_type,
-                        tx.action,
-                        tx.client || '',
-                        tx.market || '',
-                        tx.sloc || '',
-                        tx.area_name || '',
-                        tx.assigned_crew_name || '',
-                        tx.item_type_name || '',
-                        tx.inventory_type_name || '',
-                        tx.manufacturer || '',
-                        tx.part_number || '',
-                        tx.description || '',
-                        tx.unit_of_measure || '',
-                        tx.units_per_package || '',
-                        tx.provider_name || '',
-                        tx.category_name || '',
-                        tx.mfgrsn || '',
-                        tx.tilsonsn || '',
-                        tx.quantity || '',
-                        tx.old_quantity || '',
-                        tx.from_location_name || '',
-                        tx.from_location_type || '',
-                        tx.to_location_name || '',
-                        tx.to_location_type || '',
-                        tx.old_status_name || '',
-                        tx.status_name || '',
-                        userDisplay,
-                        tx.user_name || '',
-                        tx.session_id || '',
-                        tx.notes || '',
-                        tx.ip_address || '',
-                        tx.user_agent || '',
-                        tx.before_state || '',
-                        tx.after_state || '',
-                        tx.inventory_id || ''
-                    ];
-                });
-                
-                // Add table with data
-                wsTransactions.addTable({
-                    name: 'TransactionsTable',
-                    ref: `A1:AK${transactionsRows.length + 1}`,
-                    headerRow: true,
-                    totalsRow: false,
-                    style: {
-                        theme: 'TableStyleMedium9',
-                        showRowStripes: true
-                    },
-                    columns: [
-                        { name: 'ID', filterButton: true },
-                        { name: 'Date/Time', filterButton: true },
-                        { name: 'Transaction Type', filterButton: true },
-                        { name: 'Action', filterButton: true },
-                        { name: 'Client', filterButton: true },
-                        { name: 'Market', filterButton: true },
-                        { name: 'SLOC', filterButton: true },
-                        { name: 'Area', filterButton: true },
-                        { name: 'Crew', filterButton: true },
-                        { name: 'Item Type', filterButton: true },
-                        { name: 'Inventory Type', filterButton: true },
-                        { name: 'Manufacturer', filterButton: true },
-                        { name: 'Part Number', filterButton: true },
-                        { name: 'Description', filterButton: true },
-                        { name: 'Unit of Measure', filterButton: true },
-                        { name: 'Units Per Package', filterButton: true },
-                        { name: 'Provider', filterButton: true },
-                        { name: 'Category', filterButton: true },
-                        { name: 'Manufacturer SN', filterButton: true },
-                        { name: 'Tilson SN', filterButton: true },
-                        { name: 'Quantity', filterButton: true },
-                        { name: 'Old Quantity', filterButton: true },
-                        { name: 'From Location', filterButton: true },
-                        { name: 'From Location Type', filterButton: true },
-                        { name: 'To Location', filterButton: true },
-                        { name: 'To Location Type', filterButton: true },
-                        { name: 'Old Status', filterButton: true },
-                        { name: 'Status', filterButton: true },
-                        { name: 'User', filterButton: true },
-                        { name: 'User JSON', filterButton: true },
-                        { name: 'Session ID', filterButton: true },
-                        { name: 'Notes', filterButton: true },
-                        { name: 'IP Address', filterButton: true },
-                        { name: 'User Agent', filterButton: true },
-                        { name: 'Before State', filterButton: true },
-                        { name: 'After State', filterButton: true },
-                        { name: 'Inventory ID', filterButton: true }
-                    ],
-                    rows: transactionsRows
-                });
-                
-                // Set column widths
-                wsTransactions.getColumn(1).width = 8;   // ID
-                wsTransactions.getColumn(2).width = 20;  // Date/Time
-                wsTransactions.getColumn(10).width = 25; // Item Type
-                wsTransactions.getColumn(32).width = 40; // Notes
+                const rows = filteredTransactions.map(tx => helpers.transactionToExportRow(tx, state));
+                addTransactionsSheet(workbook, rows);
             } else {
-                const wsTransactions = workbook.addWorksheet('TRANSACTIONS');
-                wsTransactions.addRow(['No transaction records match the selected filters']);
+                addEmptySheet(workbook, 'TRANSACTIONS', 'No transaction records match the selected filters');
             }
             
-            // Generate filename
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
-            const filterSuffix = filters.slocId ? `_${filterNames.sloc}` : 
-                                 filters.marketId ? `_${filterNames.market}` :
-                                 filters.clientId ? `_${filterNames.client}` : '';
-            const filename = `inventory_export${filterSuffix}_${timestamp}.xlsx`;
-            
-            // Write file
-            const buffer = await workbook.xlsx.writeBuffer();
-            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-            window.URL.revokeObjectURL(url);
+            // Save file
+            const filename = helpers.generateExportFilename(filters, filterNames);
+            await saveWorkbook(workbook, filename);
             
             Components.showToast(`Exported ${filteredInventory.length} inventory records and ${filteredTransactions.length} transactions`, 'success');
         } catch (error) {
@@ -728,376 +885,29 @@ const ImportExportService = (() => {
     const generateItemTypesTemplate = async () => {
         try {
             const state = Store.getState();
+            const helpers = window.ExportHelpers;
             
-            // Create workbook using ExcelJS
+            // Create workbook
             const workbook = new ExcelJS.Workbook();
             workbook.creator = state.user?.email || 'Inventory System';
             workbook.created = new Date();
             
-            // Get unique values for dropdowns
-            const categories = [...new Set(state.categories.map(c => c.name))].sort();
-            const uoms = [...new Set((state.unitsOfMeasure || []).map(u => u.name))].sort();
-            const providers = [...new Set((state.providers || []).map(p => p.name))].sort();
-            const inventoryTypes = [...new Set((state.inventoryTypes || []).map(it => it.name))].sort();
-            const markets = [...new Set(state.markets.map(m => m.name))].sort();
-            const clients = [...new Set(state.clients.map(c => c.name))].sort();
+            // Get dropdown values
+            const dropdowns = helpers.getTemplateDropdowns(state);
             
-            // ====================
-            // CONTROL SHEET
-            // ====================
-            const controlSheet = workbook.addWorksheet('CONTROL', {
-                views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
-            });
+            // Add sheets
+            const instructions = helpers.getItemTypesTemplateInstructions(state);
+            addTemplateControlSheet(workbook, instructions);
             
-            // Set column widths
-            controlSheet.columns = [
-                { width: 25 },
-                { width: 12 },
-                { width: 50 },
-                { width: 40 }
-            ];
+            const existingRows = state.itemTypes.map(it => helpers.itemTypeToTemplateRow(it, state));
+            addExistingItemTypesSheet(workbook, existingRows);
             
-            // Add control data
-            const controlData = [
-                ['ITEM TYPES IMPORT TEMPLATE'],
-                ['Generated:', new Date().toLocaleString()],
-                ['User:', state.user?.email || 'Unknown'],
-                [''],
-                ['INSTRUCTIONS:'],
-                ['This template has four sheets:'],
-                [''],
-                ['1. CONTROL (this sheet)'],
-                ['   - Instructions and field explanations'],
-                [''],
-                ['2. EXISTING_ITEM_TYPES'],
-                ['   - Lists all existing item types with their markets'],
-                ['   - Check the checkbox in the first column to apply an existing item type to a different market'],
-                ['   - Enter the new Market Name in the "New Market Name" column'],
-                ['   - This creates a copy of the item type for the new market'],
-                [''],
-                ['3. NEW_ITEM_TYPES'],
-                ['   - Add new item types here (formatted as Excel Table with dropdowns)'],
-                ['   - Red headers indicate REQUIRED fields'],
-                ['   - Use dropdowns for lookup values (Category, UOM, Provider, Inventory Type, Market, Client)'],
-                [''],
-                ['4. LOOKUP_VALUES'],
-                ['   - Reference sheet with all valid dropdown values'],
-                [''],
-                ['FIELD EXPLANATIONS FOR NEW ITEM TYPES:'],
-                [''],
-                ['Field Name', 'Required?', 'Description', 'Notes'],
-                ['Name', 'YES', 'Item type name', 'Must be unique within the market'],
-                ['Manufacturer', 'NO', 'Item manufacturer', 'Select from dropdown'],
-                ['Part Number', 'NO', 'Manufacturer part number', ''],
-                ['Description', 'NO', 'Detailed description of the item', ''],
-                ['Units per Package', 'YES', 'Number of units in standard package', 'Required - enter 1 if sold individually'],
-                ['Low Units Quantity', 'NO', 'Minimum quantity threshold for alerts', 'Leave blank if not applicable'],
-                ['Inventory Type', 'YES', 'Serialized or Bulk', 'Select from dropdown - determines tracking method'],
-                ['Unit of Measure', 'YES', 'How the item is measured', 'Select from dropdown (e.g., Each, Foot, Roll)'],
-                ['Provider', 'YES', 'Item provider/supplier', 'Select from dropdown'],
-                ['Category', 'YES', 'Item category', 'Select from dropdown (e.g., Cable, Hardware, Equipment)'],
-                [''],
-                ['IMPORTANT NOTES:'],
-                ['• Do not modify the CONTROL sheet or column headers'],
-                ['• Required fields must be filled in for each new item type'],
-                ['• Dropdown values come from your current database'],
-                ['• Invalid values will cause import errors'],
-                ['• Duplicate names within the same market will be rejected']
-            ];
+            addNewItemTypesSheet(workbook, dropdowns);
+            addLookupValuesSheet(workbook, dropdowns);
             
-            controlData.forEach((row, idx) => {
-                controlSheet.addRow(row);
-                if (idx === 0) {
-                    // Title row - bold and larger
-                    controlSheet.getRow(idx + 1).font = { bold: true, size: 14 };
-                } else if (row[0] && row[0].includes(':') && row[0].length < 30) {
-                    // Section headers
-                    controlSheet.getRow(idx + 1).font = { bold: true };
-                }
-            });
-            
-            // ====================
-            // EXISTING ITEM TYPES SHEET
-            // ====================
-            const existingSheet = workbook.addWorksheet('EXISTING_ITEM_TYPES', {
-                views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
-            });
-            
-            // Build data rows array
-            const existingRows = state.itemTypes.map(itemType => {
-                const market = state.markets.find(m => m.id === itemType.market_id);
-                const client = state.clients.find(c => c.id === market?.client_id);
-                const category = state.categories.find(c => c.id === itemType.category_id);
-                const uom = state.unitsOfMeasure?.find(u => u.id === itemType.unit_of_measure_id);
-                const provider = state.providers?.find(p => p.id === itemType.inventory_provider_id);
-                const invType = state.inventoryTypes?.find(it => it.id === itemType.inventory_type_id);
-                
-                return [
-                    itemType.id,
-                    itemType.name,
-                    provider?.name || '',
-                    itemType.part_number || '',
-                    itemType.description || '',
-                    itemType.units_per_package || '',
-                    itemType.low_units_qty || '',
-                    invType?.name || '',
-                    uom?.name || '',
-                    category?.name || '',
-                    market?.name || '',
-                    client?.name || ''
-                ];
-            });
-            
-            // Ensure at least one data row
-            if (existingRows.length === 0) {
-                existingRows.push(['', '', '', '', '', '', '', '', '', '', '', '']);
-            }
-            
-            // Add table with data
-            existingSheet.addTable({
-                name: 'ExistingItemTypes',
-                ref: `A1:L${existingRows.length + 1}`,
-                headerRow: true,
-                style: {
-                    theme: 'TableStyleMedium2',
-                    showRowStripes: true
-                },
-                columns: [
-                    { name: 'Item Type ID' },
-                    { name: 'Name' },
-                    { name: 'Manufacturer' },
-                    { name: 'Part Number' },
-                    { name: 'Description' },
-                    { name: 'Units per Package' },
-                    { name: 'Low Units Quantity' },
-                    { name: 'Inventory Type' },
-                    { name: 'Unit of Measure' },
-                    { name: 'Category' },
-                    { name: 'Current Market' },
-                    { name: 'Current Client' }
-                ],
-                rows: existingRows
-            });
-            
-            // Style header row
-            existingSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-            existingSheet.getRow(1).fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: 'FF4472C4' }
-            };
-            
-            // Set column widths
-            existingSheet.getColumn(1).width = 12;  // Item Type ID
-            existingSheet.getColumn(2).width = 30;  // Name
-            existingSheet.getColumn(3).width = 20;  // Manufacturer
-            existingSheet.getColumn(4).width = 20;  // Part Number
-            existingSheet.getColumn(5).width = 40;  // Description
-            existingSheet.getColumn(6).width = 18;  // Units per Package
-            existingSheet.getColumn(7).width = 18;  // Low Units Quantity
-            existingSheet.getColumn(8).width = 18;  // Inventory Type
-            existingSheet.getColumn(9).width = 18;  // Unit of Measure
-            existingSheet.getColumn(10).width = 20; // Category
-            existingSheet.getColumn(11).width = 25; // Current Market
-            existingSheet.getColumn(12).width = 25; // Current Client
-            
-            // ====================
-            // NEW ITEM TYPES SHEET
-            // ====================
-            const newItemsSheet = workbook.addWorksheet('NEW_ITEM_TYPES', {
-                views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
-            });
-            
-            // Create 20 empty rows
-            const newItemRows = [];
-            for (let i = 0; i < 20; i++) {
-                newItemRows.push(['', '', '', '', '', '', '', '', '', '']);
-            }
-            
-            // Add table with data
-            newItemsSheet.addTable({
-                name: 'NewItemTypes',
-                ref: 'A1:J21',
-                headerRow: true,
-                style: {
-                    theme: 'TableStyleMedium9',
-                    showRowStripes: true
-                },
-                columns: [
-                    { name: 'Name' },
-                    { name: 'Manufacturer' },
-                    { name: 'Part Number' },
-                    { name: 'Description' },
-                    { name: 'Units per Package' },
-                    { name: 'Low Units Quantity' },
-                    { name: 'Inventory Type' },
-                    { name: 'Unit of Measure' },
-                    { name: 'Provider' },
-                    { name: 'Category' }
-                ],
-                rows: newItemRows
-            });
-            
-            // Style headers - red for required, blue for optional
-            const requiredCols = [1, 5, 7, 8, 9, 10]; // Name, Units per Package, Inventory Type, UOM, Provider, Category
-            const optionalCols = [2, 3, 4, 6]; // Manufacturer, Part Number, Description, Low Units Quantity
-            
-            requiredCols.forEach(col => {
-                newItemsSheet.getCell(1, col).fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFFF0000' }
-                };
-                newItemsSheet.getCell(1, col).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-            });
-            
-            optionalCols.forEach(col => {
-                newItemsSheet.getCell(1, col).fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FF4472C4' }
-                };
-                newItemsSheet.getCell(1, col).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-            });
-            
-            // Set column widths
-            newItemsSheet.getColumn(1).width = 30;  // Name
-            newItemsSheet.getColumn(2).width = 20;  // Manufacturer
-            newItemsSheet.getColumn(3).width = 20;  // Part Number
-            newItemsSheet.getColumn(4).width = 40;  // Description
-            newItemsSheet.getColumn(5).width = 18;  // Units per Package
-            newItemsSheet.getColumn(6).width = 18;  // Low Units Quantity
-            newItemsSheet.getColumn(7).width = 18;  // Inventory Type
-            newItemsSheet.getColumn(8).width = 18;  // Unit of Measure
-            newItemsSheet.getColumn(9).width = 20;  // Provider
-            newItemsSheet.getColumn(10).width = 20; // Category
-            
-            // Add data validation
-            for (let i = 2; i <= 21; i++) {
-                // Manufacturer (column B)
-                newItemsSheet.getCell(`B${i}`).dataValidation = {
-                    type: 'list',
-                    allowBlank: false,
-                    formulae: [`"${providers.join(',')}"`],
-                    showErrorMessage: true,
-                    errorTitle: 'Invalid Manufacturer',
-                    error: 'Please select a valid manufacturer from the list'
-                };
-                
-                // Inventory Type (column G)
-                newItemsSheet.getCell(`G${i}`).dataValidation = {
-                    type: 'list',
-                    allowBlank: false,
-                    formulae: [`"${inventoryTypes.join(',')}"`],
-                    showErrorMessage: true,
-                    errorTitle: 'Invalid Inventory Type',
-                    error: 'Please select a valid inventory type from the list'
-                };
-                
-                // Unit of Measure (column H)
-                newItemsSheet.getCell(`H${i}`).dataValidation = {
-                    type: 'list',
-                    allowBlank: false,
-                    formulae: [`"${uoms.join(',')}"`],
-                    showErrorMessage: true,
-                    errorTitle: 'Invalid Unit of Measure',
-                    error: 'Please select a valid unit of measure from the list'
-                };
-                
-                // Provider (column I - duplicate of Manufacturer for backwards compatibility)
-                newItemsSheet.getCell(`I${i}`).dataValidation = {
-                    type: 'list',
-                    allowBlank: false,
-                    formulae: [`"${providers.join(',')}"`],
-                    showErrorMessage: true,
-                    errorTitle: 'Invalid Provider',
-                    error: 'Please select a valid provider from the list'
-                };
-                
-                // Category (column J)
-                newItemsSheet.getCell(`J${i}`).dataValidation = {
-                    type: 'list',
-                    allowBlank: false,
-                    formulae: [`"${categories.join(',')}"`],
-                    showErrorMessage: true,
-                    errorTitle: 'Invalid Category',
-                    error: 'Please select a valid category from the list'
-                };
-            }
-            
-            // ====================
-            // LOOKUP VALUES SHEET
-            // ====================
-            const lookupSheet = workbook.addWorksheet('LOOKUP_VALUES');
-            
-            // Build lookup rows
-            const maxLen = Math.max(
-                categories.length,
-                uoms.length,
-                providers.length,
-                inventoryTypes.length,
-                markets.length,
-                clients.length,
-                1
-            );
-            
-            const lookupRows = [];
-            for (let i = 0; i < maxLen; i++) {
-                lookupRows.push([
-                    categories[i] || '',
-                    uoms[i] || '',
-                    providers[i] || '',
-                    inventoryTypes[i] || '',
-                    markets[i] || '',
-                    clients[i] || '',
-                    i < 2 ? ['TRUE', 'FALSE'][i] : ''
-                ]);
-            }
-            
-            // Add table with data
-            lookupSheet.addTable({
-                name: 'LookupValues',
-                ref: `A1:G${lookupRows.length + 1}`,
-                headerRow: true,
-                style: {
-                    theme: 'TableStyleLight1',
-                    showRowStripes: true
-                },
-                columns: [
-                    { name: 'Categories' },
-                    { name: 'Units of Measure' },
-                    { name: 'Providers' },
-                    { name: 'Inventory Types' },
-                    { name: 'Markets' },
-                    { name: 'Clients' },
-                    { name: 'Allow PDF Options' }
-                ],
-                rows: lookupRows
-            });
-            
-            // Set column widths
-            lookupSheet.getColumn(1).width = 20;
-            lookupSheet.getColumn(2).width = 20;
-            lookupSheet.getColumn(3).width = 20;
-            lookupSheet.getColumn(4).width = 20;
-            lookupSheet.getColumn(5).width = 25;
-            lookupSheet.getColumn(6).width = 25;
-            lookupSheet.getColumn(7).width = 12;
-            
-            // ====================
-            // GENERATE AND DOWNLOAD
-            // ====================
+            // Save file
             const filename = `item_types_import_template_${new Date().toISOString().split('T')[0]}.xlsx`;
-            
-            // Generate buffer and download
-            const buffer = await workbook.xlsx.writeBuffer();
-            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            link.click();
-            window.URL.revokeObjectURL(url);
+            await saveWorkbook(workbook, filename);
             
             Components.showToast('Item Types template downloaded successfully', 'success');
         } catch (error) {
@@ -1110,6 +920,7 @@ const ImportExportService = (() => {
     const generateInventoryUpdateTemplate = async () => {
         try {
             const state = Store.getState();
+            const helpers = window.ExportHelpers;
             const selectedSloc = state.selectedSloc;
             
             if (!selectedSloc) {
@@ -1117,430 +928,43 @@ const ImportExportService = (() => {
                 return;
             }
             
-            // Create workbook using ExcelJS
+            // Create workbook
             const workbook = new ExcelJS.Workbook();
             workbook.creator = state.user?.email || 'Inventory System';
             workbook.created = new Date();
             
-            // Filter inventory to selected SLOC
+            // Filter and categorize inventory
             const slocInventory = state.inventory.filter(inv => inv.sloc_id === selectedSloc.id);
-            
-            // Separate serialized and bulk inventory
             const serializedInventory = slocInventory.filter(inv => {
                 const itemType = state.itemTypes.find(it => it.id === inv.item_type_id);
-                return itemType && itemType.inventory_type_id === 1; // Serialized
+                return itemType && itemType.inventory_type_id === 1;
             });
-            
             const bulkInventory = slocInventory.filter(inv => {
                 const itemType = state.itemTypes.find(it => it.id === inv.item_type_id);
-                return itemType && itemType.inventory_type_id === 2; // Bulk
+                return itemType && itemType.inventory_type_id === 2;
             });
             
-            // Calculate summary statistics
-            const totalSerializedItems = serializedInventory.length;
-            const totalBulkItems = bulkInventory.length;
-            const totalBulkQuantity = bulkInventory.reduce((sum, inv) => sum + (inv.quantity || 0), 0);
+            // Calculate summary
+            const summary = helpers.calculateInventorySummary(serializedInventory, bulkInventory, state);
             
-            // Get status counts
-            const availableStatus = state.statuses?.find(s => s.name === 'Available');
-            const issuedStatus = state.statuses?.find(s => s.name === 'Issued');
-            const installedStatus = state.statuses?.find(s => s.name === 'Installed');
-            const rejectedStatus = state.statuses?.find(s => s.name === 'Rejected');
+            // Add sheets
+            const instructions = helpers.getInventoryUpdateInstructions(state, selectedSloc, summary);
+            addTemplateControlSheet(workbook, instructions);
             
-            const serializedAvailable = serializedInventory.filter(inv => inv.status_id === availableStatus?.id).length;
-            const serializedIssued = serializedInventory.filter(inv => inv.status_id === issuedStatus?.id).length;
-            const serializedInstalled = serializedInventory.filter(inv => inv.status_id === installedStatus?.id).length;
-            const serializedRejected = serializedInventory.filter(inv => inv.status_id === rejectedStatus?.id).length;
+            const serializedRows = serializedInventory.map(inv => helpers.serializedInventoryToRow(inv, state));
+            addSerializedInventorySheet(workbook, serializedRows);
             
-            const bulkAvailable = bulkInventory.filter(inv => inv.status_id === availableStatus?.id).reduce((sum, inv) => sum + (inv.quantity || 0), 0);
-            const bulkIssued = bulkInventory.filter(inv => inv.status_id === issuedStatus?.id).reduce((sum, inv) => sum + (inv.quantity || 0), 0);
-            const bulkInstalled = bulkInventory.filter(inv => inv.status_id === installedStatus?.id).reduce((sum, inv) => sum + (inv.quantity || 0), 0);
-            const bulkRejected = bulkInventory.filter(inv => inv.status_id === rejectedStatus?.id).reduce((sum, inv) => sum + (inv.quantity || 0), 0);
+            const bulkRows = bulkInventory.map(inv => helpers.bulkInventoryToRow(inv, state));
+            addBulkInventorySheet(workbook, bulkRows);
             
-            // ====================
-            // CONTROL SHEET
-            // ====================
-            const controlSheet = workbook.addWorksheet('CONTROL', {
-                views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
-            });
+            addNewInventorySheet(workbook, state, selectedSloc);
             
-            controlSheet.columns = [
-                { width: 30 },
-                { width: 20 },
-                { width: 50 }
-            ];
-            
-            // Add control data
-            const controlRows = [
-                ['INVENTORY UPDATE TEMPLATE'],
-                [''],
-                ['Generated:', new Date().toLocaleString()],
-                ['User:', state.user?.email || 'Unknown'],
-                ['SLOC:', selectedSloc.name],
-                ['Market:', state.markets.find(m => m.id === selectedSloc.market_id)?.name || 'Unknown'],
-                ['Client:', state.clients.find(c => {
-                    const market = state.markets.find(m => m.id === selectedSloc.market_id);
-                    return market && c.id === market.client_id;
-                })?.name || 'Unknown'],
-                [''],
-                ['INVENTORY SUMMARY FOR THIS SLOC:'],
-                [''],
-                ['Serialized Items:'],
-                ['  Total Items', totalSerializedItems],
-                ['  Available', serializedAvailable],
-                ['  Issued', serializedIssued],
-                ['  Installed', serializedInstalled],
-                ['  Rejected', serializedRejected],
-                [''],
-                ['Bulk Items:'],
-                ['  Total Items', totalBulkItems],
-                ['  Total Quantity', totalBulkQuantity],
-                ['  Available', bulkAvailable],
-                ['  Issued', bulkIssued],
-                ['  Installed', bulkInstalled],
-                ['  Rejected', bulkRejected],
-                [''],
-                ['INSTRUCTIONS:'],
-                [''],
-                ['This template has four sheets:'],
-                [''],
-                ['1. CONTROL (this sheet)'],
-                ['   - Summary statistics and instructions'],
-                ['   - Read-only reference information'],
-                [''],
-                ['2. SERIALIZED_INVENTORY'],
-                ['   - One row per serialized item (with serial numbers)'],
-                ['   - ONLY EDIT THE QUANTITY COLUMN (highlighted in yellow)'],
-                ['   - Quantity for serialized items is typically 1'],
-                ['   - Use this sheet to update quantities for serialized items'],
-                [''],
-                ['3. BULK_INVENTORY'],
-                ['   - One row per bulk inventory record'],
-                ['   - ONLY EDIT THE QUANTITY COLUMN (highlighted in yellow)'],
-                ['   - Update quantities as needed for bulk materials'],
-                [''],
-                ['4. NEW_INVENTORY'],
-                ['   - Add new inventory items (not quantity adjustments)'],
-                ['   - Required columns: Name, Location, Quantity, Status'],
-                ['   - Optional columns: mfgrSN, tilsonSN (for serialized items)'],
-                ['   - Name must match an existing Item Type'],
-                ['   - Location and Status must match existing records'],
-                [''],
-                ['IMPORTANT NOTES:'],
-                [''],
-                ['• Each row includes an ID field - DO NOT MODIFY THIS'],
-                ['• Only the Quantity column (highlighted yellow) should be edited'],
-                ['• All other columns are for reference only'],
-                ['• After editing, save and import this file back into the system'],
-                ['• Changes will update the corresponding inventory records by ID'],
-                [''],
-                ['FILTERED DATA:'],
-                ['• This template only includes inventory for the selected SLOC'],
-                ['• Serialized items shown: items currently in Manage Serialized Items view'],
-                ['• Bulk items shown: items currently in Manage Bulk Items view']
-            ];
-            
-            controlRows.forEach((row, idx) => {
-                const excelRow = controlSheet.getRow(idx + 1);
-                excelRow.values = row;
-                
-                // Bold headers
-                if (idx === 0 || row[0]?.includes(':') || row[0]?.includes('SUMMARY') || 
-                    row[0]?.includes('INSTRUCTIONS') || row[0]?.includes('NOTES') || row[0]?.includes('FILTERED')) {
-                    excelRow.font = { bold: true };
-                }
-            });
-            
-            // ====================
-            // SERIALIZED INVENTORY SHEET
-            // ====================
-            const serializedSheet = workbook.addWorksheet('SERIALIZED_INVENTORY', {
-                views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
-            });
-            
-            // Build serialized data rows
-            const serializedRows = serializedInventory.map(inv => {
-                const itemType = state.itemTypes.find(it => it.id === inv.item_type_id);
-                const status = state.statuses.find(s => s.id === inv.status_id);
-                const location = state.locations.find(l => l.id === inv.location_id);
-                const locationType = location ? state.locationTypes?.find(lt => lt.id === location.location_type_id) : null;
-                const crew = inv.assigned_crew_id ? state.crews.find(c => c.id === inv.assigned_crew_id) : null;
-                const area = inv.area_id ? state.areas?.find(a => a.id === inv.area_id) : null;
-                const category = itemType?.category_id ? state.categories.find(c => c.id === itemType.category_id) : null;
-                
-                return [
-                    inv.id,
-                    itemType?.name || '',
-                    category?.name || '',
-                    inv.mfgrsn || '',
-                    inv.tilsonsn || '',
-                    inv.quantity || 1,
-                    status?.name || '',
-                    location?.name || '',
-                    locationType?.name || '',
-                    crew?.name || '',
-                    area?.name || ''
-                ];
-            });
-            
-            // Ensure at least one data row
-            if (serializedRows.length === 0) {
-                serializedRows.push(['', '', '', '', '', '', '', '', '', '', '']);
-            }
-            
-            // Add table
-            serializedSheet.addTable({
-                name: 'SerializedInventory',
-                ref: `A1:K${serializedRows.length + 1}`,
-                headerRow: true,
-                style: {
-                    theme: 'TableStyleMedium2',
-                    showRowStripes: true
-                },
-                columns: [
-                    { name: 'ID' },
-                    { name: 'Item Type' },
-                    { name: 'Category' },
-                    { name: 'Manufacturer SN' },
-                    { name: 'Tilson SN' },
-                    { name: 'Quantity' },
-                    { name: 'Status' },
-                    { name: 'Location' },
-                    { name: 'Location Type' },
-                    { name: 'Crew' },
-                    { name: 'Area' }
-                ],
-                rows: serializedRows
-            });
-            
-            // Set column widths
-            serializedSheet.getColumn(1).width = 10;  // ID
-            serializedSheet.getColumn(2).width = 30;  // Item Type
-            serializedSheet.getColumn(3).width = 15;  // Category
-            serializedSheet.getColumn(4).width = 20;  // Manufacturer SN
-            serializedSheet.getColumn(5).width = 20;  // Tilson SN
-            serializedSheet.getColumn(6).width = 12;  // Quantity
-            serializedSheet.getColumn(7).width = 15;  // Status
-            serializedSheet.getColumn(8).width = 20;  // Location
-            serializedSheet.getColumn(9).width = 15;  // Location Type
-            serializedSheet.getColumn(10).width = 20; // Crew
-            serializedSheet.getColumn(11).width = 20; // Area
-            
-            // Highlight Quantity column (column F/6) with yellow background
-            serializedSheet.getColumn(6).eachCell({ includeEmpty: false }, (cell, rowNumber) => {
-                if (rowNumber > 1) { // Skip header
-                    cell.fill = {
-                        type: 'pattern',
-                        pattern: 'solid',
-                        fgColor: { argb: 'FFFFFF00' } // Yellow
-                    };
-                }
-            });
-            
-            // Make header row bold and colored
-            const serializedHeaderRow = serializedSheet.getRow(1);
-            serializedHeaderRow.font = { bold: true };
-            serializedHeaderRow.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: 'FF4472C4' } // Blue
-            };
-            serializedHeaderRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-            
-            // ====================
-            // BULK INVENTORY SHEET
-            // ====================
-            const bulkSheet = workbook.addWorksheet('BULK_INVENTORY', {
-                views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
-            });
-            
-            // Build bulk data rows
-            const bulkRows = bulkInventory.map(inv => {
-                const itemType = state.itemTypes.find(it => it.id === inv.item_type_id);
-                const status = state.statuses.find(s => s.id === inv.status_id);
-                const location = state.locations.find(l => l.id === inv.location_id);
-                const locationType = location ? state.locationTypes?.find(lt => lt.id === location.location_type_id) : null;
-                const crew = inv.assigned_crew_id ? state.crews.find(c => c.id === inv.assigned_crew_id) : null;
-                const area = inv.area_id ? state.areas?.find(a => a.id === inv.area_id) : null;
-                const category = itemType?.category_id ? state.categories.find(c => c.id === itemType.category_id) : null;
-                const uom = itemType?.unit_of_measure_id ? state.unitsOfMeasure?.find(u => u.id === itemType.unit_of_measure_id) : null;
-                
-                return [
-                    inv.id,
-                    itemType?.name || '',
-                    category?.name || '',
-                    itemType?.part_number || '',
-                    inv.quantity || 0,
-                    uom?.name || '',
-                    status?.name || '',
-                    location?.name || '',
-                    locationType?.name || '',
-                    crew?.name || '',
-                    area?.name || ''
-                ];
-            });
-            
-            // Ensure at least one data row
-            if (bulkRows.length === 0) {
-                bulkRows.push(['', '', '', '', '', '', '', '', '', '', '']);
-            }
-            
-            // Add table
-            bulkSheet.addTable({
-                name: 'BulkInventory',
-                ref: `A1:K${bulkRows.length + 1}`,
-                headerRow: true,
-                style: {
-                    theme: 'TableStyleMedium2',
-                    showRowStripes: true
-                },
-                columns: [
-                    { name: 'ID' },
-                    { name: 'Item Type' },
-                    { name: 'Category' },
-                    { name: 'Part Number' },
-                    { name: 'Quantity' },
-                    { name: 'Unit of Measure' },
-                    { name: 'Status' },
-                    { name: 'Location' },
-                    { name: 'Location Type' },
-                    { name: 'Crew' },
-                    { name: 'Area' }
-                ],
-                rows: bulkRows
-            });
-            
-            // Set column widths
-            bulkSheet.getColumn(1).width = 10;  // ID
-            bulkSheet.getColumn(2).width = 30;  // Item Type
-            bulkSheet.getColumn(3).width = 15;  // Category
-            bulkSheet.getColumn(4).width = 20;  // Part Number
-            bulkSheet.getColumn(5).width = 12;  // Quantity
-            bulkSheet.getColumn(6).width = 15;  // Unit of Measure
-            bulkSheet.getColumn(7).width = 15;  // Status
-            bulkSheet.getColumn(8).width = 20;  // Location
-            bulkSheet.getColumn(9).width = 15;  // Location Type
-            bulkSheet.getColumn(10).width = 20; // Crew
-            bulkSheet.getColumn(11).width = 20; // Area
-            
-            // Highlight Quantity column (column E/5) with yellow background
-            bulkSheet.getColumn(5).eachCell({ includeEmpty: false }, (cell, rowNumber) => {
-                if (rowNumber > 1) { // Skip header
-                    cell.fill = {
-                        type: 'pattern',
-                        pattern: 'solid',
-                        fgColor: { argb: 'FFFFFF00' } // Yellow
-                    };
-                }
-            });
-            
-            // Make header row bold and colored
-            const bulkHeaderRow = bulkSheet.getRow(1);
-            bulkHeaderRow.font = { bold: true };
-            bulkHeaderRow.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: 'FF4472C4' } // Blue
-            };
-            bulkHeaderRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-            
-            // ====================
-            // NEW INVENTORY SHEET
-            // ====================
-            const newInventorySheet = workbook.addWorksheet('NEW_INVENTORY', {
-                views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
-            });
-            
-            // Build empty row for template
-            const newInventoryRows = [
-                ['', '', '', '', '', '', '', ''] // Empty template row
-            ];
-            
-            // Add table
-            newInventorySheet.addTable({
-                name: 'NewInventory',
-                ref: `A1:H${newInventoryRows.length + 1}`,
-                headerRow: true,
-                style: {
-                    theme: 'TableStyleMedium2',
-                    showRowStripes: true
-                },
-                columns: [
-                    { name: 'Name' },
-                    { name: 'Location' },
-                    { name: 'Area' },
-                    { name: 'Crew' },
-                    { name: 'mfgrSN' },
-                    { name: 'tilsonSN' },
-                    { name: 'Quantity' },
-                    { name: 'Status' }
-                ],
-                rows: newInventoryRows
-            });
-            
-            // Set column widths
-            newInventorySheet.getColumn(1).width = 30;  // Name
-            newInventorySheet.getColumn(2).width = 25;  // Location
-            newInventorySheet.getColumn(3).width = 20;  // Area
-            newInventorySheet.getColumn(4).width = 20;  // Crew
-            newInventorySheet.getColumn(5).width = 20;  // mfgrSN
-            newInventorySheet.getColumn(6).width = 20;  // tilsonSN
-            newInventorySheet.getColumn(7).width = 12;  // Quantity
-            newInventorySheet.getColumn(8).width = 15;  // Status
-            
-            // Highlight required columns (Name, Location, Quantity, Status) with light red
-            [1, 2, 7, 8].forEach(colNum => {
-                newInventorySheet.getColumn(colNum).eachCell({ includeEmpty: false }, (cell, rowNumber) => {
-                    if (rowNumber > 1) { // Skip header
-                        cell.fill = {
-                            type: 'pattern',
-                            pattern: 'solid',
-                            fgColor: { argb: 'FFFFEEEE' } // Light red for required
-                        };
-                    }
-                });
-            });
-            
-            // Highlight optional columns (Area, Crew, mfgrSN, tilsonSN) with light blue
-            [3, 4, 5, 6].forEach(colNum => {
-                newInventorySheet.getColumn(colNum).eachCell({ includeEmpty: false }, (cell, rowNumber) => {
-                    if (rowNumber > 1) { // Skip header
-                        cell.fill = {
-                            type: 'pattern',
-                            pattern: 'solid',
-                            fgColor: { argb: 'FFEEEEFF' } // Light blue for optional
-                        };
-                    }
-                });
-            });
-            
-            // Make header row bold and colored
-            const newInventoryHeaderRow = newInventorySheet.getRow(1);
-            newInventoryHeaderRow.font = { bold: true };
-            newInventoryHeaderRow.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: 'FF4472C4' } // Blue
-            };
-            newInventoryHeaderRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-            
-            // ====================
-            // GENERATE AND DOWNLOAD
-            // ====================
+            // Save file
             const timestamp = new Date().toISOString().split('T')[0];
             const filename = `inventory_update_template_${selectedSloc.name.replace(/[^a-z0-9]/gi, '_')}_${timestamp}.xlsx`;
+            await saveWorkbook(workbook, filename);
             
-            // Generate buffer and download
-            const buffer = await workbook.xlsx.writeBuffer();
-            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            link.click();
-            window.URL.revokeObjectURL(url);
-            
-            Components.showToast(`Inventory update template downloaded (${totalSerializedItems} serialized, ${totalBulkItems} bulk items)`, 'success');
+            Components.showToast(`Inventory update template downloaded (${summary.totalSerializedItems} serialized, ${summary.totalBulkItems} bulk items)`, 'success');
         } catch (error) {
             console.error('Template generation error:', error);
             Components.showToast('Failed to generate inventory update template: ' + error.message, 'error');
