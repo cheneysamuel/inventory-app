@@ -34,6 +34,31 @@ const AuthService = (() => {
         }
     };
     
+    // Login with OAuth (Microsoft/Azure)
+    const loginWithOAuth = async (provider = 'azure', options = {}) => {
+        try {
+            const defaultOptions = {
+                redirectTo: window.location.origin + '/index.html',
+                scopes: 'email profile'
+            };
+            
+            const { data, error } = await Database.getClient().auth.signInWithOAuth({
+                provider,
+                options: { ...defaultOptions, ...options }
+            });
+            
+            if (error) {
+                return Result.error(error.message);
+            }
+            
+            // OAuth redirects, so we won't reach here on success
+            return Result.ok(data);
+        } catch (error) {
+            console.error('OAuth login exception:', error);
+            return Result.error(error.message);
+        }
+    };
+    
     // Logout
     const logout = async () => {
         try {
@@ -233,6 +258,7 @@ const AuthService = (() => {
     
     return {
         login,
+        loginWithOAuth,
         logout,
         isAuthenticated,
         getCurrentUser,
