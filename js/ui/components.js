@@ -230,11 +230,18 @@ const Components = (() => {
     };
     
     // Page header
-    const pageHeader = (title, subtitle = '', actions = []) => {
+    const pageHeader = (title, subtitle = '', actions = [], showContext = true) => {
+        const state = Store.getState();
+        const context = [
+            state.selectedClient?.name,
+            state.selectedMarket?.name,
+            state.selectedSloc?.name
+        ].filter(Boolean).join(' - ');
+
         const header = div({ className: 'page-header mb-3' }, [
             div({ className: 'd-flex justify-between align-center' }, [
                 div({}, [
-                    h2(title),
+                    h2(showContext && context ? `${title} - ${context}` : title),
                     subtitle ? p(subtitle, { className: 'text-muted' }) : null
                 ].filter(Boolean)),
                 actions.length > 0 ? div({ className: 'd-flex gap-2' }, actions) : null
