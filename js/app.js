@@ -569,9 +569,10 @@ async function loadApplication() {
             }
         }
         
-        // Reload inventory lists when SLOC changes
+        // Reload SLOC-scoped operational data when the context changes.
         if (changes.selectedSloc) {
             reloadInventoryLists();
+            reloadTransactions();
         }
     });
 }
@@ -999,6 +1000,34 @@ async function reloadInventoryLists() {
         if (['receive-serialized', 'receive-bulk', 'inventory-view'].includes(currentView)) {
             Views.render(currentView);
         }
+    }
+}
+
+// Reload transaction history for the selected SLOC and refresh views that display it.
+async function reloadTransactions() {
+    const selectedSloc = Store.get('selectedSloc');
+
+    if (!selectedSloc) {
+        Store.setState({ transactions: [] });
+        return;
+    }
+
+    const transactionsResult = await Queries.getTransactionsBySloc(selectedSloc.name);
+    if (!transactionsResult.isOk) {
+        console.error('Failed to load transactions for SLOC:', transactionsResult.error);
+        return;
+    }
+
+    // Ignore a completed request for a SLOC that is no longer selected.
+    if (Store.get('selectedSloc')?.id !== selectedSloc.id) {
+        return;
+    }
+
+    Store.setState({ transactions: transactionsResult.value });
+
+    const currentView = Store.get('currentView');
+    if (currentView === 'transactions' || currentView === 'dashboard') {
+        Views.render(currentView);
     }
 }
 
