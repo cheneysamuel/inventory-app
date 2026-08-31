@@ -548,6 +548,9 @@ async function executeIssueAction(items, assignments, action) {
             
             if (edgeResult.isOk) {
                 console.log('✅ [executeIssueAction] Edge function succeeded for serialized items:', edgeResult.value);
+                if (edgeResult.value.transactionFailureCount) {
+                    console.error(`Serialized issue completed with ${edgeResult.value.transactionFailureCount} transaction logging failure(s). Check the issue-serialized-inventory edge function logs.`);
+                }
             } else {
                 console.warn('⚠️ [executeIssueAction] Edge function failed, falling back to direct updates:', edgeResult.error);
                 // Fallback: process serialized items with direct DB calls
@@ -1074,6 +1077,8 @@ async function executeReturnMaterialAction(items, options = {}) {
             const responseData = edgeResult.value?.data || edgeResult.value;
             const successCount = responseData?.successCount || items.length;
             const failCount = responseData?.failCount || 0;
+
+            await verifyTransactionCreated(returnItems.map(item => item.inventory_id));
             
             if (failCount > 0) {
                 Components.showToast(`Returned ${successCount} item(s), ${failCount} failed`, 'warning');
