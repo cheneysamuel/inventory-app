@@ -310,10 +310,31 @@ function clearReceiveForm() {
 
 // Helper function to refresh transactions list
 async function refreshTransactionsList() {
-    // Use Transactions service which automatically uses edge functions when available
-    const transactionsResult = await Transactions.getRecent(100);
+    // Use the transaction service, which uses the edge function when available.
+    console.log('Refreshing transaction list after inventory action');
+    const transactionsResult = await TransactionService.getRecent(100);
     if (transactionsResult.isOk) {
         Store.setState({ transactions: transactionsResult.value });
+        console.log(`Transaction refresh completed: ${transactionsResult.value.length} record(s) returned`);
+    } else {
+        console.error('Transaction refresh failed:', transactionsResult.error);
+    }
+}
+
+async function verifyTransactionCreated(inventoryIds) {
+    for (const inventoryId of inventoryIds) {
+        const result = await TransactionService.getHistory(inventoryId, 1);
+        if (!result.isOk) {
+            console.error(`Transaction verification failed for inventory ${inventoryId}:`, result.error);
+            continue;
+        }
+
+        const transaction = result.value[0];
+        if (transaction?.inventory_id === inventoryId) {
+            console.log(`Transaction verified for inventory ${inventoryId}:`, transaction);
+        } else {
+            console.error(`No transaction was created for inventory ${inventoryId}. The return-inventory edge function must insert into transactions or call log-transaction.`);
+        }
     }
 }
 
@@ -642,6 +663,7 @@ function enableClientInlineEdit(row, client, state) {
 
     // Transactions
     window.refreshTransactionsList = refreshTransactionsList;
+    window.verifyTransactionCreated = verifyTransactionCreated;
 
     // Crew management
     window.deleteCrewRecord = deleteCrewRecord;
