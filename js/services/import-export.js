@@ -412,7 +412,7 @@ const ImportExportService = (() => {
         
         ws.addTable({
             name: 'TransactionsTable',
-            ref: `A1:AK${rows.length + 1}`,
+            ref: `A1:AC${rows.length + 1}`,
             headerRow: true,
             totalsRow: false,
             style: { theme: 'TableStyleMedium9', showRowStripes: true },
@@ -421,9 +421,9 @@ const ImportExportService = (() => {
         });
         
         ws.getColumn(1).width = 8;   // ID
-        ws.getColumn(2).width = 20;  // Date/Time
-        ws.getColumn(10).width = 25; // Item Type
-        ws.getColumn(32).width = 40; // Notes
+        ws.getColumn(2).width = 12;  // Inventory ID
+        ws.getColumn(5).width = 25;  // Item Type
+        ws.getColumn(26).width = 40; // Notes
     };
     
     const addEmptySheet = (workbook, sheetName, message) => {
@@ -837,11 +837,26 @@ const ImportExportService = (() => {
         try {
             const state = Store.getState();
             const helpers = window.ExportHelpers;
+
+            // Exports require the complete audit history rather than the 100-row UI cache.
+            const transactionsResult = await Queries.getAllTransactions(null);
+            if (!transactionsResult.isOk) {
+                throw new Error(transactionsResult.error || 'Unable to load transaction history');
+            }
+            const inventoryResult = await Queries.getAllInventory();
+            if (!inventoryResult.isOk) {
+                throw new Error(inventoryResult.error || 'Unable to load inventory for transaction enrichment');
+            }
+            const exportState = {
+                ...state,
+                inventory: inventoryResult.value,
+                transactions: transactionsResult.value
+            };
             
             // Filter data using hierarchy
-            const validSlocIds = helpers.buildValidSlocIds(state, filters);
-            const filteredInventory = helpers.filterInventory(state, filters, validSlocIds);
-            const filteredTransactions = helpers.filterTransactions(state, filters, validSlocIds);
+            const validSlocIds = helpers.buildValidSlocIds(exportState, filters);
+            const filteredInventory = helpers.filterInventory(exportState, filters, validSlocIds);
+            const filteredTransactions = helpers.filterTransactions(exportState, filters, validSlocIds);
             
             // Create workbook
             const workbook = new ExcelJS.Workbook();
@@ -851,7 +866,7 @@ const ImportExportService = (() => {
             
             // Add INVENTORY sheet
             if (filteredInventory.length > 0) {
-                const enriched = filteredInventory.map(item => helpers.enrichInventoryItem(item, state));
+                const enriched = filteredInventory.map(item => helpers.enrichInventoryItem(item, exportState));
                 const rows = enriched.map(item => helpers.inventoryItemToExportRow(item));
                 addInventorySheet(workbook, rows);
             } else {
@@ -859,11 +874,11 @@ const ImportExportService = (() => {
             }
             
             // Add ITEM_TYPES sheet
-            addItemTypesSheet(workbook, state);
+            addItemTypesSheet(workbook, exportState);
             
             // Add TRANSACTIONS sheet
             if (filteredTransactions.length > 0) {
-                const rows = filteredTransactions.map(tx => helpers.transactionToExportRow(tx, state));
+                const rows = filteredTransactions.map(tx => helpers.transactionToExportRow(tx, exportState));
                 addTransactionsSheet(workbook, rows);
             } else {
                 addEmptySheet(workbook, 'TRANSACTIONS', 'No transaction records match the selected filters');
