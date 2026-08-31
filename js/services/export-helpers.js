@@ -177,14 +177,35 @@
         }
     }
 
+    function parseTransactionState(transactionState) {
+        try {
+            return typeof transactionState === 'string'
+                ? JSON.parse(transactionState)
+                : (transactionState || {});
+        } catch (e) {
+            return {};
+        }
+    }
+
     /**
      * Convert transaction to export row array
      */
     function transactionToExportRow(tx, state) {
         const userObj = parseTransactionUser(tx);
-        const itemType = state.itemTypes.find(it => it.name === tx.item_type_name);
+        const beforeState = parseTransactionState(tx.before_state);
+        const afterState = parseTransactionState(tx.after_state);
+        const linkedInventory = !tx.inventory_type_name && tx.inventory_id
+            ? state.inventory.find(item => item.id === tx.inventory_id)
+            : null;
+        const itemType = linkedInventory
+            ? state.itemTypes.find(it => it.id === linkedInventory.item_type_id)
+            : state.itemTypes.find(it => it.name === tx.item_type_name);
         const category = itemType ? state.categories.find(c => c.id === itemType.category_id) : null;
         const inventoryType = itemType ? state.inventoryTypes.find(it => it.id === itemType.inventory_type_id) : null;
+        const status = linkedInventory ? state.statuses.find(s => s.id === linkedInventory.status_id) : null;
+        const location = linkedInventory ? state.locations.find(l => l.id === linkedInventory.location_id) : null;
+        const crew = linkedInventory ? state.crews.find(c => c.id === linkedInventory.assigned_crew_id) : null;
+        const area = linkedInventory ? state.areas.find(a => a.id === linkedInventory.area_id) : null;
         const fromLocation = state.locations.find(l => l.name === tx.from_location_name);
         const toLocation = state.locations.find(l => l.name === tx.to_location_name);
         const fromLocationType = fromLocation ? state.locationTypes.find(lt => lt.id === fromLocation.loc_type_id) : null;
@@ -192,25 +213,26 @@
         
         return [
             tx.id,
+            tx.inventory_id || '',
             tx.transaction_type || '',
             tx.action || '',
-            tx.item_type_name || '',
+            tx.item_type_name || itemType?.name || '',
             category?.name || '',
-            inventoryType?.name || '',
-            tx.quantity || '',
+            tx.inventory_type_name || inventoryType?.name || '',
+            tx.quantity ?? linkedInventory?.quantity ?? '',
             tx.old_quantity || '',
-            tx.mfgrsn || '',
-            tx.tilsonsn || '',
+            tx.mfgrsn || afterState.mfgrsn || beforeState.mfgrsn || linkedInventory?.mfgrsn || '',
+            tx.tilsonsn || afterState.tilsonsn || beforeState.tilsonsn || linkedInventory?.tilsonsn || '',
             tx.sloc || '',
-            tx.from_location_name || '',
+            tx.from_location_name || location?.name || '',
             fromLocationType?.name || '',
             tx.to_location_name || '',
             toLocationType?.name || '',
             tx.old_status_name || '',
-            tx.status_name || '',
-            tx.assigned_crew_name || '',
+            tx.status_name || status?.name || '',
+            tx.assigned_crew_name || crew?.name || '',
             tx.old_assigned_crew_name || '',
-            tx.area_name || '',
+            tx.area_name || area?.name || '',
             tx.old_area_name || '',
             userObj?.name || tx.user_name || '',
             userObj?.email || '',
@@ -281,6 +303,7 @@
 
     const TRANSACTION_COLUMNS = [
         { name: 'ID', header: 'ID', key: 'id', width: 10 },
+        { name: 'Inventory ID', header: 'Inventory ID', key: 'inventory_id', width: 12 },
         { name: 'Type', header: 'Type', key: 'type', width: 15 },
         { name: 'Action', header: 'Action', key: 'action', width: 15 },
         { name: 'Item Type', header: 'Item Type', key: 'item_type', width: 40 },
@@ -630,6 +653,7 @@
         enrichInventoryItem,
         inventoryItemToExportRow,
         transactionToExportRow,
+        parseTransactionState,
         
         // Utilities
         generateExportFilename,
