@@ -84,6 +84,9 @@ async function processSerializedReceive() {
                 console.log('✅ Edge function succeeded:', edgeResult.value);
                 successCount = edgeResult.value.successCount || 0;
                 failCount = edgeResult.value.failCount || 0;
+                if (edgeResult.value.transactionFailureCount) {
+                    console.error(`Serialized receive completed with ${edgeResult.value.transactionFailureCount} transaction logging failure(s). Check the receive-serialized-inventory edge function logs.`);
+                }
             } else {
                 console.warn('⚠️ Edge function failed, falling back to direct insert:', edgeResult.error);
                 // Fallback to direct insert
