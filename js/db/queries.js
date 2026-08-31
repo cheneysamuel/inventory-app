@@ -428,12 +428,48 @@ const Queries = (() => {
     };
     
     // Transactions
-    const getAllTransactions = async (limit = 100) => {
-        return await Database.select('transactions', {
-            order: { column: 'date_time', ascending: false },
-            limit: limit
-        });
+    const getTransactions = async (filter = null, limit = 100) => {
+        const options = {
+            order: { column: 'date_time', ascending: false }
+        };
+
+        if (filter) {
+            options.filter = filter;
+        }
+
+        if (limit !== null) {
+            options.limit = limit;
+            return await Database.select('transactions', options);
+        }
+
+        const pageSize = 1000;
+        const transactions = [];
+        let offset = 0;
+
+        while (true) {
+            const result = await Database.select('transactions', {
+                ...options,
+                range: { from: offset, to: offset + pageSize - 1 }
+            });
+
+            if (!result.isOk) {
+                return result;
+            }
+
+            transactions.push(...result.value);
+            if (result.value.length < pageSize) {
+                return Result.ok(transactions);
+            }
+
+            offset += pageSize;
+        }
     };
+
+    const getAllTransactions = async (limit = 100) =>
+        await getTransactions(null, limit);
+
+    const getTransactionsBySloc = async (slocName, limit = null) =>
+        await getTransactions({ sloc: slocName }, limit);
     
     const getTransactionsByInventory = async (inventoryId, limit = 50) => {
         return await Database.select('transactions', {
@@ -623,6 +659,7 @@ const Queries = (() => {
         
         // Transactions
         getAllTransactions,
+        getTransactionsBySloc,
         getTransactionsByInventory,
         createTransaction,
         
